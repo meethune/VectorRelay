@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Shield, TrendingUp, Search, Filter } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, TrendingUp, Filter } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ThreatList from './components/ThreatList';
 import ThreatDetail from './components/ThreatDetail';

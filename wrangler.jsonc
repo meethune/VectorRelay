@@ -10,7 +10,7 @@
     {
       "binding": "DB",
       "database_name": "threat-intel-db",
-      "database_id": "YOUR_D1_DATABASE_ID"
+      "database_id": "fa9eb5bd-20bf-480d-baf2-567d18f171d1"
     }
   ],
 
@@ -31,8 +31,8 @@
   "kv_namespaces": [
     {
       "binding": "CACHE",
-      "id": "YOUR_KV_NAMESPACE_ID",
-      "preview_id": "YOUR_KV_PREVIEW_ID"
+      "id": "7c283ec5b00d4076ae42f5f995015fbf",
+      "preview_id": "475ea316d57c49c7bbc885f1ff331e19"
     }
   ],
 
@@ -44,21 +44,8 @@
     }
   ],
 
-  // Scheduled triggers for feed ingestion
-  "triggers": {
-    "crons": [
-      "0 */6 * * *"  // Every 6 hours
-    ]
-  },
-
   // Environment variables (use wrangler secret for sensitive data)
   "vars": {
     "ENVIRONMENT": "production"
-  },
-
-  // Enable observability
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1
   }
 }
