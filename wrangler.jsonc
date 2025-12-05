@@ -1,0 +1,64 @@
+// Cloudflare Pages + Functions Configuration
+{
+  "name": "threat-intel-dashboard",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2025-03-07",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // D1 Database binding
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "threat-intel-db",
+      "database_id": "YOUR_D1_DATABASE_ID"
+    }
+  ],
+
+  // Vectorize for semantic search
+  "vectorize": [
+    {
+      "binding": "VECTORIZE_INDEX",
+      "index_name": "threat-embeddings"
+    }
+  ],
+
+  // Workers AI binding
+  "ai": {
+    "binding": "AI"
+  },
+
+  // KV for caching and rate limiting
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "YOUR_KV_NAMESPACE_ID",
+      "preview_id": "YOUR_KV_PREVIEW_ID"
+    }
+  ],
+
+  // Analytics Engine for trend data
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "threat_metrics"
+    }
+  ],
+
+  // Scheduled triggers for feed ingestion
+  "triggers": {
+    "crons": [
+      "0 */6 * * *"  // Every 6 hours
+    ]
+  },
+
+  // Environment variables (use wrangler secret for sensitive data)
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
+
+  // Enable observability
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
