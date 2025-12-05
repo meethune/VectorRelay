@@ -30,16 +30,16 @@ interface DashboardStats {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  ransomware: '#ef4444',
-  apt: '#dc2626',
-  vulnerability: '#f59e0b',
-  phishing: '#eab308',
-  malware: '#f97316',
-  data_breach: '#8b5cf6',
-  ddos: '#ec4899',
-  supply_chain: '#06b6d4',
-  insider_threat: '#84cc16',
-  other: '#6b7280',
+  ransomware: '#00ff00',
+  apt: '#00dd00',
+  vulnerability: '#00cc00',
+  phishing: '#00bb00',
+  malware: '#00aa00',
+  data_breach: '#009900',
+  ddos: '#008800',
+  supply_chain: '#007700',
+  insider_threat: '#006600',
+  other: '#005500',
 };
 
 export default function Dashboard({ onViewThreats }: { onViewThreats: () => void }) {
@@ -65,16 +65,19 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="text-terminal-green font-mono">
+          <div className="text-2xl mb-4">[ LOADING DATA ]</div>
+          <div className="animate-pulse">▓▓▓▓▓▓▓▓▓▓</div>
+        </div>
       </div>
     );
   }
 
   if (!stats) {
     return (
-      <div className="text-center text-gray-400 py-12">
-        <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
-        <p>Failed to load dashboard statistics</p>
+      <div className="text-center text-terminal-green py-12 border-2 border-terminal-green p-8">
+        <AlertTriangle className="w-12 h-12 mx-auto mb-4 icon-glow" />
+        <p className="font-mono">[ ERROR ] FAILED TO LOAD DASHBOARD STATISTICS</p>
       </div>
     );
   }
@@ -94,51 +97,53 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
+        <div className="bg-black p-6 border-2 border-terminal-green relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-terminal-green opacity-50"></div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Threats</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.total_threats}</p>
+              <p className="text-terminal-green-dim text-sm font-mono">&gt; TOTAL_THREATS</p>
+              <p className="text-4xl font-bold text-terminal-green mt-2 font-mono">{stats.total_threats}</p>
             </div>
-            <BarChart3 className="w-12 h-12 text-blue-500 opacity-20" />
+            <BarChart3 className="w-12 h-12 text-terminal-green opacity-30 icon-glow" />
           </div>
         </div>
 
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
+        <div className="bg-black p-6 border-2 border-terminal-green relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-terminal-green opacity-50"></div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Today</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.threats_today}</p>
+              <p className="text-terminal-green-dim text-sm font-mono">&gt; TODAY</p>
+              <p className="text-4xl font-bold text-terminal-green mt-2 font-mono">{stats.threats_today}</p>
             </div>
-            <Activity className="w-12 h-12 text-green-500 opacity-20" />
+            <Activity className="w-12 h-12 text-terminal-green opacity-30 icon-glow" />
           </div>
         </div>
 
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
+        <div className="bg-black p-6 border-2 border-terminal-green relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-terminal-green opacity-50"></div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">This Week</p>
-              <p className="text-3xl font-bold text-white mt-2">{stats.threats_this_week}</p>
+              <p className="text-terminal-green-dim text-sm font-mono">&gt; THIS_WEEK</p>
+              <p className="text-4xl font-bold text-terminal-green mt-2 font-mono">{stats.threats_this_week}</p>
             </div>
-            <TrendingUp className="w-12 h-12 text-purple-500 opacity-20" />
+            <TrendingUp className="w-12 h-12 text-terminal-green opacity-30 icon-glow" />
           </div>
         </div>
       </div>
 
       {/* Trending Insights */}
       {stats.recent_trends && stats.recent_trends.length > 0 && (
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />
-            AI-Detected Trends
+        <div className="bg-black p-6 border-2 border-terminal-green">
+          <h2 className="text-xl font-bold text-terminal-green mb-4 flex items-center font-mono">
+            <TrendingUp className="w-5 h-5 mr-2 icon-glow" />
+            [ AI_DETECTED_TRENDS ]
           </h2>
           <div className="space-y-4">
             {stats.recent_trends.slice(0, 1).map((trend) => (
-              <div key={trend.id} className="border-l-4 border-blue-500 pl-4">
-                <p className="text-gray-300 whitespace-pre-wrap">{trend.trend_summary}</p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Based on {trend.threat_count} threats • Week of{' '}
-                  {new Date(trend.week_start * 1000).toLocaleDateString()}
+              <div key={trend.id} className="border-l-4 border-terminal-green pl-4 bg-terminal-gray-dark p-4">
+                <p className="text-terminal-green font-mono whitespace-pre-wrap">{trend.trend_summary}</p>
+                <p className="text-sm text-terminal-green-dim mt-2 font-mono">
+                  &gt; ANALYZED: {trend.threat_count} THREATS | WEEK_OF: {new Date(trend.week_start * 1000).toLocaleDateString()}
                 </p>
               </div>
             ))}
@@ -149,8 +154,8 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Breakdown */}
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
-          <h2 className="text-lg font-bold text-white mb-4">Threats by Category (30 days)</h2>
+        <div className="bg-black p-6 border-2 border-terminal-green">
+          <h2 className="text-lg font-bold text-terminal-green mb-4 font-mono">[ THREATS_BY_CATEGORY ] (30_DAYS)</h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -158,52 +163,60 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                label={({ name, percent }) => `${name.toUpperCase()} (${(percent * 100).toFixed(0)}%)`}
                 outerRadius={80}
-                fill="#8884d8"
+                fill="#00ff00"
                 dataKey="value"
               >
                 {categoryData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#000000',
+                  border: '2px solid #00ff00',
+                  fontFamily: 'monospace',
+                  color: '#00ff00',
+                }}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
         {/* Severity Breakdown */}
-        <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
-          <h2 className="text-lg font-bold text-white mb-4">Severity Distribution</h2>
+        <div className="bg-black p-6 border-2 border-terminal-green">
+          <h2 className="text-lg font-bold text-terminal-green mb-4 font-mono">[ SEVERITY_DISTRIBUTION ]</h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={severityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#00ff00" opacity={0.2} />
+              <XAxis dataKey="name" stroke="#00ff00" style={{ fontFamily: 'monospace' }} />
+              <YAxis stroke="#00ff00" style={{ fontFamily: 'monospace' }} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '0.5rem',
+                  backgroundColor: '#000000',
+                  border: '2px solid #00ff00',
+                  fontFamily: 'monospace',
+                  color: '#00ff00',
                 }}
               />
-              <Bar dataKey="value" fill="#3b82f6" />
+              <Bar dataKey="value" fill="#00ff00" />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Top Sources */}
-      <div className="bg-slate-900 rounded-lg p-6 border border-slate-800">
-        <h2 className="text-lg font-bold text-white mb-4">Top Sources (30 days)</h2>
+      <div className="bg-black p-6 border-2 border-terminal-green">
+        <h2 className="text-lg font-bold text-terminal-green mb-4 font-mono">[ TOP_SOURCES ] (30_DAYS)</h2>
         <div className="space-y-3">
           {stats.top_sources.slice(0, 5).map((source, index) => (
-            <div key={source.source} className="flex items-center justify-between">
+            <div key={source.source} className="flex items-center justify-between border-l-2 border-terminal-green-dark pl-4 py-2">
               <div className="flex items-center space-x-3">
-                <span className="text-2xl font-bold text-gray-600">#{index + 1}</span>
-                <span className="text-gray-300">{source.source}</span>
+                <span className="text-xl font-bold text-terminal-green-dim font-mono">[{index + 1}]</span>
+                <span className="text-terminal-green font-mono">{source.source}</span>
               </div>
-              <span className="text-blue-500 font-semibold">{source.count} threats</span>
+              <span className="text-terminal-green font-mono">{source.count} THREATS</span>
             </div>
           ))}
         </div>
@@ -213,9 +226,9 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
       <div className="text-center">
         <button
           onClick={onViewThreats}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition inline-flex items-center"
+          className="bg-terminal-green hover:bg-terminal-green-dim text-black px-6 py-3 border-2 border-terminal-green font-mono font-bold transition inline-flex items-center"
         >
-          View All Threats
+          [ VIEW_ALL_THREATS ]
           <ArrowRight className="w-4 h-4 ml-2" />
         </button>
       </div>

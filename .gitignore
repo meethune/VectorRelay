@@ -4,25 +4,48 @@ node_modules/
 # Build outputs
 dist/
 .wrangler/
+.dev.vars
+
+# Cloudflare
+wrangler.toml.bak
+.mf/
 
 # Environment files
-.dev.vars
 .env
 .env.local
+.env.production
+.env.development
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
+*.bak
+*.tmp
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+.cache/
+.temp/
+.tmp/

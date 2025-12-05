@@ -1,15 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Share Tech Mono', 'VT323', monospace;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0f172a;
+  color: #00ff00;
+  background-color: #000000;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -23,6 +25,134 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: #000000;
+  position: relative;
+}
+
+/* CRT Screen Effect */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 2px;
+  z-index: 9999;
+  pointer-events: none;
+  animation: scanlines 8s linear infinite;
+}
+
+/* CRT Flicker - Disabled for cleaner look */
+/* body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(18, 16, 16, 0.1);
+  opacity: 0;
+  z-index: 9998;
+  pointer-events: none;
+  animation: flicker 0.3s infinite;
+} */
+
+@keyframes scanlines {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 2px;
+  }
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 0.27861;
+  }
+  5% {
+    opacity: 0.34769;
+  }
+  10% {
+    opacity: 0.23604;
+  }
+  15% {
+    opacity: 0.90626;
+  }
+  20% {
+    opacity: 0.18128;
+  }
+  25% {
+    opacity: 0.83891;
+  }
+  30% {
+    opacity: 0.65583;
+  }
+  35% {
+    opacity: 0.67807;
+  }
+  40% {
+    opacity: 0.26559;
+  }
+  45% {
+    opacity: 0.84693;
+  }
+  50% {
+    opacity: 0.96019;
+  }
+  55% {
+    opacity: 0.08594;
+  }
+  60% {
+    opacity: 0.20313;
+  }
+  65% {
+    opacity: 0.71988;
+  }
+  70% {
+    opacity: 0.53455;
+  }
+  75% {
+    opacity: 0.37288;
+  }
+  80% {
+    opacity: 0.71428;
+  }
+  85% {
+    opacity: 0.70419;
+  }
+  90% {
+    opacity: 0.7003;
+  }
+  95% {
+    opacity: 0.36108;
+  }
+  100% {
+    opacity: 0.24387;
+  }
+}
+
+/* Glow effects - for non-text elements only */
+.icon-glow {
+  filter: drop-shadow(0 0 3px #00ff00) drop-shadow(0 0 5px #00ff00);
+}
+
+.border-glow {
+  box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+}
+
+/* Removed text glow - cleaner appearance */
+.text-glow {
+  /* No glow on text */
+}
+
+.text-glow-strong {
+  /* No glow on text */
 }
 
 #root {
@@ -38,5 +168,24 @@ body {
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Custom scrollbar for terminal aesthetic */
+  .scrollbar-terminal::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  .scrollbar-terminal::-webkit-scrollbar-track {
+    background: #000000;
+    border-left: 1px solid #00ff00;
+  }
+
+  .scrollbar-terminal::-webkit-scrollbar-thumb {
+    background: #00ff00;
+    border: 2px solid #000000;
+  }
+
+  .scrollbar-terminal::-webkit-scrollbar-thumb:hover {
+    background: #00cc00;
   }
 }
