@@ -1,0 +1,28 @@
+name: Scheduled Feed Ingestion
+
+# Run every 6 hours
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours at minute 0
+  workflow_dispatch:  # Allow manual triggering from GitHub UI
+
+jobs:
+  trigger-ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger feed ingestion
+        run: |
+          echo "Triggering feed ingestion at $(date)"
+          response=$(curl -s -w "\n%{http_code}" https://vectorrelay.pages.dev/api/trigger-ingestion)
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | head -n-1)
+
+          echo "Response: $body"
+          echo "HTTP Status: $http_code"
+
+          if [ "$http_code" -ne 200 ]; then
+            echo "Error: Feed ingestion failed with status $http_code"
+            exit 1
+          fi
+
+          echo "Feed ingestion triggered successfully!"
