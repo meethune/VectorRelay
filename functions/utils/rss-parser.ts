@@ -1,73 +1,87 @@
-// RSS/Atom Feed Parser
+// RSS/Atom Feed Parser for Cloudflare Workers
+// Uses regex-based parsing instead of DOMParser (which isn't available in Workers)
 import type { RSSItem } from '../types';
 
 export async function parseFeed(xml: string, feedType: 'rss' | 'atom'): Promise<RSSItem[]> {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xml, 'text/xml');
-
   if (feedType === 'atom') {
-    return parseAtomFeed(doc);
+    return parseAtomFeed(xml);
   } else {
-    return parseRSSFeed(doc);
+    return parseRSSFeed(xml);
   }
 }
 
-function parseRSSFeed(doc: Document): RSSItem[] {
+function parseRSSFeed(xml: string): RSSItem[] {
   const items: RSSItem[] = [];
-  const itemElements = doc.querySelectorAll('item');
 
-  itemElements.forEach((item) => {
-    const title = item.querySelector('title')?.textContent || '';
-    const link = item.querySelector('link')?.textContent || '';
-    const description = item.querySelector('description')?.textContent || '';
-    const content =
-      item.querySelector('content\\:encoded')?.textContent ||
-      item.querySelector('content')?.textContent ||
-      description;
-    const pubDate = item.querySelector('pubDate')?.textContent || '';
-    const guid = item.querySelector('guid')?.textContent || link;
+  // Match all <item>...</item> blocks
+  const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+  let match;
+
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const itemXml = match[1];
+
+    const title = extractTag(itemXml, 'title');
+    const link = extractTag(itemXml, 'link');
+    const description = extractTag(itemXml, 'description');
+    const contentEncoded = extractTag(itemXml, 'content:encoded');
+    const content = contentEncoded || extractTag(itemXml, 'content') || description;
+    const pubDate = extractTag(itemXml, 'pubDate');
+    const guid = extractTag(itemXml, 'guid') || link;
 
     if (title && link) {
       items.push({
         title: cleanHTML(title),
-        link,
+        link: link.trim(),
         description: cleanHTML(description),
         content: cleanHTML(content),
-        pubDate,
-        guid,
+        pubDate: pubDate.trim(),
+        guid: guid.trim(),
       });
     }
-  });
+  }
 
   return items;
 }
 
-function parseAtomFeed(doc: Document): RSSItem[] {
+function parseAtomFeed(xml: string): RSSItem[] {
   const items: RSSItem[] = [];
-  const entries = doc.querySelectorAll('entry');
 
-  entries.forEach((entry) => {
-    const title = entry.querySelector('title')?.textContent || '';
-    const linkElement = entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
-    const link = linkElement?.getAttribute('href') || '';
-    const summary = entry.querySelector('summary')?.textContent || '';
-    const content = entry.querySelector('content')?.textContent || summary;
-    const published = entry.querySelector('published')?.textContent || entry.querySelector('updated')?.textContent || '';
-    const id = entry.querySelector('id')?.textContent || link;
+  // Match all <entry>...</entry> blocks
+  const entryRegex = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
+  let match;
+
+  while ((match = entryRegex.exec(xml)) !== null) {
+    const entryXml = match[1];
+
+    const title = extractTag(entryXml, 'title');
+    // For Atom, link is an attribute: <link href="..." />
+    const linkMatch = entryXml.match(/<link[^>]+href=["']([^"']+)["']/i);
+    const link = linkMatch ? linkMatch[1] : '';
+    const summary = extractTag(entryXml, 'summary');
+    const content = extractTag(entryXml, 'content') || summary;
+    const published = extractTag(entryXml, 'published') || extractTag(entryXml, 'updated');
+    const id = extractTag(entryXml, 'id') || link;
 
     if (title && link) {
       items.push({
         title: cleanHTML(title),
-        link,
+        link: link.trim(),
         description: cleanHTML(summary),
         content: cleanHTML(content),
-        pubDate: published,
-        guid: id,
+        pubDate: published.trim(),
+        guid: id.trim(),
       });
     }
-  });
+  }
 
   return items;
+}
+
+// Helper function to extract content from XML tags
+function extractTag(xml: string, tagName: string): string {
+  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
+  const match = xml.match(regex);
+  return match ? match[1] : '';
 }
 
 function cleanHTML(html: string): string {
