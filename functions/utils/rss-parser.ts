@@ -87,8 +87,11 @@ function extractTag(xml: string, tagName: string): string {
 function cleanHTML(html: string): string {
   if (!html) return '';
 
-  // Remove HTML tags
-  let text = html.replace(/<[^>]*>/g, ' ');
+  // FIRST: Strip CDATA markers
+  let text = html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+
+  // THEN: Remove HTML tags
+  text = text.replace(/<[^>]*>/g, ' ');
 
   // Decode common HTML entities
   text = text
