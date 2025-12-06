@@ -79,7 +79,7 @@ function AppContent() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
+            <Link to="/" className="flex items-center space-x-3 hover:opacity-80 transition cursor-pointer">
               <Shield className={`w-8 h-8 ${
                 isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
               }`} />
@@ -90,7 +90,7 @@ function AppContent() {
               }`}>
                 {isTerminal ? '[ THREAT INTEL DASHBOARD ]' : 'Threat Intelligence Dashboard'}
               </h1>
-            </div>
+            </Link>
 
             <nav className="flex space-x-4 items-center">
               <Link
