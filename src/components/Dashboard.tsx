@@ -18,6 +18,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DashboardStats {
   total_threats: number;
@@ -29,7 +30,7 @@ interface DashboardStats {
   recent_trends: Array<any>;
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
+const CATEGORY_COLORS_TERMINAL: Record<string, string> = {
   ransomware: '#00ff00',
   apt: '#00dd00',
   vulnerability: '#00cc00',
@@ -42,9 +43,26 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: '#005500',
 };
 
+const CATEGORY_COLORS_BUSINESS: Record<string, string> = {
+  ransomware: '#ef4444',
+  apt: '#f97316',
+  vulnerability: '#eab308',
+  phishing: '#84cc16',
+  malware: '#22c55e',
+  data_breach: '#14b8a6',
+  ddos: '#06b6d4',
+  supply_chain: '#3b82f6',
+  insider_threat: '#8b5cf6',
+  other: '#64748b',
+};
+
 export default function Dashboard({ onViewThreats }: { onViewThreats: () => void }) {
+  const { theme } = useTheme();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const isTerminal = theme === 'terminal';
+  const CATEGORY_COLORS = isTerminal ? CATEGORY_COLORS_TERMINAL : CATEGORY_COLORS_BUSINESS;
 
   useEffect(() => {
     fetchStats();
@@ -65,9 +83,9 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-terminal-green font-mono">
-          <div className="text-2xl mb-4">[ LOADING DATA ]</div>
-          <div className="animate-pulse">▓▓▓▓▓▓▓▓▓▓</div>
+        <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
+          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING DATA ]' : 'Loading...'}</div>
+          <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
         </div>
       </div>
     );
@@ -75,9 +93,13 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
 
   if (!stats) {
     return (
-      <div className="text-center text-terminal-green py-12 border-2 border-terminal-green p-8">
-        <AlertTriangle className="w-12 h-12 mx-auto mb-4 icon-glow" />
-        <p className="font-mono">[ ERROR ] FAILED TO LOAD DASHBOARD STATISTICS</p>
+      <div className={`text-center py-12 border-2 p-8 ${
+        isTerminal
+          ? 'text-terminal-green border-terminal-green font-mono'
+          : 'text-business-text-primary border-business-border-primary font-sans'
+      }`}>
+        <AlertTriangle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
+        <p>{isTerminal ? '[ ERROR ] FAILED TO LOAD DASHBOARD STATISTICS' : 'Failed to load dashboard statistics'}</p>
       </div>
     );
   }
@@ -97,53 +119,120 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-black p-6 border-2 border-terminal-green relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-terminal-green opacity-50"></div>
+        <div className={`p-6 border-2 relative overflow-hidden ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${
+            isTerminal ? 'bg-terminal-green' : 'bg-business-accent-primary'
+          }`}></div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-terminal-green-dim text-sm font-mono">&gt; TOTAL_THREATS</p>
-              <p className="text-4xl font-bold text-terminal-green mt-2 font-mono">{stats.total_threats}</p>
+              <p className={`text-sm ${
+                isTerminal
+                  ? 'text-terminal-green-dim font-mono'
+                  : 'text-business-text-muted font-sans'
+              }`}>{isTerminal ? '> TOTAL_THREATS' : 'Total Threats'}</p>
+              <p className={`text-4xl font-bold mt-2 ${
+                isTerminal
+                  ? 'text-terminal-green font-mono'
+                  : 'text-business-text-primary font-sans'
+              }`}>{stats.total_threats}</p>
             </div>
-            <BarChart3 className="w-12 h-12 text-terminal-green opacity-30 icon-glow" />
+            <BarChart3 className={`w-12 h-12 opacity-30 ${
+              isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
+            }`} />
           </div>
         </div>
 
-        <div className="bg-black p-6 border-2 border-terminal-green relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-terminal-green opacity-50"></div>
+        <div className={`p-6 border-2 relative overflow-hidden ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${
+            isTerminal ? 'bg-terminal-green' : 'bg-business-accent-primary'
+          }`}></div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-terminal-green-dim text-sm font-mono">&gt; TODAY</p>
-              <p className="text-4xl font-bold text-terminal-green mt-2 font-mono">{stats.threats_today}</p>
+              <p className={`text-sm ${
+                isTerminal
+                  ? 'text-terminal-green-dim font-mono'
+                  : 'text-business-text-muted font-sans'
+              }`}>{isTerminal ? '> TODAY' : 'Today'}</p>
+              <p className={`text-4xl font-bold mt-2 ${
+                isTerminal
+                  ? 'text-terminal-green font-mono'
+                  : 'text-business-text-primary font-sans'
+              }`}>{stats.threats_today}</p>
             </div>
-            <Activity className="w-12 h-12 text-terminal-green opacity-30 icon-glow" />
+            <Activity className={`w-12 h-12 opacity-30 ${
+              isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
+            }`} />
           </div>
         </div>
 
-        <div className="bg-black p-6 border-2 border-terminal-green relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-terminal-green opacity-50"></div>
+        <div className={`p-6 border-2 relative overflow-hidden ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${
+            isTerminal ? 'bg-terminal-green' : 'bg-business-accent-primary'
+          }`}></div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-terminal-green-dim text-sm font-mono">&gt; THIS_WEEK</p>
-              <p className="text-4xl font-bold text-terminal-green mt-2 font-mono">{stats.threats_this_week}</p>
+              <p className={`text-sm ${
+                isTerminal
+                  ? 'text-terminal-green-dim font-mono'
+                  : 'text-business-text-muted font-sans'
+              }`}>{isTerminal ? '> THIS_WEEK' : 'This Week'}</p>
+              <p className={`text-4xl font-bold mt-2 ${
+                isTerminal
+                  ? 'text-terminal-green font-mono'
+                  : 'text-business-text-primary font-sans'
+              }`}>{stats.threats_this_week}</p>
             </div>
-            <TrendingUp className="w-12 h-12 text-terminal-green opacity-30 icon-glow" />
+            <TrendingUp className={`w-12 h-12 opacity-30 ${
+              isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
+            }`} />
           </div>
         </div>
       </div>
 
       {/* Trending Insights */}
       {stats.recent_trends && stats.recent_trends.length > 0 && (
-        <div className="bg-black p-6 border-2 border-terminal-green">
-          <h2 className="text-xl font-bold text-terminal-green mb-4 flex items-center font-mono">
-            <TrendingUp className="w-5 h-5 mr-2 icon-glow" />
-            [ AI_DETECTED_TRENDS ]
+        <div className={`p-6 border-2 ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <h2 className={`text-xl font-bold mb-4 flex items-center ${
+            isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+          }`}>
+            <TrendingUp className={`w-5 h-5 mr-2 ${isTerminal ? 'icon-glow' : ''}`} />
+            {isTerminal ? '[ AI_DETECTED_TRENDS ]' : 'AI-Detected Trends'}
           </h2>
           <div className="space-y-4">
             {stats.recent_trends.slice(0, 1).map((trend) => (
-              <div key={trend.id} className="border-l-4 border-terminal-green pl-4 bg-terminal-gray-dark p-4">
-                <p className="text-terminal-green font-mono whitespace-pre-wrap">{trend.trend_summary}</p>
-                <p className="text-sm text-terminal-green-dim mt-2 font-mono">
-                  &gt; ANALYZED: {trend.threat_count} THREATS | WEEK_OF: {new Date(trend.week_start * 1000).toLocaleDateString()}
+              <div key={trend.id} className={`border-l-4 pl-4 p-4 ${
+                isTerminal
+                  ? 'border-terminal-green bg-terminal-gray-dark'
+                  : 'border-business-accent-primary bg-business-bg-tertiary'
+              }`}>
+                <p className={`whitespace-pre-wrap ${
+                  isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+                }`}>{trend.trend_summary}</p>
+                <p className={`text-sm mt-2 ${
+                  isTerminal
+                    ? 'text-terminal-green-dim font-mono'
+                    : 'text-business-text-muted font-sans'
+                }`}>
+                  {isTerminal
+                    ? `> ANALYZED: ${trend.threat_count} THREATS | WEEK_OF: ${new Date(trend.week_start * 1000).toLocaleDateString()}`
+                    : `Analyzed ${trend.threat_count} threats • Week of ${new Date(trend.week_start * 1000).toLocaleDateString()}`
+                  }
                 </p>
               </div>
             ))}
@@ -154,8 +243,16 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Breakdown */}
-        <div className="bg-black p-6 border-2 border-terminal-green">
-          <h2 className="text-lg font-bold text-terminal-green mb-4 font-mono">[ THREATS_BY_CATEGORY ] (30_DAYS)</h2>
+        <div className={`p-6 border-2 ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <h2 className={`text-lg font-bold mb-4 ${
+            isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+          }`}>
+            {isTerminal ? '[ THREATS_BY_CATEGORY ] (30_DAYS)' : 'Threats by Category (30 days)'}
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -163,9 +260,13 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name.toUpperCase()} (${(percent * 100).toFixed(0)}%)`}
+                label={({ name, percent }) =>
+                  isTerminal
+                    ? `${name.toUpperCase()} (${(percent * 100).toFixed(0)}%)`
+                    : `${name} (${(percent * 100).toFixed(0)}%)`
+                }
                 outerRadius={80}
-                fill="#00ff00"
+                fill={isTerminal ? '#00ff00' : '#3b82f6'}
                 dataKey="value"
               >
                 {categoryData.map((entry, index) => (
@@ -174,10 +275,10 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#000000',
-                  border: '2px solid #00ff00',
-                  fontFamily: 'monospace',
-                  color: '#00ff00',
+                  backgroundColor: isTerminal ? '#000000' : '#1e293b',
+                  border: isTerminal ? '2px solid #00ff00' : '2px solid #334155',
+                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                  color: isTerminal ? '#00ff00' : '#f1f5f9',
                 }}
               />
             </PieChart>
@@ -185,38 +286,77 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
         </div>
 
         {/* Severity Breakdown */}
-        <div className="bg-black p-6 border-2 border-terminal-green">
-          <h2 className="text-lg font-bold text-terminal-green mb-4 font-mono">[ SEVERITY_DISTRIBUTION ]</h2>
+        <div className={`p-6 border-2 ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <h2 className={`text-lg font-bold mb-4 ${
+            isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+          }`}>
+            {isTerminal ? '[ SEVERITY_DISTRIBUTION ]' : 'Severity Distribution'}
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={severityData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#00ff00" opacity={0.2} />
-              <XAxis dataKey="name" stroke="#00ff00" style={{ fontFamily: 'monospace' }} />
-              <YAxis stroke="#00ff00" style={{ fontFamily: 'monospace' }} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={isTerminal ? '#00ff00' : '#334155'}
+                opacity={0.2}
+              />
+              <XAxis
+                dataKey="name"
+                stroke={isTerminal ? '#00ff00' : '#94a3b8'}
+                style={{ fontFamily: isTerminal ? 'monospace' : 'sans-serif' }}
+              />
+              <YAxis
+                stroke={isTerminal ? '#00ff00' : '#94a3b8'}
+                style={{ fontFamily: isTerminal ? 'monospace' : 'sans-serif' }}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#000000',
-                  border: '2px solid #00ff00',
-                  fontFamily: 'monospace',
-                  color: '#00ff00',
+                  backgroundColor: isTerminal ? '#000000' : '#1e293b',
+                  border: isTerminal ? '2px solid #00ff00' : '2px solid #334155',
+                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                  color: isTerminal ? '#00ff00' : '#f1f5f9',
                 }}
               />
-              <Bar dataKey="value" fill="#00ff00" />
+              <Bar dataKey="value" fill={isTerminal ? '#00ff00' : '#3b82f6'} />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Top Sources */}
-      <div className="bg-black p-6 border-2 border-terminal-green">
-        <h2 className="text-lg font-bold text-terminal-green mb-4 font-mono">[ TOP_SOURCES ] (30_DAYS)</h2>
+      <div className={`p-6 border-2 ${
+        isTerminal
+          ? 'bg-black border-terminal-green'
+          : 'bg-business-bg-secondary border-business-border-primary'
+      }`}>
+        <h2 className={`text-lg font-bold mb-4 ${
+          isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+        }`}>
+          {isTerminal ? '[ TOP_SOURCES ] (30_DAYS)' : 'Top Sources (30 days)'}
+        </h2>
         <div className="space-y-3">
           {stats.top_sources.slice(0, 5).map((source, index) => (
-            <div key={source.source} className="flex items-center justify-between border-l-2 border-terminal-green-dark pl-4 py-2">
+            <div key={source.source} className={`flex items-center justify-between border-l-2 pl-4 py-2 ${
+              isTerminal
+                ? 'border-terminal-green-dark'
+                : 'border-business-border-secondary'
+            }`}>
               <div className="flex items-center space-x-3">
-                <span className="text-xl font-bold text-terminal-green-dim font-mono">[{index + 1}]</span>
-                <span className="text-terminal-green font-mono">{source.source}</span>
+                <span className={`text-xl font-bold ${
+                  isTerminal
+                    ? 'text-terminal-green-dim font-mono'
+                    : 'text-business-accent-primary font-sans'
+                }`}>{isTerminal ? `[${index + 1}]` : `${index + 1}.`}</span>
+                <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
+                  {source.source}
+                </span>
               </div>
-              <span className="text-terminal-green font-mono">{source.count} THREATS</span>
+              <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-secondary font-sans'}>
+                {source.count} {isTerminal ? 'THREATS' : 'threats'}
+              </span>
             </div>
           ))}
         </div>
@@ -226,9 +366,13 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
       <div className="text-center">
         <button
           onClick={onViewThreats}
-          className="bg-terminal-green hover:bg-terminal-green-dim text-black px-6 py-3 border-2 border-terminal-green font-mono font-bold transition inline-flex items-center"
+          className={`px-6 py-3 border-2 font-bold transition inline-flex items-center ${
+            isTerminal
+              ? 'bg-terminal-green hover:bg-terminal-green-dim text-black border-terminal-green font-mono'
+              : 'bg-business-accent-primary hover:bg-business-accent-hover text-white border-business-accent-primary font-sans'
+          }`}
         >
-          [ VIEW_ALL_THREATS ]
+          {isTerminal ? '[ VIEW_ALL_THREATS ]' : 'View All Threats'}
           <ArrowRight className="w-4 h-4 ml-2" />
         </button>
       </div>
