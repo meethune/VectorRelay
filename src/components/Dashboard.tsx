@@ -70,7 +70,7 @@ export default function Dashboard() {
   const fetchStats = async () => {
     try {
       const response = await fetch('/api/stats');
-      const data = await response.json();
+      const data = await response.json() as DashboardStats;
       setStats(data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);

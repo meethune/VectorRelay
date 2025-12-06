@@ -66,7 +66,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
     setLoading(true);
     try {
       const response = await fetch(`/api/threat/${threatId}`);
-      const data = await response.json();
+      const data = await response.json() as ThreatDetail;
       setThreat(data);
     } catch (error) {
       console.error('Failed to fetch threat details:', error);

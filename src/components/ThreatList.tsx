@@ -25,6 +25,23 @@ interface ThreatListProps {
   onThreatClick: (id: string) => void;
 }
 
+interface SearchResponse {
+  threats: Threat[];
+  count: number;
+  mode: string;
+  query: string;
+}
+
+interface ThreatsResponse {
+  threats: Threat[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+}
+
 const SEVERITY_COLORS: Record<string, string> = {
   critical: 'bg-critical',
   high: 'bg-high',
@@ -68,12 +85,13 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
       }
 
       const response = await fetch(url);
-      const data = await response.json();
 
       if (searchQuery) {
+        const data = await response.json() as SearchResponse;
         setThreats(data.threats || []);
         setTotalPages(1);
       } else {
+        const data = await response.json() as ThreatsResponse;
         setThreats(data.threats || []);
         setTotalPages(data.pagination?.total_pages || 1);
       }

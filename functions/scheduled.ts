@@ -47,6 +47,12 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
+        // Only process RSS and Atom feeds (skip JSON/API feeds for now)
+        if (feed.type !== 'rss' && feed.type !== 'atom') {
+          console.log(`Skipping ${feed.name} - ${feed.type} feeds not yet supported`);
+          continue;
+        }
+
         const xml = await response.text();
         const items = await parseFeed(xml, feed.type);
 
