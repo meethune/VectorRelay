@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ExternalLink, Clock, Tag, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface Threat {
   id: string;
@@ -25,14 +26,16 @@ interface ThreatListProps {
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'bg-red-600',
-  high: 'bg-orange-600',
-  medium: 'bg-yellow-600',
-  low: 'bg-blue-600',
-  info: 'bg-gray-600',
+  critical: 'bg-critical',
+  high: 'bg-high',
+  medium: 'bg-medium',
+  low: 'bg-low',
+  info: 'bg-info',
 };
 
 export default function ThreatList({ searchQuery, filters, onThreatClick }: ThreatListProps) {
+  const { theme } = useTheme();
+  const isTerminal = theme === 'terminal';
   const [threats, setThreats] = useState<Threat[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -84,9 +87,9 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-terminal-green font-mono">
-          <div className="text-2xl mb-4">[ LOADING THREATS ]</div>
-          <div className="animate-pulse">▓▓▓▓▓▓▓▓▓▓</div>
+        <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
+          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING THREATS ]' : 'Loading threats...'}</div>
+          <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
         </div>
       </div>
     );
@@ -94,10 +97,24 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
 
   if (threats.length === 0) {
     return (
-      <div className="text-center py-12 bg-black border-2 border-terminal-green p-8">
-        <AlertCircle className="w-12 h-12 text-terminal-green mx-auto mb-4 icon-glow" />
-        <p className="text-terminal-green font-mono">[ NO THREATS FOUND ]</p>
-        {searchQuery && <p className="text-terminal-green-dim text-sm mt-2 font-mono">&gt; Try a different search query</p>}
+      <div className={`text-center py-12 border-2 p-8 ${
+        isTerminal
+          ? 'bg-black border-terminal-green text-terminal-green'
+          : 'bg-business-bg-secondary border-business-border-primary text-business-text-primary'
+      }`}>
+        <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
+        <p className={isTerminal ? 'font-mono' : 'font-sans'}>
+          {isTerminal ? '[ NO THREATS FOUND ]' : 'No threats found'}
+        </p>
+        {searchQuery && (
+          <p className={`text-sm mt-2 ${
+            isTerminal
+              ? 'text-terminal-green-dim font-mono'
+              : 'text-business-text-muted font-sans'
+          }`}>
+            {isTerminal ? '> Try a different search query' : 'Try a different search query'}
+          </p>
+        )}
       </div>
     );
   }
@@ -110,15 +127,27 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
           <div
             key={threat.id}
             onClick={() => onThreatClick(threat.id)}
-            className="bg-black p-6 border-2 border-terminal-green-dark hover:border-terminal-green transition cursor-pointer"
+            className={`p-6 border-2 transition cursor-pointer ${
+              isTerminal
+                ? 'bg-black border-terminal-green-dark hover:border-terminal-green'
+                : 'bg-business-bg-secondary border-business-border-primary hover:border-business-border-secondary'
+            }`}
           >
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-terminal-green mb-2 hover:text-terminal-green-dim font-mono">
-                  &gt; {threat.title}
+                <h3 className={`text-lg font-semibold mb-2 ${
+                  isTerminal
+                    ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
+                    : 'text-business-text-primary hover:text-business-accent-primary font-sans'
+                }`}>
+                  {isTerminal ? '> ' : ''}{threat.title}
                 </h3>
-                <div className="flex items-center space-x-4 text-sm text-terminal-green-dim font-mono">
+                <div className={`flex items-center space-x-4 text-sm ${
+                  isTerminal
+                    ? 'text-terminal-green-dim font-mono'
+                    : 'text-business-text-muted font-sans'
+                }`}>
                   <span className="flex items-center">
                     <Tag className="w-4 h-4 mr-1" />
                     {threat.source}
@@ -134,25 +163,33 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
 
               {threat.severity && (
                 <span
-                  className={`px-3 py-1 text-xs font-semibold text-black font-mono ${
-                    SEVERITY_COLORS[threat.severity] || 'bg-gray-600'
-                  }`}
+                  className={`px-3 py-1 text-xs font-semibold text-white ${
+                    isTerminal ? 'font-mono' : 'font-sans'
+                  } ${SEVERITY_COLORS[threat.severity] || 'bg-gray-600'}`}
                 >
-                  [{threat.severity.toUpperCase()}]
+                  {isTerminal ? `[${threat.severity.toUpperCase()}]` : threat.severity.toUpperCase()}
                 </span>
               )}
             </div>
 
             {/* TL;DR */}
             {threat.tldr && (
-              <p className="text-terminal-green mb-3 line-clamp-2 font-mono">{threat.tldr}</p>
+              <p className={`mb-3 line-clamp-2 ${
+                isTerminal
+                  ? 'text-terminal-green font-mono'
+                  : 'text-business-text-secondary font-sans'
+              }`}>{threat.tldr}</p>
             )}
 
             {/* Tags */}
             {threat.category && (
               <div className="flex items-center space-x-2">
-                <span className="px-2 py-1 border border-terminal-green-dark text-terminal-green text-xs font-mono">
-                  {threat.category.toUpperCase()}
+                <span className={`px-2 py-1 border text-xs ${
+                  isTerminal
+                    ? 'border-terminal-green-dark text-terminal-green font-mono'
+                    : 'border-business-border-secondary text-business-text-secondary font-sans'
+                }`}>
+                  {isTerminal ? threat.category.toUpperCase() : threat.category}
                 </span>
               </div>
             )}
@@ -163,9 +200,13 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center mt-3 text-sm text-terminal-green hover:text-terminal-green-dim font-mono"
+              className={`inline-flex items-center mt-3 text-sm ${
+                isTerminal
+                  ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
+                  : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
+              }`}
             >
-              &gt; VIEW_ORIGINAL_SOURCE
+              {isTerminal ? '> VIEW_ORIGINAL_SOURCE' : 'View original source'}
               <ExternalLink className="w-3 h-3 ml-1" />
             </a>
           </div>
@@ -178,21 +219,29 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-black text-terminal-green border-2 border-terminal-green disabled:opacity-50 disabled:cursor-not-allowed hover:bg-terminal-green-dark font-mono"
+            className={`px-4 py-2 border-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isTerminal
+                ? 'bg-black text-terminal-green border-terminal-green hover:bg-terminal-green-dark font-mono'
+                : 'bg-business-bg-secondary text-business-text-primary border-business-border-primary hover:bg-business-bg-tertiary font-sans'
+            }`}
           >
-            [ &lt; PREV ]
+            {isTerminal ? '[ < PREV ]' : '← Previous'}
           </button>
 
-          <span className="text-terminal-green font-mono">
-            PAGE {page} / {totalPages}
+          <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
+            {isTerminal ? `PAGE ${page} / ${totalPages}` : `Page ${page} of ${totalPages}`}
           </span>
 
           <button
             onClick={() => setPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
-            className="px-4 py-2 bg-black text-terminal-green border-2 border-terminal-green disabled:opacity-50 disabled:cursor-not-allowed hover:bg-terminal-green-dark font-mono"
+            className={`px-4 py-2 border-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isTerminal
+                ? 'bg-black text-terminal-green border-terminal-green hover:bg-terminal-green-dark font-mono'
+                : 'bg-business-bg-secondary text-business-text-primary border-business-border-primary hover:bg-business-bg-tertiary font-sans'
+            }`}
           >
-            [ NEXT &gt; ]
+            {isTerminal ? '[ NEXT > ]' : 'Next →'}
           </button>
         </div>
       )}
