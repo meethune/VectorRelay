@@ -196,13 +196,14 @@ export function addCacheHeaders(
 
 /**
  * Validate threat ID format
- * Threat IDs are SHA-256 hashes (64 hex characters)
+ * Threat IDs are base36-encoded cyrb53 hashes (alphanumeric, typically 10-15 characters)
  */
 export function validateThreatId(id: string): boolean {
   if (!id || typeof id !== 'string') return false;
 
-  // Threat IDs should be 64 character hex strings (SHA-256)
-  return /^[a-f0-9]{64}$/i.test(id);
+  // Threat IDs are base36 strings (0-9, a-z), typically 10-15 characters
+  // Allow up to 20 characters for safety
+  return /^[a-z0-9]{8,20}$/i.test(id);
 }
 
 /**
