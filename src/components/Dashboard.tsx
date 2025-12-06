@@ -369,7 +369,7 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
           className={`px-6 py-3 border-2 font-bold transition inline-flex items-center ${
             isTerminal
               ? 'bg-terminal-green hover:bg-terminal-green-dim text-black border-terminal-green font-mono'
-              : 'bg-business-accent-primary hover:bg-business-accent-hover text-white border-business-accent-primary font-sans'
+              : 'bg-business-accent-button hover:bg-business-accent-button-hover text-white border-business-accent-button font-sans'
           }`}
         >
           {isTerminal ? '[ VIEW_ALL_THREATS ]' : 'View All Threats'}

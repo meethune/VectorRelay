@@ -16,25 +16,28 @@ export default {
           black: '#000000',
           'gray-dark': '#0a0a0a',
         },
-        // Business theme colors (dark professional)
+        // Business theme colors (soft professional)
         business: {
           bg: {
-            primary: '#0f172a',    // slate-900
-            secondary: '#1e293b',  // slate-800
-            tertiary: '#334155',   // slate-700
+            primary: '#2C2C2C',    // slate gray
+            secondary: '#363636',  // slightly lighter gray
+            tertiary: '#404040',   // medium gray
           },
           text: {
-            primary: '#f1f5f9',    // slate-100
-            secondary: '#cbd5e1',  // slate-300
-            muted: '#94a3b8',      // slate-400
+            primary: '#E4E4E4',    // light gray
+            secondary: '#D0D0D0',  // slightly dimmer
+            muted: '#A0A0A0',      // muted gray
           },
           border: {
-            primary: '#334155',    // slate-700
-            secondary: '#475569',  // slate-600
+            primary: '#404040',    // medium gray
+            secondary: '#4A4A4A',  // lighter border
           },
           accent: {
-            primary: '#3b82f6',    // blue-500
-            hover: '#2563eb',      // blue-600
+            primary: '#A8DADC',    // light cyan
+            hover: '#8FC7C9',      // darker cyan
+            secondary: '#FFC1CC',  // soft pink
+            button: '#B39CD0',     // lavender
+            'button-hover': '#9B84B8', // darker lavender
           },
         },
         // Severity colors (work for both themes)

@@ -67,7 +67,7 @@ function AppContent() {
                   view === 'dashboard'
                     ? isTerminal
                       ? 'bg-terminal-green text-black border-terminal-green'
-                      : 'bg-business-accent-primary text-white border-business-accent-primary'
+                      : 'bg-business-accent-button text-white border-business-accent-button'
                     : isTerminal
                       ? 'text-terminal-green border-terminal-green-dark hover:bg-terminal-green-dark hover:text-black'
                       : 'text-business-text-secondary border-business-border-secondary hover:bg-business-bg-tertiary hover:text-business-text-primary'
@@ -84,7 +84,7 @@ function AppContent() {
                   view === 'threats' || view === 'detail'
                     ? isTerminal
                       ? 'bg-terminal-green text-black border-terminal-green'
-                      : 'bg-business-accent-primary text-white border-business-accent-primary'
+                      : 'bg-business-accent-button text-white border-business-accent-button'
                     : isTerminal
                       ? 'text-terminal-green border-terminal-green-dark hover:bg-terminal-green-dark hover:text-black'
                       : 'text-business-text-secondary border-business-border-secondary hover:bg-business-bg-tertiary hover:text-business-text-primary'
