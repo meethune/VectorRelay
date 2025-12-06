@@ -1,7 +1,19 @@
 // API: Dashboard statistics
 import type { Env, DashboardStats } from '../types';
+import { securityMiddleware, wrapResponse } from '../utils/security';
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Apply security middleware
+  const securityCheck = await securityMiddleware(request, env, 'stats', {
+    rateLimit: { limit: 200, window: 600 }, // 200 requests per 10 minutes
+    cacheMaxAge: 300, // Cache for 5 minutes
+    cachePrivacy: 'public',
+  });
+
+  if (!securityCheck.allowed) {
+    return securityCheck.response!;
+  }
+
   try {
     const now = Math.floor(Date.now() / 1000);
     const oneDayAgo = now - 86400;
@@ -100,9 +112,23 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
       recent_trends,
     };
 
-    return Response.json(stats);
+    const response = Response.json(stats);
+
+    // Wrap response with security headers and cache
+    return wrapResponse(response, {
+      rateLimit: {
+        limit: 200,
+        remaining: securityCheck.rateLimitInfo!.remaining,
+        resetAt: securityCheck.rateLimitInfo!.resetAt,
+      },
+      cacheMaxAge: 300,
+      cachePrivacy: 'public',
+    });
   } catch (error) {
     console.error('Error fetching stats:', error);
-    return Response.json({ error: 'Failed to fetch statistics' }, { status: 500 });
+    const errorResponse = Response.json({ error: 'Failed to fetch statistics' }, { status: 500 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0, // Don't cache errors
+    });
   }
 };

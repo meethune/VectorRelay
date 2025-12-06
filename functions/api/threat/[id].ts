@@ -1,14 +1,33 @@
 // API: Get single threat details with IOCs
 import type { Env } from '../../types';
+import { securityMiddleware, wrapResponse, validateThreatId } from '../../utils/security';
 
-export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ request, params, env }) => {
+  // Apply security middleware with stricter rate limit (AI processing expensive)
+  const securityCheck = await securityMiddleware(request, env, 'threat-detail', {
+    rateLimit: { limit: 100, window: 600 }, // 100 requests per 10 minutes (stricter due to AI)
+    cacheMaxAge: 600, // Cache for 10 minutes
+    cachePrivacy: 'public',
+  });
+
+  if (!securityCheck.allowed) {
+    return securityCheck.response!;
+  }
+
   const threatId = params.id as string;
 
   if (!threatId) {
-    return Response.json({ error: 'Threat ID is required' }, { status: 400 });
+    const errorResponse = Response.json({ error: 'Threat ID is required' }, { status: 400 });
+    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
   }
 
-  try {
+  // Security: Validate threat ID format
+  if (!validateThreatId(threatId)) {
+    const errorResponse = Response.json({ error: 'Invalid threat ID format' }, { status: 400 });
+    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+  }
+
+  try{
     // Get threat with summary
     const threat = await env.DB.prepare(
       `SELECT
@@ -28,7 +47,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
       .first();
 
     if (!threat) {
-      return Response.json({ error: 'Threat not found' }, { status: 404 });
+      const errorResponse = Response.json({ error: 'Threat not found' }, { status: 404 });
+      // Cache 404s for 1 minute to prevent repeated lookups for non-existent threats
+      return wrapResponse(errorResponse, { cacheMaxAge: 60 });
     }
 
     // Get IOCs
@@ -71,9 +92,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ params, env }) => {
       threatData.similar_threats = [];
     }
 
-    return Response.json(threatData);
+    const response = Response.json(threatData);
+
+    // Wrap response with security headers and cache
+    return wrapResponse(response, {
+      rateLimit: {
+        limit: 100,
+        remaining: securityCheck.rateLimitInfo!.remaining,
+        resetAt: securityCheck.rateLimitInfo!.resetAt,
+      },
+      cacheMaxAge: 600, // Cache for 10 minutes
+      cachePrivacy: 'public',
+    });
   } catch (error) {
     console.error('Error fetching threat:', error);
-    return Response.json({ error: 'Failed to fetch threat details' }, { status: 500 });
+    const errorResponse = Response.json({ error: 'Failed to fetch threat details' }, { status: 500 });
+    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
   }
 };

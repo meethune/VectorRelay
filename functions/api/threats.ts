@@ -1,7 +1,19 @@
 // API: Get threats with filtering and pagination
 import type { Env, ThreatWithSummary } from '../types';
+import { securityMiddleware, wrapResponse, validateCategory, validateSeverity } from '../utils/security';
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Apply security middleware
+  const securityCheck = await securityMiddleware(request, env, 'threats', {
+    rateLimit: { limit: 200, window: 600 }, // 200 requests per 10 minutes
+    cacheMaxAge: 300, // Cache for 5 minutes
+    cachePrivacy: 'public',
+  });
+
+  if (!securityCheck.allowed) {
+    return securityCheck.response!;
+  }
+
   const url = new URL(request.url);
 
   // Security: Validate and cap pagination parameters
@@ -14,6 +26,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const category = url.searchParams.get('category');
   const severity = url.searchParams.get('severity');
   const source = url.searchParams.get('source');
+
+  // Security: Validate enum values
+  if (category && !validateCategory(category)) {
+    const errorResponse = Response.json({ error: 'Invalid category value' }, { status: 400 });
+    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+  }
+
+  if (severity && !validateSeverity(severity)) {
+    const errorResponse = Response.json({ error: 'Invalid severity value' }, { status: 400 });
+    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+  }
+
   const offset = (page - 1) * limit;
 
   try {
@@ -85,7 +109,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       threat_actors: row.threat_actors ? JSON.parse(row.threat_actors) : [],
     }));
 
-    return Response.json({
+    const response = Response.json({
       threats,
       pagination: {
         page,
@@ -94,8 +118,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         total_pages: Math.ceil(total / limit),
       },
     });
+
+    // Wrap response with security headers and cache
+    return wrapResponse(response, {
+      rateLimit: {
+        limit: 200,
+        remaining: securityCheck.rateLimitInfo!.remaining,
+        resetAt: securityCheck.rateLimitInfo!.resetAt,
+      },
+      cacheMaxAge: 300,
+      cachePrivacy: 'public',
+    });
   } catch (error) {
     console.error('Error fetching threats:', error);
-    return Response.json({ error: 'Failed to fetch threats' }, { status: 500 });
+    const errorResponse = Response.json({ error: 'Failed to fetch threats' }, { status: 500 });
+    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
   }
 };
