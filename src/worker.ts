@@ -30,7 +30,7 @@ const worker: ExportedHandler<Env> = {
 export default worker;
 
 // Export scheduled handler for native cron triggers
-export const scheduled: ExportedHandlerScheduledHandler<Env> = async (controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
+export const scheduled: ExportedHandlerScheduledHandler<Env> = async (controller: ScheduledController, env: Env, _ctx: ExecutionContext) => {
   console.log('[Cron] Scheduled event triggered:', controller.cron, 'at', new Date().toISOString());
 
   try {
