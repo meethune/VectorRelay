@@ -1,22 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: 'Share Tech Mono', 'VT323', monospace;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: dark;
-  color: #00ff00;
-  background-color: #000000;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Business Theme (Default - Dark Professional) */
+:root.dark {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #f1f5f9;
+  background-color: #0f172a;
+}
+
+/* Terminal Theme (CRT Style) */
+:root.terminal-theme {
+  font-family: 'Share Tech Mono', 'VT323', monospace;
+  color: #00ff00;
+  background-color: #000000;
 }
 
 body {
@@ -25,12 +35,11 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #000000;
   position: relative;
 }
 
-/* CRT Screen Effect */
-body::before {
+/* CRT Screen Effect - ONLY for terminal theme */
+.terminal-theme body::before {
   content: '';
   position: fixed;
   top: 0;
@@ -137,22 +146,22 @@ body::before {
   }
 }
 
-/* Glow effects - for non-text elements only */
-.icon-glow {
+/* Glow effects - ONLY for terminal theme */
+.terminal-theme .icon-glow {
   filter: drop-shadow(0 0 3px #00ff00) drop-shadow(0 0 5px #00ff00);
 }
 
-.border-glow {
-  box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00;
+.terminal-theme .border-glow {
+  box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00);
 }
 
-/* Removed text glow - cleaner appearance */
-.text-glow {
-  /* No glow on text */
+/* No glow effects in business theme */
+.dark .icon-glow {
+  filter: none;
 }
 
-.text-glow-strong {
-  /* No glow on text */
+.dark .border-glow {
+  box-shadow: none;
 }
 
 #root {
@@ -170,22 +179,41 @@ body::before {
     scrollbar-width: none;
   }
 
-  /* Custom scrollbar for terminal aesthetic */
-  .scrollbar-terminal::-webkit-scrollbar {
+  /* Custom scrollbar for terminal theme */
+  .terminal-theme .scrollbar-terminal::-webkit-scrollbar {
     width: 12px;
   }
 
-  .scrollbar-terminal::-webkit-scrollbar-track {
+  .terminal-theme .scrollbar-terminal::-webkit-scrollbar-track {
     background: #000000;
     border-left: 1px solid #00ff00;
   }
 
-  .scrollbar-terminal::-webkit-scrollbar-thumb {
+  .terminal-theme .scrollbar-terminal::-webkit-scrollbar-thumb {
     background: #00ff00;
     border: 2px solid #000000;
   }
 
-  .scrollbar-terminal::-webkit-scrollbar-thumb:hover {
+  .terminal-theme .scrollbar-terminal::-webkit-scrollbar-thumb:hover {
     background: #00cc00;
+  }
+
+  /* Custom scrollbar for business theme */
+  .dark .scrollbar-terminal::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  .dark .scrollbar-terminal::-webkit-scrollbar-track {
+    background: #1e293b;
+    border-left: 1px solid #334155;
+  }
+
+  .dark .scrollbar-terminal::-webkit-scrollbar-thumb {
+    background: #475569;
+    border: 2px solid #1e293b;
+  }
+
+  .dark .scrollbar-terminal::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
   }
 }

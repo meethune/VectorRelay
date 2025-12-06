@@ -4,8 +4,11 @@ import Dashboard from './components/Dashboard';
 import ThreatList from './components/ThreatList';
 import ThreatDetail from './components/ThreatDetail';
 import SearchBar from './components/SearchBar';
+import ThemeToggle from './components/ThemeToggle';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
-export default function App() {
+function AppContent() {
+  const { theme } = useTheme();
   const [view, setView] = useState<'dashboard' | 'threats' | 'detail'>('dashboard');
   const [selectedThreatId, setSelectedThreatId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,42 +33,67 @@ export default function App() {
     setSelectedThreatId(null);
   };
 
+  const isTerminal = theme === 'terminal';
+
   return (
-    <div className="min-h-screen bg-black">
+    <div className={`min-h-screen ${isTerminal ? 'bg-black' : 'bg-business-bg-primary'}`}>
       {/* Header */}
-      <header className="bg-black border-b-2 border-terminal-green sticky top-0 z-50">
+      <header className={`sticky top-0 z-50 border-b-2 ${
+        isTerminal
+          ? 'bg-black border-terminal-green'
+          : 'bg-business-bg-secondary border-business-border-primary'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <Shield className="w-8 h-8 text-terminal-green icon-glow" />
-              <h1 className="text-xl font-bold text-terminal-green font-mono tracking-wider">
-                [ THREAT INTEL DASHBOARD ]
+              <Shield className={`w-8 h-8 ${
+                isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
+              }`} />
+              <h1 className={`text-xl font-bold tracking-wider ${
+                isTerminal
+                  ? 'text-terminal-green font-mono'
+                  : 'text-business-text-primary font-sans'
+              }`}>
+                {isTerminal ? '[ THREAT INTEL DASHBOARD ]' : 'Threat Intelligence Dashboard'}
               </h1>
             </div>
 
-            <nav className="flex space-x-4">
+            <nav className="flex space-x-4 items-center">
               <button
                 onClick={handleBackToDashboard}
-                className={`px-4 py-2 border font-mono text-sm font-medium transition ${
+                className={`px-4 py-2 border text-sm font-medium transition ${
+                  isTerminal ? 'font-mono' : 'font-sans'
+                } ${
                   view === 'dashboard'
-                    ? 'bg-terminal-green text-black border-terminal-green'
-                    : 'text-terminal-green border-terminal-green-dark hover:bg-terminal-green-dark hover:text-black'
+                    ? isTerminal
+                      ? 'bg-terminal-green text-black border-terminal-green'
+                      : 'bg-business-accent-primary text-white border-business-accent-primary'
+                    : isTerminal
+                      ? 'text-terminal-green border-terminal-green-dark hover:bg-terminal-green-dark hover:text-black'
+                      : 'text-business-text-secondary border-business-border-secondary hover:bg-business-bg-tertiary hover:text-business-text-primary'
                 }`}
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />
-                [ DASHBOARD ]
+                {isTerminal ? '[ DASHBOARD ]' : 'Dashboard'}
               </button>
               <button
                 onClick={() => setView('threats')}
-                className={`px-4 py-2 border font-mono text-sm font-medium transition ${
+                className={`px-4 py-2 border text-sm font-medium transition ${
+                  isTerminal ? 'font-mono' : 'font-sans'
+                } ${
                   view === 'threats' || view === 'detail'
-                    ? 'bg-terminal-green text-black border-terminal-green'
-                    : 'text-terminal-green border-terminal-green-dark hover:bg-terminal-green-dark hover:text-black'
+                    ? isTerminal
+                      ? 'bg-terminal-green text-black border-terminal-green'
+                      : 'bg-business-accent-primary text-white border-business-accent-primary'
+                    : isTerminal
+                      ? 'text-terminal-green border-terminal-green-dark hover:bg-terminal-green-dark hover:text-black'
+                      : 'text-business-text-secondary border-business-border-secondary hover:bg-business-bg-tertiary hover:text-business-text-primary'
                 }`}
               >
                 <Filter className="w-4 h-4 inline mr-2" />
-                [ ALL THREATS ]
+                {isTerminal ? '[ ALL THREATS ]' : 'All Threats'}
               </button>
+              <ThemeToggle />
             </nav>
           </div>
         </div>
@@ -97,13 +125,32 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-black border-t-2 border-terminal-green mt-16">
+      <footer className={`border-t-2 mt-16 ${
+        isTerminal
+          ? 'bg-black border-terminal-green'
+          : 'bg-business-bg-secondary border-business-border-primary'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-terminal-green-dim text-sm font-mono">
-            &gt; POWERED_BY: CLOUDFLARE_WORKERS_AI | DATA_SOURCE: PUBLIC_THREAT_FEEDS
+          <p className={`text-center text-sm ${
+            isTerminal
+              ? 'text-terminal-green-dim font-mono'
+              : 'text-business-text-muted font-sans'
+          }`}>
+            {isTerminal
+              ? '> POWERED_BY: CLOUDFLARE_WORKERS_AI | DATA_SOURCE: PUBLIC_THREAT_FEEDS'
+              : 'Powered by Cloudflare Workers AI • Data from public threat feeds'
+            }
           </p>
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
