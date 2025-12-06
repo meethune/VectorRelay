@@ -43,25 +43,35 @@ export async function analyzeArticle(env: Env, article: Threat): Promise<AIAnaly
       max_tokens: 1024,
     });
 
-    // Parse the response
-    let analysisText = '';
+    // Parse the response - handle new Workers AI response format
+    let analysis: AIAnalysis;
+
     if (typeof response === 'object' && 'response' in response) {
-      analysisText = response.response as string;
+      // New format: { response: { tldr, key_points, ... }, tool_calls: [], usage: {} }
+      if (typeof response.response === 'object') {
+        // Response is already parsed JSON
+        analysis = response.response as AIAnalysis;
+      } else {
+        // Response is a JSON string
+        const jsonMatch = (response.response as string).match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          console.error('No JSON found in AI response:', response.response);
+          return null;
+        }
+        analysis = JSON.parse(jsonMatch[0]);
+      }
     } else if (typeof response === 'string') {
-      analysisText = response;
+      // Legacy format: just a string
+      const jsonMatch = response.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error('No JSON found in AI response:', response);
+        return null;
+      }
+      analysis = JSON.parse(jsonMatch[0]);
     } else {
       console.error('Unexpected AI response format:', response);
       return null;
     }
-
-    // Extract JSON from response (handle cases where model adds explanation)
-    const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('No JSON found in AI response:', analysisText);
-      return null;
-    }
-
-    const analysis: AIAnalysis = JSON.parse(jsonMatch[0]);
 
     // Validate the analysis
     if (!analysis.tldr || !analysis.category || !analysis.severity) {
