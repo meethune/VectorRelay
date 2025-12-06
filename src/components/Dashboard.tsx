@@ -280,6 +280,14 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
                   fontFamily: isTerminal ? 'monospace' : 'sans-serif',
                   color: isTerminal ? '#00ff00' : '#E4E4E4',
                 }}
+                labelStyle={{
+                  color: isTerminal ? '#00ff00' : '#E4E4E4',
+                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                }}
+                itemStyle={{
+                  color: isTerminal ? '#00ff00' : '#E4E4E4',
+                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                }}
               />
             </PieChart>
           </ResponsiveContainer>
@@ -318,6 +326,14 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
                   border: isTerminal ? '2px solid #00ff00' : '2px solid #404040',
                   fontFamily: isTerminal ? 'monospace' : 'sans-serif',
                   color: isTerminal ? '#00ff00' : '#E4E4E4',
+                }}
+                labelStyle={{
+                  color: isTerminal ? '#00ff00' : '#E4E4E4',
+                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                }}
+                itemStyle={{
+                  color: isTerminal ? '#00ff00' : '#E4E4E4',
+                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
                 }}
               />
               <Bar dataKey="value" fill={isTerminal ? '#00ff00' : '#A8DADC'} />
