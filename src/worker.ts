@@ -38,10 +38,9 @@ export const scheduled: ExportedHandlerScheduledHandler<Env> = async (controller
     const { onSchedule } = await import('../functions/scheduled');
 
     // Call the Pages Function onSchedule handler
-    // The onSchedule function only needs env
-    const response = await onSchedule({ env });
+    await onSchedule({ env });
 
-    console.log('[Cron] Scheduled task completed successfully with status:', response?.status);
+    console.log('[Cron] Scheduled task completed successfully');
   } catch (error) {
     console.error('[Cron] Scheduled task failed:', error);
     // Re-throw to mark the cron execution as failed in Cloudflare dashboard
