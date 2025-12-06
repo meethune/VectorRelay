@@ -3,8 +3,14 @@ import type { Env, ThreatWithSummary } from '../types';
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
-  const page = parseInt(url.searchParams.get('page') || '1');
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
+
+  // Security: Validate and cap pagination parameters
+  const requestedPage = parseInt(url.searchParams.get('page') || '1');
+  const page = Math.max(requestedPage, 1); // Min page 1
+
+  const requestedLimit = parseInt(url.searchParams.get('limit') || '20');
+  const limit = Math.min(Math.max(requestedLimit, 1), 50); // Min 1, Max 50
+
   const category = url.searchParams.get('category');
   const severity = url.searchParams.get('severity');
   const source = url.searchParams.get('source');

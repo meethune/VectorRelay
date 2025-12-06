@@ -126,7 +126,31 @@ Cloudflare automatically detects `wrangler.jsonc` and configures all bindings.
 
 ---
 
-### Step 6: Enable Analytics Engine (First Deployment Only)
+### Step 6: Set Production Environment Variable
+
+**Important:** Configure the production environment variable to disable debug/test endpoints:
+
+1. In the same Cloudflare Dashboard, with your Pages project selected
+2. Go to **Settings** tab
+3. Scroll down to **Variables and Secrets** section
+4. Click **Add variable** (or **Edit variables**)
+5. Add the following variable:
+   - **Variable name:** `ENVIRONMENT`
+   - **Value:** `production`
+   - **Environment:** Select **Production** only (leave Preview unchecked)
+6. Click **Save**
+
+**Why this is needed:**
+- Debug endpoints (`/api/debug-ingestion`, `/api/test-ai`, `/api/test-bindings`) expose internal architecture
+- These endpoints are automatically disabled when `ENVIRONMENT=production`
+- Local development and preview deployments can still use these endpoints for testing
+- This is a **security measure** to prevent information disclosure
+
+**Note:** Without this variable, debug/test endpoints will remain enabled in production until you set it.
+
+---
+
+### Step 7: Enable Analytics Engine (First Deployment Only)
 
 **This is expected!** On your first deployment, you'll see:
 
@@ -154,7 +178,7 @@ Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to 
 
 ---
 
-### Step 7: Load Initial Data
+### Step 8: Load Initial Data
 
 ```bash
 # Trigger feed ingestion

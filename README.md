@@ -121,7 +121,23 @@ Edit `wrangler.jsonc` and replace the placeholder IDs:
 
 Cloudflare will automatically detect `wrangler.jsonc` and configure all bindings.
 
-### 7. Enable Analytics Engine (First Deployment Only)
+### 7. Set Production Environment Variable
+
+**Security Step:** Configure the production environment variable to disable debug/test endpoints:
+
+1. In Cloudflare Dashboard, with your Pages project selected
+2. Go to **Settings** tab
+3. Scroll to **Variables and Secrets** section
+4. Click **Add variable**
+5. Add:
+   - **Variable name:** `ENVIRONMENT`
+   - **Value:** `production`
+   - **Environment:** Select **Production** only
+6. Click **Save**
+
+This disables debug endpoints (`/api/debug-ingestion`, `/api/test-ai`, `/api/test-bindings`) in production to prevent information disclosure.
+
+### 8. Enable Analytics Engine (First Deployment Only)
 
 **This is expected!** On your first deployment, you'll see:
 
@@ -144,18 +160,13 @@ This is normal - Analytics Engine is an **account-level feature** that requires 
 - Once enabled, **all your projects can use it** (never need to enable again)
 - The actual dataset auto-creates when your Worker first calls `writeDataPoint()`
 
-### 8. Verify Deployment
+### 9. Verify Deployment
 
 Your site will be live at: `https://YOUR-PROJECT-NAME.pages.dev`
 
-**Test the bindings:**
-```bash
-curl https://YOUR-PROJECT-NAME.pages.dev/api/test-bindings
-```
+**Note:** The `/api/test-bindings` endpoint is now disabled in production for security. You can verify the deployment by checking the site loads correctly and viewing the Cloudflare Dashboard logs.
 
-You should see all bindings showing `"status": "OK"`.
-
-### 9. Trigger Initial Data Load
+### 10. Trigger Initial Data Load
 
 **Manual trigger:**
 ```bash
@@ -169,7 +180,7 @@ curl https://YOUR-PROJECT-NAME.pages.dev/api/process-ai?limit=30
 
 Wait 2-3 minutes, then check your dashboard - you should see threat data!
 
-### 10. Automated Updates (Already Configured!)
+### 11. Automated Updates (Already Configured!)
 
 The repository includes `.github/workflows/scheduled-ingestion.yml` which:
 - ✅ Runs **every 6 hours** (00:00, 06:00, 12:00, 18:00 UTC)
@@ -229,7 +240,16 @@ wrangler d1 execute threat-intel-db --remote --file=./schema.sql
 
 ### Environment Variables
 
-Set secrets using Wrangler:
+**Required Production Variable:**
+
+Set via Cloudflare Dashboard → Settings → Variables and Secrets:
+- `ENVIRONMENT=production` (Production environment only)
+
+This disables debug/test endpoints in production for security.
+
+**Optional API Keys (for paid services):**
+
+Set secrets using Wrangler CLI:
 
 ```bash
 # If you want to add API keys for paid services (optional)

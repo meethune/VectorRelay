@@ -6,10 +6,22 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get('q');
   const mode = url.searchParams.get('mode') || 'keyword'; // keyword or semantic
-  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
 
+  // Security: Hard cap on limit to prevent resource exhaustion
+  const requestedLimit = parseInt(url.searchParams.get('limit') || '20');
+  const limit = Math.min(Math.max(requestedLimit, 1), 50); // Min 1, Max 50
+
+  // Security: Validate query exists and length
   if (!query) {
     return Response.json({ error: 'Query parameter "q" is required' }, { status: 400 });
+  }
+
+  if (query.length > 500) {
+    return Response.json({ error: 'Query must be 500 characters or less' }, { status: 400 });
+  }
+
+  if (query.length < 1) {
+    return Response.json({ error: 'Query must be at least 1 character' }, { status: 400 });
   }
 
   try {

@@ -2,6 +2,13 @@
 import type { Env, Threat } from '../types';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+  // Security: Disable test endpoint in production
+  if (env.ENVIRONMENT === 'production') {
+    return Response.json({
+      error: 'Test endpoints are disabled in production'
+    }, { status: 404 });
+  }
+
   try {
     // Get one threat without a summary
     const threatResult = await env.DB.prepare(`

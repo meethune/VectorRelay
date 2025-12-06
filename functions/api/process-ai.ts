@@ -4,9 +4,16 @@ import { analyzeArticle, generateEmbedding } from '../utils/ai-processor';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const url = new URL(request.url);
-  const limit = parseInt(url.searchParams.get('limit') || '5');
+
+  // Security: Hard cap on limit to prevent resource exhaustion
+  const requestedLimit = parseInt(url.searchParams.get('limit') || '5');
+  const limit = Math.min(Math.max(requestedLimit, 1), 10); // Min 1, Max 10
 
   const logs: string[] = [];
+
+  if (requestedLimit > 10) {
+    logs.push(`⚠️ Requested limit ${requestedLimit} exceeded maximum of 10, capped at 10`);
+  }
 
   try {
     logs.push('Finding threats without AI analysis...');

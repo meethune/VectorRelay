@@ -42,10 +42,11 @@
       "binding": "ANALYTICS",
       "dataset": "threat_metrics"
     }
-  ],
+  ]
 
-  // Environment variables (use wrangler secret for sensitive data)
-  "vars": {
-    "ENVIRONMENT": "production"
-  }
+  // Note: ENVIRONMENT variable is set via Cloudflare Dashboard
+  // Settings → Environment Variables:
+  //   - Production: ENVIRONMENT=production
+  //   - Preview: ENVIRONMENT=preview
+  //   - Local dev: undefined (test endpoints enabled)
 }

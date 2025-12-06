@@ -2,6 +2,13 @@
 import type { Env, FeedSource } from '../types';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+  // Security: Disable debug endpoint in production
+  if (env.ENVIRONMENT === 'production') {
+    return Response.json({
+      error: 'Debug endpoints are disabled in production'
+    }, { status: 404 });
+  }
+
   const logs: string[] = [];
 
   try {
