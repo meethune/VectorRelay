@@ -1,254 +1,204 @@
-# 🚀 Deployment Checklist
+# 🚀 Production Deployment Guide
 
-Follow these steps to deploy your Threat Intelligence Dashboard.
+This guide walks through deploying the Threat Intelligence Dashboard to Cloudflare Pages with all required services.
 
-## ✅ Pre-Deployment Checklist
+## 📋 Prerequisites Checklist
 
+- [ ] GitHub account
+- [ ] Cloudflare account (free tier works!)
 - [ ] Node.js 18+ installed
-- [ ] Wrangler CLI installed (`npm install -g wrangler`)
-- [ ] Cloudflare account created
-- [ ] Authenticated with Wrangler (`wrangler login`)
+- [ ] Git installed
 
-## 📝 Step-by-Step Deployment
+**Note:** Analytics Engine will need to be enabled on first deployment (one-time, account-level setup). Unlike D1/Vectorize/KV which are created per-project via CLI, Analytics Engine is an account capability enabled via dashboard.
 
-### Step 1: Install Dependencies
+## 🔧 Step-by-Step Deployment
+
+### Step 1: Authenticate with Cloudflare
 
 ```bash
-npm install
+npx wrangler login
 ```
 
-**Expected output:** All packages installed successfully
+This opens your browser to authenticate. Once complete, you're ready to create resources.
 
 ---
 
-### Step 2: Create D1 Database
+### Step 2: Create Required Resources
 
+Run these commands one at a time and **save the IDs** from each:
+
+**D1 Database:**
 ```bash
-wrangler d1 create threat-intel-db
+npx wrangler d1 create threat-intel-db
 ```
 
-**Expected output:**
+Output will include:
 ```
-✅ Successfully created DB 'threat-intel-db'
 database_id = "abc123..."
 ```
+**Save this ID!**
 
-**Action Required:**
-1. Copy the `database_id` from output
-2. Open `wrangler.jsonc`
-3. Replace `YOUR_D1_DATABASE_ID` with your actual database ID
+**Vectorize Index:**
+```bash
+npx wrangler vectorize create threat-embeddings --dimensions=1024 --metric=cosine
+```
+
+Note: We use 1024 dimensions because the BGE-Large embedding model outputs 1024-dim vectors.
+
+**KV Namespaces:**
+```bash
+npx wrangler kv namespace create CACHE
+npx wrangler kv namespace create CACHE --preview
+```
+
+Output will include two IDs:
+- Production: `id = "xyz789..."`
+- Preview: `preview_id = "def456..."`
+
+**Save both IDs!**
 
 ---
 
-### Step 3: Initialize Database Schema
+### Step 3: Update Configuration
+
+Edit `wrangler.jsonc` and replace these values:
+
+```jsonc
+{
+  "d1_databases": [
+    {
+      "database_id": "YOUR_D1_DATABASE_ID"  // ← Paste your D1 ID here
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "id": "YOUR_KV_NAMESPACE_ID",          // ← Paste production KV ID
+      "preview_id": "YOUR_KV_PREVIEW_ID"     // ← Paste preview KV ID
+    }
+  ]
+}
+```
+
+**Commit your changes:**
+```bash
+git add wrangler.jsonc
+git commit -m "Configure production resource IDs"
+git push origin main
+```
+
+---
+
+### Step 4: Initialize Database
 
 ```bash
-# Initialize local database
-wrangler d1 execute threat-intel-db --local --file=./schema.sql
-
-# Initialize production database
-wrangler d1 execute threat-intel-db --remote --file=./schema.sql
+npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
 ```
 
-**Expected output:**
-```
-✅ Executed 15 commands
-```
+This creates:
+- 8 tables (threats, summaries, iocs, categories, etc.)
+- Default categories (ransomware, apt, vulnerability, etc.)
+- 7 security feed sources (CISA, Krebs, BleepingComputer, etc.)
+
+You should see: `✅ Executed 24 queries` (or similar)
 
 ---
 
-### Step 4: Create Vectorize Index
+### Step 5: Deploy to Cloudflare Pages
+
+**Push to GitHub and connect:**
+
+1. Push your code:
+   ```bash
+   git push origin main
+   ```
+
+2. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
+3. Click **Workers & Pages** → **"Create Application"** → **"Pages"** → **"Connect to Git"**
+4. Select your repository
+5. Configure build settings:
+   - **Build command:** `npm run build`
+   - **Build output directory:** `dist`
+   - **Root directory:** (leave empty)
+   - **Deploy command:** (leave empty - IMPORTANT!)
+6. Click **"Save and Deploy"**
+
+Cloudflare automatically detects `wrangler.jsonc` and configures all bindings.
+
+---
+
+### Step 6: Enable Analytics Engine (First Deployment Only)
+
+**This is expected!** On your first deployment, you'll see:
+
+```
+Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to enable
+[code: 10089]
+```
+
+**This is normal** - Analytics Engine is an account-level feature that requires one-time enablement:
+
+1. Click the error link in deployment logs, or go to: Dashboard → Workers & Pages → Analytics Engine
+2. Click **"Enable Analytics Engine"** (one-time setup for your entire account)
+3. Re-deploy (push to GitHub or click "Retry deployment")
+4. **Note:** The dataset (`threat_metrics`) auto-creates on first use - you don't manually create it
+
+**Why this happens:**
+- Analytics Engine is an **account capability** (like enabling Workers AI), not a per-project resource
+- No CLI command exists to enable it - must be done via dashboard
+- Once enabled, **all your projects** can use Analytics Engine (never need to enable again)
+- Datasets auto-create when your Worker first calls `writeDataPoint()`
+
+**Comparison:**
+- **D1/Vectorize/KV**: Per-project resources → Created via CLI commands
+- **Analytics Engine**: Account feature → Enabled once via dashboard, datasets auto-create
+
+---
+
+### Step 7: Load Initial Data
 
 ```bash
-wrangler vectorize create threat-embeddings --dimensions=768 --metric=cosine
-```
+# Trigger feed ingestion
+curl https://YOUR-SITE.pages.dev/api/trigger-ingestion
 
-**Expected output:**
-```
-✅ Successfully created index 'threat-embeddings'
+# Wait 60 seconds, then process AI
+curl https://YOUR-SITE.pages.dev/api/process-ai?limit=30
+
+# Check stats
+curl https://YOUR-SITE.pages.dev/api/stats
 ```
 
 ---
 
-### Step 5: Create KV Namespace
+## ✅ You're Done!
+
+Your dashboard is now:
+- ✅ Live on Cloudflare Pages
+- ✅ Auto-updating every 6 hours via GitHub Actions
+- ✅ Processing threats with AI
+
+Visit: `https://YOUR-PROJECT-NAME.pages.dev`
+
+---
+
+## 🔍 Debugging with Logs
+
+If you encounter issues, you can monitor production logs in real-time:
+
+**Web UI Method:**
+
+1. Go to [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages)
+2. Select your Pages project (`threat-intel-dashboard`)
+3. Click **"View details"** on the production deployment (main branch)
+4. Select the **"Functions"** tab
+5. Scroll down to **"Real-time Logs"**
+6. Click **"Begin log stream"**
+
+**CLI Method:**
 
 ```bash
-# Production namespace
-wrangler kv:namespace create CACHE
-
-# Preview namespace
-wrangler kv:namespace create CACHE --preview
+npx wrangler pages deployment tail --project-name=threat-intel-dashboard
 ```
 
-**Expected output:**
-```
-✅ Created namespace CACHE
-id = "xyz789..."
-preview_id = "abc456..."
-```
+Both methods provide equivalent output. Trigger an action (like `/api/trigger-ingestion`) and watch for errors in real-time.
 
-**Action Required:**
-1. Copy both IDs from output
-2. Open `wrangler.jsonc`
-3. Replace `YOUR_KV_NAMESPACE_ID` with production id
-4. Replace `YOUR_KV_PREVIEW_ID` with preview id
-
----
-
-### Step 6: Verify Configuration
-
-Open `wrangler.jsonc` and ensure all placeholders are replaced:
-
-- [ ] `database_id` is set (not "YOUR_D1_DATABASE_ID")
-- [ ] KV `id` is set (not "YOUR_KV_NAMESPACE_ID")
-- [ ] KV `preview_id` is set (not "YOUR_KV_PREVIEW_ID")
-
----
-
-### Step 7: Build the Application
-
-```bash
-npm run build
-```
-
-**Expected output:**
-```
-✓ built in XXXms
-dist/index.html
-dist/assets/...
-```
-
----
-
-### Step 8: Deploy to Cloudflare Pages
-
-```bash
-wrangler pages deploy
-```
-
-OR
-
-```bash
-npm run deploy
-```
-
-**Expected output:**
-```
-✨ Success! Deployed to https://your-app-xyz.pages.dev
-```
-
----
-
-### Step 9: Test the Deployment
-
-1. Open the URL from deployment output
-2. You should see the dashboard (it will be empty initially)
-3. Test the API endpoints:
-
-```bash
-# Replace with your actual URL
-curl https://your-app.pages.dev/api/stats
-```
-
----
-
-### Step 10: Wait for First Data Ingestion
-
-The scheduled function runs **every 6 hours**. Options:
-
-**Option A: Wait** (recommended)
-- Wait up to 6 hours for automatic ingestion
-
-**Option B: Manual Trigger** (advanced)
-1. Go to Cloudflare Dashboard
-2. Navigate to Workers & Pages > Your Project
-3. Go to Functions tab
-4. Find `scheduled` function
-5. Click "Send test event"
-
----
-
-## 🔍 Verification
-
-After data ingestion (6+ hours), verify:
-
-- [ ] Dashboard shows threat counts
-- [ ] "All Threats" page shows articles
-- [ ] Search works
-- [ ] Individual threat details load
-- [ ] IOCs are displayed
-- [ ] Charts render correctly
-
----
-
-## 🐛 Common Issues
-
-### Issue: "Database not found"
-
-**Solution:**
-```bash
-wrangler d1 execute threat-intel-db --remote --file=./schema.sql
-```
-
-### Issue: "No threats appearing"
-
-**Cause:** Scheduled function hasn't run yet
-
-**Solution:** Wait for next scheduled run or manually trigger
-
-### Issue: "Vectorize index not found"
-
-**Solution:**
-```bash
-wrangler vectorize create threat-embeddings --dimensions=768 --metric=cosine
-```
-
-### Issue: Build fails
-
-**Solution:**
-```bash
-rm -rf node_modules dist
-npm install
-npm run build
-```
-
----
-
-## 📊 Monitoring
-
-View logs in real-time:
-
-```bash
-wrangler pages deployment tail
-```
-
-Check scheduled function logs:
-
-```bash
-wrangler tail
-```
-
----
-
-## 🎉 Next Steps
-
-Once deployed:
-
-1. **Bookmark your dashboard** - Use it daily!
-2. **Customize feeds** - Add more sources in `schema.sql`
-3. **Set up alerts** - Extend with email/Slack notifications
-4. **Share with team** - Send them the URL
-5. **Monitor usage** - Check Cloudflare dashboard for metrics
-
----
-
-## 💡 Pro Tips
-
-- **Custom Domain:** Add a custom domain in Cloudflare Pages settings
-- **Faster Updates:** Change cron to `0 */3 * * *` for 3-hour updates
-- **Local Testing:** Use `wrangler pages dev` for local development
-- **Database Backups:** Use `wrangler d1 export` to backup your data
-
----
-
-**Need help?** Check the [README.md](./README.md) or [Cloudflare Docs](https://developers.cloudflare.com/)
+**Reference:** [Cloudflare Pages Debugging & Logging](https://developers.cloudflare.com/pages/functions/debugging-and-logging/#view-logs-in-the-cloudflare-dashboard)

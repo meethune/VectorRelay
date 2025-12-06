@@ -7,12 +7,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy",
     "cf-typegen": "wrangler types",
     "db:create": "wrangler d1 create threat-intel-db",
-    "db:init": "wrangler d1 execute threat-intel-db --file=./schema.sql",
-    "db:migrate": "wrangler d1 execute threat-intel-db --file=./schema.sql --remote",
-    "vectorize:create": "wrangler vectorize create threat-embeddings --dimensions=768 --metric=cosine"
+    "db:init": "wrangler d1 execute threat-intel-db --file=./schema.sql --remote",
+    "db:init:local": "wrangler d1 execute threat-intel-db --file=./schema.sql --local",
+    "vectorize:create": "wrangler vectorize create threat-embeddings --dimensions=1024 --metric=cosine",
+    "vectorize:delete": "wrangler vectorize delete threat-embeddings",
+    "kv:create": "wrangler kv namespace create CACHE && wrangler kv namespace create CACHE --preview"
   },
   "dependencies": {
     "date-fns": "^3.3.1",
