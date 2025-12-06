@@ -125,7 +125,7 @@ if (env.ENVIRONMENT === 'production') {
 
 ```bash
 # Production - Endpoints disabled
-curl https://threat-intel-dashboard.main-account-7a6.workers.dev/api/trigger-ingestion
+curl https://YOUR-WORKER.workers.dev/api/trigger-ingestion
 # → {"error": "Endpoint disabled", ...}
 
 # Development - Endpoints enabled (with auth)
@@ -244,14 +244,10 @@ npx wrangler tail
 
 ## 🚀 Deployment
 
-Changes applied in version: **5a428ff0-8712-458b-948a-5d793dc85761**
-
-**Deployed:** 2025-12-06T04:37:00Z
-
 **Verification:**
 ```bash
 # Verify endpoints are disabled
-curl https://threat-intel-dashboard.main-account-7a6.workers.dev/api/trigger-ingestion
+curl https://YOUR-WORKER.workers.dev/api/trigger-ingestion
 # → {"error": "Endpoint disabled"}
 
 # Verify cron still works
