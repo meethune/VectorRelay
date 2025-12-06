@@ -266,7 +266,7 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
                     : `${name} (${(percent * 100).toFixed(0)}%)`
                 }
                 outerRadius={80}
-                fill={isTerminal ? '#00ff00' : '#3b82f6'}
+                fill={isTerminal ? '#00ff00' : '#A8DADC'}
                 dataKey="value"
               >
                 {categoryData.map((entry, index) => (
@@ -275,10 +275,10 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isTerminal ? '#000000' : '#1e293b',
-                  border: isTerminal ? '2px solid #00ff00' : '2px solid #334155',
+                  backgroundColor: isTerminal ? '#000000' : '#2C2C2C',
+                  border: isTerminal ? '2px solid #00ff00' : '2px solid #404040',
                   fontFamily: isTerminal ? 'monospace' : 'sans-serif',
-                  color: isTerminal ? '#00ff00' : '#f1f5f9',
+                  color: isTerminal ? '#00ff00' : '#E4E4E4',
                 }}
               />
             </PieChart>
@@ -300,27 +300,27 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
             <BarChart data={severityData}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke={isTerminal ? '#00ff00' : '#334155'}
+                stroke={isTerminal ? '#00ff00' : '#404040'}
                 opacity={0.2}
               />
               <XAxis
                 dataKey="name"
-                stroke={isTerminal ? '#00ff00' : '#94a3b8'}
+                stroke={isTerminal ? '#00ff00' : '#A0A0A0'}
                 style={{ fontFamily: isTerminal ? 'monospace' : 'sans-serif' }}
               />
               <YAxis
-                stroke={isTerminal ? '#00ff00' : '#94a3b8'}
+                stroke={isTerminal ? '#00ff00' : '#A0A0A0'}
                 style={{ fontFamily: isTerminal ? 'monospace' : 'sans-serif' }}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isTerminal ? '#000000' : '#1e293b',
-                  border: isTerminal ? '2px solid #00ff00' : '2px solid #334155',
+                  backgroundColor: isTerminal ? '#000000' : '#2C2C2C',
+                  border: isTerminal ? '2px solid #00ff00' : '2px solid #404040',
                   fontFamily: isTerminal ? 'monospace' : 'sans-serif',
-                  color: isTerminal ? '#00ff00' : '#f1f5f9',
+                  color: isTerminal ? '#00ff00' : '#E4E4E4',
                 }}
               />
-              <Bar dataKey="value" fill={isTerminal ? '#00ff00' : '#3b82f6'} />
+              <Bar dataKey="value" fill={isTerminal ? '#00ff00' : '#A8DADC'} />
             </BarChart>
           </ResponsiveContainer>
         </div>
