@@ -1,0 +1,6 @@
+# Local development environment variables
+# Copy this file to .dev.vars and modify as needed
+
+# Set to "development" to enable debug/test endpoints locally
+# Production/preview deployments use ENVIRONMENT=production from wrangler.jsonc
+ENVIRONMENT=development

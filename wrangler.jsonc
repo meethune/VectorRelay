@@ -42,11 +42,12 @@
       "binding": "ANALYTICS",
       "dataset": "threat_metrics"
     }
-  ]
+  ],
 
-  // Note: ENVIRONMENT variable is set via Cloudflare Dashboard
-  // Settings → Environment Variables:
-  //   - Production: ENVIRONMENT=production
-  //   - Preview: ENVIRONMENT=preview
-  //   - Local dev: undefined (test endpoints enabled)
+  // Environment variables
+  // Production/Preview: ENVIRONMENT=production (debug endpoints disabled)
+  // Local dev: Create .dev.vars with ENVIRONMENT=development (debug endpoints enabled)
+  "vars": {
+    "ENVIRONMENT": "production"
+  }
 }
