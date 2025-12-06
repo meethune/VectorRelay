@@ -61,5 +61,11 @@
   // Local dev: Create .dev.vars with ENVIRONMENT=development (debug endpoints enabled)
   "vars": {
     "ENVIRONMENT": "production"
+  },
+
+  // Observability for logging and monitoring
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
   }
 }
