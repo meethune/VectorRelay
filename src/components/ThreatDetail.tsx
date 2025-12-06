@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ExternalLink,
@@ -51,6 +52,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const isTerminal = theme === 'terminal';
   const [threat, setThreat] = useState<ThreatDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -394,7 +396,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
                     ? 'bg-black border-terminal-green-dark hover:border-terminal-green'
                     : 'bg-business-bg-tertiary border-business-border-secondary hover:border-business-accent-primary'
                 }`}
-                onClick={() => window.location.reload()} // Simple reload to view similar threat
+                onClick={() => navigate(`/threat/${similar.id}`)}
               >
                 <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
                   {similar.title}
