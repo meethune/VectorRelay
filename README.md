@@ -63,20 +63,23 @@ npx wrangler kv namespace create CACHE --preview
 
 # 4. Update wrangler.jsonc with the IDs
 
-# 5. Initialize database
+# 5. Enable Analytics Engine (one-time, do this BEFORE first deploy)
+# Go to Cloudflare Dashboard → Workers & Pages → Analytics Engine
+# Click "Enable Analytics Engine"
+
+# 6. Initialize database
 npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
 
-# 6. Deploy to Cloudflare Workers
+# 7. Deploy to Cloudflare Workers
 npm run deploy
 
-# 7. Enable Analytics Engine on first deployment (one-time)
-
-# 8. Load initial data
-curl https://YOUR-WORKER.workers.dev/api/trigger-ingestion
-curl https://YOUR-WORKER.workers.dev/api/process-ai?limit=30
+# 8. Wait for automatic data ingestion
+# The cron trigger runs automatically every 6 hours
+# First run happens within 6 hours of deployment
+# Check the dashboard after a few hours to see data appear
 ```
 
-**Automated updates:** Native Workers cron trigger runs every 6 hours to fetch and analyze new threats automatically
+**Automated updates:** Native Workers cron trigger runs every 6 hours to fetch and analyze new threats automatically. No manual intervention required!
 
 ## 🧪 Local Development
 
@@ -160,15 +163,20 @@ To change the ingestion frequency, edit `wrangler.jsonc`:
 - `GET /api/threat/:id` - Get threat details with IOCs
 - `GET /api/search?q=ransomware&mode=semantic` - Semantic search using embeddings
 
-### Management Endpoints
+### Management Endpoints (Development Only)
 
-- `GET /api/trigger-ingestion` - Manually trigger feed ingestion
-- `GET /api/process-ai?limit=N` - Process N threats with AI analysis
-- `GET /api/test-bindings` - Test all Cloudflare bindings
-- `GET /api/debug-ingestion` - Debug feed fetching (shows detailed logs)
+**⚠️ Note:** These endpoints are disabled in production for security. They only work in development or with API key authentication.
+
+- `GET /api/trigger-ingestion` - Manually trigger feed ingestion (dev only)
+- `GET /api/process-ai?limit=N` - Process N threats with AI analysis (dev only)
+- `GET /api/test-bindings` - Test all Cloudflare bindings (dev only)
+- `GET /api/debug-ingestion` - Debug feed fetching with detailed logs (dev only)
+
+In production, the cron trigger handles ingestion automatically every 6 hours.
 
 ### Example API Usage
 
+**Production-ready endpoints:**
 ```bash
 # Get dashboard stats
 curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/stats
@@ -179,15 +187,26 @@ curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/search?q=rans
 # Get threats by category and severity
 curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/threats?category=apt&severity=critical
 
-# Manually trigger feed ingestion
-curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/trigger-ingestion
-
-# Process 10 threats with AI
-curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/process-ai?limit=10
-
-# Test all bindings
-curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/test-bindings
+# Get specific threat details
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/threat/1675oc031wl
 ```
+
+**Development-only endpoints (require API key in production):**
+```bash
+# Set API key header for development endpoints
+export API_KEY="your-api-key-from-dashboard"
+
+# Manually trigger feed ingestion (dev only)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/trigger-ingestion
+
+# Process 10 threats with AI (dev only)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/process-ai?limit=10
+
+# Test all bindings (dev only)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/test-bindings
+```
+
+**Note:** In production, management endpoints return 403 Forbidden. Cron triggers handle all data ingestion automatically.
 
 ## 🎨 Customization
 
@@ -245,29 +264,37 @@ theme: {
 
 ### Issue: No data appearing on dashboard
 
-**Solution:**
+**In Production:**
+- Wait up to 6 hours for the first cron trigger to run
+- Check cron execution logs: `npx wrangler tail`
+- Verify Analytics Engine is enabled in dashboard
+- Check Workers logs for errors during cron execution
+
+**In Development (local testing):**
 1. Check if bindings are working:
    ```bash
-   curl https://YOUR-SITE.pages.dev/api/test-bindings
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/test-bindings
    ```
    All should show `"status": "OK"`
 
 2. Manually trigger ingestion:
    ```bash
-   curl https://YOUR-SITE.pages.dev/api/trigger-ingestion
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/trigger-ingestion
    ```
 
 3. Check debug logs:
    ```bash
-   curl https://YOUR-SITE.pages.dev/api/debug-ingestion
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug-ingestion
    ```
 
 4. Process AI analysis:
    ```bash
-   curl https://YOUR-SITE.pages.dev/api/process-ai?limit=30
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/process-ai?limit=30
    ```
 
-### Issue: Analytics Engine error on first deployment
+**Note:** Management endpoints are disabled in production for security. Use `wrangler tail` to monitor the cron trigger instead.
+
+### Issue: Analytics Engine error on deployment
 
 **Error:**
 ```
@@ -275,12 +302,12 @@ You need to enable Analytics Engine. Head to the Cloudflare Dashboard to enable
 [code: 10089]
 ```
 
-**This is normal on first deployment!** Analytics Engine is an account-level feature (like enabling Workers AI), not a per-project resource.
+**This should not happen if you followed step 5 in Quick Start!** Analytics Engine must be enabled BEFORE first deployment.
 
 **Solution:**
 1. Go to Cloudflare Dashboard → Workers & Pages → Analytics Engine
 2. Click **"Enable Analytics Engine"** (one-time setup for your entire account)
-3. Re-deploy (push to GitHub or click "Retry deployment")
+3. Re-deploy: `npm run deploy`
 4. **Note:** You do NOT need to manually create the dataset - it auto-creates on first write
 
 **Why this is different from D1/Vectorize/KV:**
