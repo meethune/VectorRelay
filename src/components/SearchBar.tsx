@@ -141,6 +141,11 @@ export default function SearchBar({
             <option value="SANS ISC">{isTerminal ? 'SANS_ISC' : 'SANS ISC'}</option>
             <option value="Schneier on Security">{isTerminal ? 'SCHNEIER_ON_SECURITY' : 'Schneier on Security'}</option>
             <option value="Dark Reading">{isTerminal ? 'DARK_READING' : 'Dark Reading'}</option>
+            <option value="Cisco Talos">{isTerminal ? 'CISCO_TALOS' : 'Cisco Talos'}</option>
+            <option value="Malwarebytes Labs">{isTerminal ? 'MALWAREBYTES_LABS' : 'Malwarebytes Labs'}</option>
+            <option value="Threatpost">{isTerminal ? 'THREATPOST' : 'Threatpost'}</option>
+            <option value="The Record">{isTerminal ? 'THE_RECORD' : 'The Record'}</option>
+            <option value="US-CERT Current Activity">{isTerminal ? 'US-CERT_CURRENT_ACTIVITY' : 'US-CERT Current Activity'}</option>
           </select>
         </div>
       </div>

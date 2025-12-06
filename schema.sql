@@ -113,7 +113,12 @@ INSERT OR IGNORE INTO feed_sources (name, url, type, enabled) VALUES
   ('The Hacker News', 'https://feeds.feedburner.com/TheHackersNews', 'rss', 1),
   ('SANS ISC', 'https://isc.sans.edu/rssfeed.xml', 'rss', 1),
   ('Schneier on Security', 'https://www.schneier.com/feed/atom/', 'atom', 1),
-  ('Dark Reading', 'https://www.darkreading.com/rss.xml', 'rss', 1);
+  ('Dark Reading', 'https://www.darkreading.com/rss.xml', 'rss', 1),
+  ('Cisco Talos', 'https://blog.talosintelligence.com/rss/', 'rss', 1),
+  ('Malwarebytes Labs', 'https://www.malwarebytes.com/blog/feed/index.xml', 'rss', 1),
+  ('Threatpost', 'https://threatpost.com/feed/', 'rss', 1),
+  ('The Record', 'https://therecord.media/feed/', 'rss', 1),
+  ('US-CERT Current Activity', 'https://www.cisa.gov/uscert/ncas/current-activity.xml', 'rss', 1);
 
 -- User bookmarks/saved searches
 CREATE TABLE IF NOT EXISTS bookmarks (
