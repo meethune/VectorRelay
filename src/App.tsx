@@ -10,8 +10,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 // Route components
 function DashboardRoute() {
-  const navigate = useNavigate();
-  return <Dashboard onViewThreats={() => navigate('/threats')} />;
+  return <Dashboard />;
 }
 
 function ThreatsRoute({

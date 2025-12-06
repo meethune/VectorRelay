@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Activity,
   BarChart3,
-  ArrowRight,
 } from 'lucide-react';
 import {
   BarChart,
@@ -56,7 +55,7 @@ const CATEGORY_COLORS_BUSINESS: Record<string, string> = {
   other: '#64748b',
 };
 
-export default function Dashboard({ onViewThreats }: { onViewThreats: () => void }) {
+export default function Dashboard() {
   const { theme } = useTheme();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -376,21 +375,6 @@ export default function Dashboard({ onViewThreats }: { onViewThreats: () => void
             </div>
           ))}
         </div>
-      </div>
-
-      {/* View All Button */}
-      <div className="text-center">
-        <button
-          onClick={onViewThreats}
-          className={`px-6 py-3 border-2 font-bold transition inline-flex items-center ${
-            isTerminal
-              ? 'bg-terminal-green hover:bg-terminal-green-dim text-black border-terminal-green font-mono'
-              : 'bg-business-accent-button hover:bg-business-accent-button-hover text-white border-business-accent-button font-sans'
-          }`}
-        >
-          {isTerminal ? '[ VIEW_ALL_THREATS ]' : 'View All Threats'}
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </button>
       </div>
     </div>
   );
