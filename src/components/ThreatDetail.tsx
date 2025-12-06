@@ -181,21 +181,41 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
 
         {/* TL;DR */}
         {threat.tldr && (
-          <div className="bg-black border-l-4 border-terminal-green p-4 mb-6">
-            <h3 className="text-sm font-semibold text-terminal-green mb-2 font-mono">[ TL;DR ]</h3>
-            <p className="text-terminal-green font-mono">{threat.tldr}</p>
+          <div className={`border-l-4 p-4 mb-6 ${
+            isTerminal
+              ? 'bg-black border-terminal-green'
+              : 'bg-business-bg-tertiary border-business-accent-primary'
+          }`}>
+            <h3 className={`text-sm font-semibold mb-2 ${
+              isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+            }`}>
+              {isTerminal ? '[ TL;DR ]' : 'Summary'}
+            </h3>
+            <p className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-secondary font-sans'}>
+              {threat.tldr}
+            </p>
           </div>
         )}
 
         {/* Key Points */}
         {threat.key_points && threat.key_points.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-terminal-green mb-3 font-mono">[ KEY_POINTS ]</h3>
+            <h3 className={`text-lg font-semibold mb-3 ${
+              isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
+            }`}>
+              {isTerminal ? '[ KEY_POINTS ]' : 'Key Points'}
+            </h3>
             <ul className="space-y-2">
               {threat.key_points.map((point, index) => (
                 <li key={index} className="flex items-start">
-                  <span className="text-terminal-green mr-2 font-mono">&gt;</span>
-                  <span className="text-terminal-green font-mono">{point}</span>
+                  <span className={`mr-2 ${
+                    isTerminal ? 'text-terminal-green font-mono' : 'text-business-accent-primary font-sans'
+                  }`}>
+                    {isTerminal ? '>' : '•'}
+                  </span>
+                  <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-secondary font-sans'}>
+                    {point}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -206,20 +226,40 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {threat.category && (
             <div>
-              <h4 className="text-sm text-terminal-green-dim mb-2 font-mono">&gt; CATEGORY</h4>
-              <span className="px-3 py-1 border border-terminal-green text-terminal-green text-sm font-mono">
-                {threat.category.toUpperCase()}
+              <h4 className={`text-sm mb-2 ${
+                isTerminal
+                  ? 'text-terminal-green-dim font-mono'
+                  : 'text-business-text-muted font-sans'
+              }`}>
+                {isTerminal ? '> CATEGORY' : 'Category'}
+              </h4>
+              <span className={`px-3 py-1 border text-sm ${
+                isTerminal
+                  ? 'border-terminal-green text-terminal-green font-mono'
+                  : 'border-business-border-primary text-business-text-primary font-sans'
+              }`}>
+                {isTerminal ? threat.category.toUpperCase() : threat.category}
               </span>
             </div>
           )}
 
           {threat.affected_sectors && threat.affected_sectors.length > 0 && (
             <div>
-              <h4 className="text-sm text-terminal-green-dim mb-2 font-mono">&gt; AFFECTED_SECTORS</h4>
+              <h4 className={`text-sm mb-2 ${
+                isTerminal
+                  ? 'text-terminal-green-dim font-mono'
+                  : 'text-business-text-muted font-sans'
+              }`}>
+                {isTerminal ? '> AFFECTED_SECTORS' : 'Affected Sectors'}
+              </h4>
               <div className="flex flex-wrap gap-2">
                 {threat.affected_sectors.map((sector) => (
-                  <span key={sector} className="px-3 py-1 border border-terminal-green-dark text-terminal-green text-sm font-mono">
-                    {sector.toUpperCase()}
+                  <span key={sector} className={`px-3 py-1 border text-sm ${
+                    isTerminal
+                      ? 'border-terminal-green-dark text-terminal-green font-mono'
+                      : 'border-business-border-secondary text-business-text-primary font-sans'
+                  }`}>
+                    {isTerminal ? sector.toUpperCase() : sector}
                   </span>
                 ))}
               </div>
@@ -228,11 +268,21 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
 
           {threat.threat_actors && threat.threat_actors.length > 0 && (
             <div>
-              <h4 className="text-sm text-terminal-green-dim mb-2 font-mono">&gt; THREAT_ACTORS</h4>
+              <h4 className={`text-sm mb-2 ${
+                isTerminal
+                  ? 'text-terminal-green-dim font-mono'
+                  : 'text-business-text-muted font-sans'
+              }`}>
+                {isTerminal ? '> THREAT_ACTORS' : 'Threat Actors'}
+              </h4>
               <div className="flex flex-wrap gap-2">
                 {threat.threat_actors.map((actor) => (
-                  <span key={actor} className="px-3 py-1 bg-critical text-black text-sm font-mono">
-                    {actor.toUpperCase()}
+                  <span key={actor} className={`px-3 py-1 text-sm ${
+                    isTerminal
+                      ? 'bg-critical text-black font-mono'
+                      : 'bg-critical text-white font-sans'
+                  }`}>
+                    {isTerminal ? actor.toUpperCase() : actor}
                   </span>
                 ))}
               </div>
@@ -245,31 +295,65 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
           href={threat.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center text-terminal-green hover:text-terminal-green-dim mb-6 font-mono"
+          className={`inline-flex items-center mb-6 ${
+            isTerminal
+              ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
+              : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
+          }`}
         >
           <ExternalLink className="w-4 h-4 mr-2" />
-          &gt; VIEW_ORIGINAL_ARTICLE
+          {isTerminal ? '> VIEW_ORIGINAL_ARTICLE' : 'View Original Article'}
         </a>
       </div>
 
       {/* IOCs */}
       {iocsByType && Object.keys(iocsByType).length > 0 && (
-        <div className="bg-black p-6 border-2 border-terminal-green">
-          <h2 className="text-xl font-bold text-terminal-green mb-4 font-mono">[ INDICATORS_OF_COMPROMISE (IOCs) ]</h2>
+        <div className={`p-6 border-2 ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <h2 className={`text-xl font-bold mb-4 ${
+            isTerminal
+              ? 'text-terminal-green font-mono'
+              : 'text-business-text-primary font-sans'
+          }`}>
+            {isTerminal ? '[ INDICATORS_OF_COMPROMISE (IOCs) ]' : 'Indicators of Compromise (IOCs)'}
+          </h2>
           <div className="space-y-4">
             {Object.entries(iocsByType).map(([type, values]) => (
               <div key={type}>
-                <h3 className="text-sm font-semibold text-terminal-green-dim mb-2 uppercase font-mono">&gt; {type}s</h3>
+                <h3 className={`text-sm font-semibold mb-2 uppercase ${
+                  isTerminal
+                    ? 'text-terminal-green-dim font-mono'
+                    : 'text-business-text-muted font-sans'
+                }`}>
+                  {isTerminal ? `> ${type}s` : `${type}s`}
+                </h3>
                 <div className="space-y-2">
                   {values.map((value) => (
                     <div
                       key={value}
-                      className="flex items-center justify-between bg-black border border-terminal-green-dark p-3"
+                      className={`flex items-center justify-between border p-3 ${
+                        isTerminal
+                          ? 'bg-black border-terminal-green-dark'
+                          : 'bg-business-bg-tertiary border-business-border-secondary'
+                      }`}
                     >
-                      <code className="text-sm text-terminal-green font-mono">{value}</code>
+                      <code className={`text-sm ${
+                        isTerminal
+                          ? 'text-terminal-green font-mono'
+                          : 'text-business-accent-primary font-mono'
+                      }`}>
+                        {value}
+                      </code>
                       <button
                         onClick={() => copyToClipboard(value)}
-                        className="text-terminal-green hover:text-terminal-green-dim ml-4"
+                        className={`ml-4 ${
+                          isTerminal
+                            ? 'text-terminal-green hover:text-terminal-green-dim'
+                            : 'text-business-accent-primary hover:text-business-accent-hover'
+                        }`}
                       >
                         {copiedIOC === value ? (
                           <CheckCircle className="w-4 h-4" />
@@ -288,21 +372,39 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
 
       {/* Similar Threats */}
       {threat.similar_threats && threat.similar_threats.length > 0 && (
-        <div className="bg-black p-6 border-2 border-terminal-green">
-          <h2 className="text-xl font-bold text-terminal-green mb-4 flex items-center font-mono">
-            <Link2 className="w-5 h-5 mr-2 icon-glow" />
-            [ SIMILAR_THREATS ]
+        <div className={`p-6 border-2 ${
+          isTerminal
+            ? 'bg-black border-terminal-green'
+            : 'bg-business-bg-secondary border-business-border-primary'
+        }`}>
+          <h2 className={`text-xl font-bold mb-4 flex items-center ${
+            isTerminal
+              ? 'text-terminal-green font-mono'
+              : 'text-business-text-primary font-sans'
+          }`}>
+            <Link2 className={`w-5 h-5 mr-2 ${isTerminal ? 'icon-glow' : ''}`} />
+            {isTerminal ? '[ SIMILAR_THREATS ]' : 'Similar Threats'}
           </h2>
           <div className="space-y-3">
             {threat.similar_threats.map((similar) => (
               <div
                 key={similar.id}
-                className="flex items-center justify-between p-3 bg-black border border-terminal-green-dark hover:border-terminal-green cursor-pointer"
+                className={`flex items-center justify-between p-3 border cursor-pointer ${
+                  isTerminal
+                    ? 'bg-black border-terminal-green-dark hover:border-terminal-green'
+                    : 'bg-business-bg-tertiary border-business-border-secondary hover:border-business-accent-primary'
+                }`}
                 onClick={() => window.location.reload()} // Simple reload to view similar threat
               >
-                <span className="text-terminal-green font-mono">{similar.title}</span>
-                <span className="text-sm text-terminal-green-dim font-mono">
-                  {Math.round(similar.score * 100)}% MATCH
+                <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
+                  {similar.title}
+                </span>
+                <span className={`text-sm ${
+                  isTerminal
+                    ? 'text-terminal-green-dim font-mono'
+                    : 'text-business-text-muted font-sans'
+                }`}>
+                  {Math.round(similar.score * 100)}% {isTerminal ? 'MATCH' : 'match'}
                 </span>
               </div>
             ))}
