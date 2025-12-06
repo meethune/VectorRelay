@@ -26,3 +26,37 @@ jobs:
           fi
 
           echo "Feed ingestion triggered successfully!"
+
+      - name: Wait for ingestion to complete
+        run: |
+          echo "Waiting 60 seconds for feed ingestion to complete..."
+          sleep 60
+
+      - name: Trigger AI processing
+        run: |
+          echo "Triggering AI analysis processing at $(date)"
+
+          # Process in batches of 10 to avoid timeouts
+          for batch in {1..3}; do
+            echo "Processing batch $batch..."
+            response=$(curl -s -w "\n%{http_code}" "https://threat-intel-dashboard.pages.dev/api/process-ai?limit=10")
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | head -n-1)
+
+            echo "Response: $body"
+            echo "HTTP Status: $http_code"
+
+            if [ "$http_code" -ne 200 ]; then
+              echo "Warning: AI processing batch $batch failed with status $http_code"
+            else
+              echo "Batch $batch completed successfully!"
+            fi
+
+            # Wait between batches to respect rate limits
+            if [ $batch -lt 3 ]; then
+              echo "Waiting 30 seconds before next batch..."
+              sleep 30
+            fi
+          done
+
+          echo "AI processing triggered successfully!"
