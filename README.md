@@ -253,23 +253,25 @@ Set secrets using Wrangler CLI:
 
 ```bash
 # If you want to add API keys for paid services (optional)
-wrangler secret put ALIENVAULT_API_KEY
-wrangler secret put ABUSEIPDB_API_KEY
+npx wrangler pages secret put ALIENVAULT_API_KEY --project-name=threat-intel-dashboard
+npx wrangler pages secret put ABUSEIPDB_API_KEY --project-name=threat-intel-dashboard
 ```
 
 ### Scheduled Frequency
 
-Edit `wrangler.jsonc` to change ingestion frequency:
+**Note:** Cloudflare Pages does not support native cron triggers. This project uses GitHub Actions for scheduled execution.
 
-```jsonc
-"triggers": {
-  "crons": [
-    "0 */6 * * *"  // Every 6 hours
-    // "0 */3 * * *"  // Every 3 hours
-    // "0 * * * *"    // Every hour
-  ]
-}
+To change the ingestion frequency, edit `.github/workflows/scheduled-ingestion.yml`:
+
+```yaml
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+    # - cron: '0 */3 * * *'  # Every 3 hours
+    # - cron: '0 * * * *'    # Every hour
 ```
+
+See [GitHub Actions cron syntax](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule) for more options.
 
 ## 📖 API Endpoints
 

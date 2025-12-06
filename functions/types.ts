@@ -7,6 +7,7 @@ export interface Env {
   CACHE: KVNamespace;
   ANALYTICS: AnalyticsEngineDataset;
   ENVIRONMENT?: string;
+  API_SECRET?: string; // Secret key for authenticating management endpoints
 }
 
 export interface Threat {

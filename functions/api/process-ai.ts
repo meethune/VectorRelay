@@ -1,8 +1,15 @@
 // Process AI analysis for threats that don't have summaries yet
+// Requires authentication via API key
 import type { Env, Threat } from '../types';
 import { analyzeArticle, generateEmbedding } from '../utils/ai-processor';
+import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
+  // Security: Require API key for management endpoints
+  if (!validateApiKey(request, env)) {
+    return unauthorizedResponse();
+  }
+
   const url = new URL(request.url);
 
   // Security: Hard cap on limit to prevent resource exhaustion

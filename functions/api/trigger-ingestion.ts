@@ -1,8 +1,15 @@
 // Manual trigger endpoint for feed ingestion
 // Access at: /api/trigger-ingestion
+// Requires authentication via API key
 import type { Env } from '../types';
+import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
+  // Security: Require API key for management endpoints
+  if (!validateApiKey(request, env)) {
+    return unauthorizedResponse();
+  }
+
   try {
     console.log('Manual trigger: Starting feed ingestion...');
 

@@ -1,5 +1,5 @@
-// RSS/Atom Feed Parser for Cloudflare Workers
-// Uses regex-based parsing instead of DOMParser (which isn't available in Workers)
+// RSS/Atom Feed Parser for Cloudflare Pages Functions
+// Uses regex-based parsing instead of DOMParser (which isn't available in Pages Functions runtime)
 import type { RSSItem } from '../types';
 
 export async function parseFeed(xml: string, feedType: 'rss' | 'atom'): Promise<RSSItem[]> {
