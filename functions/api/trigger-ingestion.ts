@@ -30,7 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     const { onSchedule } = await import('../scheduled');
 
     // Call the scheduled function
-    await onSchedule({ env } as any);
+    await onSchedule({ env });
 
     return new Response(JSON.stringify({
       success: true,
