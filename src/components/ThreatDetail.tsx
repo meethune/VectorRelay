@@ -10,6 +10,7 @@ import {
   Link2,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ThreatDetail {
   id: string;
@@ -41,14 +42,16 @@ interface ThreatDetailProps {
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'bg-red-600',
-  high: 'bg-orange-600',
-  medium: 'bg-yellow-600',
-  low: 'bg-blue-600',
-  info: 'bg-gray-600',
+  critical: 'bg-critical',
+  high: 'bg-high',
+  medium: 'bg-medium',
+  low: 'bg-low',
+  info: 'bg-info',
 };
 
 export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
+  const { theme } = useTheme();
+  const isTerminal = theme === 'terminal';
   const [threat, setThreat] = useState<ThreatDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedIOC, setCopiedIOC] = useState<string | null>(null);
@@ -79,9 +82,9 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-terminal-green font-mono">
-          <div className="text-2xl mb-4">[ LOADING THREAT DETAILS ]</div>
-          <div className="animate-pulse">▓▓▓▓▓▓▓▓▓▓</div>
+        <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
+          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING THREAT DETAILS ]' : 'Loading threat details...'}</div>
+          <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
         </div>
       </div>
     );
@@ -89,11 +92,24 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
 
   if (!threat) {
     return (
-      <div className="text-center py-12 bg-black border-2 border-terminal-green p-8">
-        <AlertCircle className="w-12 h-12 text-terminal-green mx-auto mb-4 icon-glow" />
-        <p className="text-terminal-green font-mono">[ THREAT NOT FOUND ]</p>
-        <button onClick={onBack} className="mt-4 text-terminal-green hover:text-terminal-green-dim font-mono">
-          &gt; GO_BACK
+      <div className={`text-center py-12 border-2 p-8 ${
+        isTerminal
+          ? 'bg-black border-terminal-green text-terminal-green'
+          : 'bg-business-bg-secondary border-business-border-primary text-business-text-primary'
+      }`}>
+        <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
+        <p className={isTerminal ? 'font-mono' : 'font-sans'}>
+          {isTerminal ? '[ THREAT NOT FOUND ]' : 'Threat not found'}
+        </p>
+        <button
+          onClick={onBack}
+          className={`mt-4 ${
+            isTerminal
+              ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
+              : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
+          }`}
+        >
+          {isTerminal ? '> GO_BACK' : '← Go back'}
         </button>
       </div>
     );
@@ -110,19 +126,37 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
       {/* Back Button */}
       <button
         onClick={onBack}
-        className="flex items-center text-terminal-green hover:text-terminal-green-dim mb-4 font-mono"
+        className={`flex items-center mb-4 ${
+          isTerminal
+            ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
+            : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
+        }`}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        &lt; BACK_TO_LIST
+        {isTerminal ? '< BACK_TO_LIST' : '← Back to list'}
       </button>
 
       {/* Main Content */}
-      <div className="bg-black p-8 border-2 border-terminal-green">
+      <div className={`p-8 border-2 ${
+        isTerminal
+          ? 'bg-black border-terminal-green'
+          : 'bg-business-bg-secondary border-business-border-primary'
+      }`}>
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-terminal-green mb-4 font-mono">&gt;&gt; {threat.title}</h1>
-            <div className="flex items-center space-x-6 text-sm text-terminal-green-dim font-mono">
+            <h1 className={`text-3xl font-bold mb-4 ${
+              isTerminal
+                ? 'text-terminal-green font-mono'
+                : 'text-business-text-primary font-sans'
+            }`}>
+              {isTerminal ? '>> ' : ''}{threat.title}
+            </h1>
+            <div className={`flex items-center space-x-6 text-sm ${
+              isTerminal
+                ? 'text-terminal-green-dim font-mono'
+                : 'text-business-text-muted font-sans'
+            }`}>
               <span className="flex items-center">
                 <Tag className="w-4 h-4 mr-2" />
                 {threat.source}
@@ -136,11 +170,11 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
 
           {threat.severity && (
             <span
-              className={`px-4 py-2 text-sm font-semibold text-black font-mono ${
-                SEVERITY_COLORS[threat.severity] || 'bg-gray-600'
-              }`}
+              className={`px-4 py-2 text-sm font-semibold text-white ${
+                isTerminal ? 'font-mono' : 'font-sans'
+              } ${SEVERITY_COLORS[threat.severity] || 'bg-gray-600'}`}
             >
-              [{threat.severity.toUpperCase()}]
+              {isTerminal ? `[${threat.severity.toUpperCase()}]` : threat.severity.toUpperCase()}
             </span>
           )}
         </div>
