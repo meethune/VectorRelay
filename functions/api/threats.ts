@@ -130,7 +130,15 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       cachePrivacy: 'public',
     });
   } catch (error) {
-    console.error('Error fetching threats:', error);
+    console.error('Error fetching threats:', {
+      error: error instanceof Error ? error.message : String(error),
+      page,
+      limit,
+      category,
+      severity,
+      source,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     const errorResponse = Response.json({ error: 'Failed to fetch threats' }, { status: 500 });
     return wrapResponse(errorResponse, { cacheMaxAge: 0 });
   }

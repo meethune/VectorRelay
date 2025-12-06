@@ -60,7 +60,12 @@ export async function checkRateLimit(
     };
   } catch (error) {
     // If rate limiting fails, allow the request (fail open)
-    console.error('Rate limit check failed:', error);
+    console.error('Rate limit check failed:', {
+      error: error instanceof Error ? error.message : String(error),
+      endpoint,
+      identifier,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return {
       allowed: true,
       remaining: limit,

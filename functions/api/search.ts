@@ -130,7 +130,12 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       cachePrivacy: 'private',
     });
   } catch (error) {
-    console.error('Error searching threats:', error);
+    console.error('Error searching threats:', {
+      error: error instanceof Error ? error.message : String(error),
+      query,
+      mode,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     const errorResponse = Response.json({ error: 'Search failed' }, { status: 500 });
     return wrapResponse(errorResponse, { cacheMaxAge: 0 });
   }

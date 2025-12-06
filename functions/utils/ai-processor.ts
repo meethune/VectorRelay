@@ -81,7 +81,12 @@ export async function analyzeArticle(env: Env, article: Threat): Promise<AIAnaly
 
     return analysis;
   } catch (error) {
-    console.error('Error analyzing article:', error);
+    console.error('Error analyzing article:', {
+      error: error instanceof Error ? error.message : String(error),
+      threatId: article.id,
+      threatTitle: article.title,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return null;
   }
 }
@@ -103,7 +108,11 @@ export async function generateEmbedding(env: Env, text: string): Promise<number[
     console.error('Invalid embedding response:', response);
     return null;
   } catch (error) {
-    console.error('Error generating embedding:', error);
+    console.error('Error generating embedding:', {
+      error: error instanceof Error ? error.message : String(error),
+      textLength: text.length,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return null;
   }
 }
@@ -149,7 +158,12 @@ Provide a concise analysis (3-5 paragraphs).`;
 
     return 'Unable to generate trend analysis.';
   } catch (error) {
-    console.error('Error analyzing trends:', error);
+    console.error('Error analyzing trends:', {
+      error: error instanceof Error ? error.message : String(error),
+      threatCount: threats.length,
+      summaryCount: summaries.length,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return 'Error generating trend analysis.';
   }
 }
@@ -177,7 +191,12 @@ export async function semanticSearch(
       score: match.score,
     }));
   } catch (error) {
-    console.error('Error in semantic search:', error);
+    console.error('Error in semantic search:', {
+      error: error instanceof Error ? error.message : String(error),
+      query,
+      limit,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return [];
   }
 }

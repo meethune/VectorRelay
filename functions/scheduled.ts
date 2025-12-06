@@ -99,7 +99,12 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
 
           // Process with AI (async - don't block)
           processArticleWithAI(env, threat).catch((err) => {
-            console.error(`Error processing ${threat.id} with AI:`, err);
+            console.error('Error processing threat with AI:', {
+              error: err instanceof Error ? err.message : String(err),
+              threatId: threat.id,
+              threatTitle: threat.title,
+              stack: err instanceof Error ? err.stack : undefined,
+            });
           });
 
           totalProcessed++;
@@ -124,7 +129,12 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
 
         console.log(`Processed ${feed.name} successfully`);
       } catch (error) {
-        console.error(`Error processing feed ${feed.name}:`, error);
+        console.error('Error processing feed:', {
+          error: error instanceof Error ? error.message : String(error),
+          feedName: feed.name,
+          feedUrl: feed.url,
+          stack: error instanceof Error ? error.stack : undefined,
+        });
 
         // Update error count
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -149,7 +159,10 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
 
     return new Response(`Ingestion complete. New threats: ${totalNew}`, { status: 200 });
   } catch (error) {
-    console.error('Scheduled ingestion error:', error);
+    console.error('Scheduled ingestion error:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return new Response('Error during ingestion', { status: 500 });
   }
 };
@@ -225,6 +238,11 @@ async function processArticleWithAI(env: Env, threat: Threat): Promise<void> {
 
     console.log(`AI processing complete for ${threat.id}`);
   } catch (error) {
-    console.error(`Error in AI processing for ${threat.id}:`, error);
+    console.error('Error in AI processing:', {
+      error: error instanceof Error ? error.message : String(error),
+      threatId: threat.id,
+      threatTitle: threat.title,
+      stack: error instanceof Error ? error.stack : undefined,
+    });
   }
 }
