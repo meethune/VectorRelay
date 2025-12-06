@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Shield, TrendingUp, Filter } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import ThreatList from './components/ThreatList';
@@ -7,10 +8,56 @@ import SearchBar from './components/SearchBar';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
+// Route components
+function DashboardRoute() {
+  const navigate = useNavigate();
+  return <Dashboard onViewThreats={() => navigate('/threats')} />;
+}
+
+function ThreatsRoute({
+  searchQuery,
+  setSearchQuery,
+  filters,
+  setFilters,
+}: {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filters: { category: string; severity: string; source: string };
+  setFilters: (filters: any) => void;
+}) {
+  const navigate = useNavigate();
+  return (
+    <>
+      <SearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+      <ThreatList
+        searchQuery={searchQuery}
+        filters={filters}
+        onThreatClick={(id) => navigate(`/threat/${id}`)}
+      />
+    </>
+  );
+}
+
+function ThreatDetailRoute() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  if (!id) {
+    navigate('/threats');
+    return null;
+  }
+
+  return <ThreatDetail threatId={id} onBack={() => navigate('/threats')} />;
+}
+
 function AppContent() {
   const { theme } = useTheme();
-  const [view, setView] = useState<'dashboard' | 'threats' | 'detail'>('dashboard');
-  const [selectedThreatId, setSelectedThreatId] = useState<string | null>(null);
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     category: '',
@@ -18,22 +65,10 @@ function AppContent() {
     source: '',
   });
 
-  const handleThreatClick = (id: string) => {
-    setSelectedThreatId(id);
-    setView('detail');
-  };
-
-  const handleBackToList = () => {
-    setView('threats');
-    setSelectedThreatId(null);
-  };
-
-  const handleBackToDashboard = () => {
-    setView('dashboard');
-    setSelectedThreatId(null);
-  };
-
   const isTerminal = theme === 'terminal';
+
+  // Determine active view based on current route
+  const isThreatsView = location.pathname === '/threats' || location.pathname.startsWith('/threat/');
 
   return (
     <div className={`min-h-screen ${isTerminal ? 'bg-black' : 'bg-business-bg-primary'}`}>
@@ -59,12 +94,12 @@ function AppContent() {
             </div>
 
             <nav className="flex space-x-4 items-center">
-              <button
-                onClick={handleBackToDashboard}
+              <Link
+                to="/"
                 className={`px-4 py-2 border text-sm font-medium transition ${
                   isTerminal ? 'font-mono' : 'font-sans'
                 } ${
-                  view === 'dashboard'
+                  location.pathname === '/'
                     ? isTerminal
                       ? 'bg-terminal-green text-black border-terminal-green'
                       : 'bg-business-accent-button text-white border-business-accent-button'
@@ -75,13 +110,13 @@ function AppContent() {
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />
                 {isTerminal ? '[ DASHBOARD ]' : 'Dashboard'}
-              </button>
-              <button
-                onClick={() => setView('threats')}
+              </Link>
+              <Link
+                to="/threats"
                 className={`px-4 py-2 border text-sm font-medium transition ${
                   isTerminal ? 'font-mono' : 'font-sans'
                 } ${
-                  view === 'threats' || view === 'detail'
+                  isThreatsView
                     ? isTerminal
                       ? 'bg-terminal-green text-black border-terminal-green'
                       : 'bg-business-accent-button text-white border-business-accent-button'
@@ -92,7 +127,7 @@ function AppContent() {
               >
                 <Filter className="w-4 h-4 inline mr-2" />
                 {isTerminal ? '[ ALL THREATS ]' : 'All Threats'}
-              </button>
+              </Link>
               <ThemeToggle />
             </nav>
           </div>
@@ -101,27 +136,21 @@ function AppContent() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {view === 'dashboard' && <Dashboard onViewThreats={() => setView('threats')} />}
-
-        {view === 'threats' && (
-          <>
-            <SearchBar
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              filters={filters}
-              onFiltersChange={setFilters}
-            />
-            <ThreatList
-              searchQuery={searchQuery}
-              filters={filters}
-              onThreatClick={handleThreatClick}
-            />
-          </>
-        )}
-
-        {view === 'detail' && selectedThreatId && (
-          <ThreatDetail threatId={selectedThreatId} onBack={handleBackToList} />
-        )}
+        <Routes>
+          <Route path="/" element={<DashboardRoute />} />
+          <Route
+            path="/threats"
+            element={
+              <ThreatsRoute
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                filters={filters}
+                setFilters={setFilters}
+              />
+            }
+          />
+          <Route path="/threat/:id" element={<ThreatDetailRoute />} />
+        </Routes>
       </main>
 
       {/* Footer */}
@@ -150,7 +179,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <BrowserRouter>
+        <AppContent />
+      </BrowserRouter>
     </ThemeProvider>
   );
 }
