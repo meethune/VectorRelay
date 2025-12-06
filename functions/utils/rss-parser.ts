@@ -1,100 +1,155 @@
 // RSS/Atom Feed Parser for Cloudflare Pages Functions
-// Uses regex-based parsing instead of DOMParser (which isn't available in Pages Functions runtime)
+// Uses fast-xml-parser for robust XML parsing
+import { XMLParser } from 'fast-xml-parser';
 import type { RSSItem } from '../types';
 
 export async function parseFeed(xml: string, feedType: 'rss' | 'atom'): Promise<RSSItem[]> {
-  if (feedType === 'atom') {
-    return parseAtomFeed(xml);
-  } else {
-    return parseRSSFeed(xml);
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    textNodeName: '#text',
+    trimValues: true,
+    parseTagValue: false, // Keep as strings, don't try to parse numbers/booleans
+    processEntities: true, // Decode HTML entities
+    htmlEntities: true,
+  });
+
+  try {
+    const result = parser.parse(xml);
+
+    if (feedType === 'atom') {
+      return parseAtomData(result.feed || result);
+    } else {
+      return parseRSSData(result.rss?.channel || result.channel || result);
+    }
+  } catch (error) {
+    console.error('XML parsing error:', error);
+    return [];
   }
 }
 
-function parseRSSFeed(xml: string): RSSItem[] {
-  const items: RSSItem[] = [];
+function parseRSSData(channel: any): RSSItem[] {
+  if (!channel || !channel.item) {
+    return [];
+  }
 
-  // Match all <item>...</item> blocks
-  const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
-  let match;
+  // Ensure items is always an array (single item will be an object)
+  const items = Array.isArray(channel.item) ? channel.item : [channel.item];
 
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const itemXml = match[1];
+  return items
+    .map((item: any) => {
+      // Handle both CDATA and regular text content
+      const getTextContent = (value: any): string => {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object') {
+          // Handle CDATA or nested text
+          return value['#text'] || value['__cdata'] || String(value);
+        }
+        return String(value);
+      };
 
-    const title = extractTag(itemXml, 'title');
-    const link = extractTag(itemXml, 'link');
-    const description = extractTag(itemXml, 'description');
-    const contentEncoded = extractTag(itemXml, 'content:encoded');
-    const content = contentEncoded || extractTag(itemXml, 'content') || description;
-    const pubDate = extractTag(itemXml, 'pubDate');
-    const guid = extractTag(itemXml, 'guid') || link;
+      const title = getTextContent(item.title);
+      const link = getTextContent(item.link);
+      const description = getTextContent(item.description);
+      const contentEncoded = getTextContent(item['content:encoded']);
+      const content = contentEncoded || getTextContent(item.content) || description;
+      const pubDate = getTextContent(item.pubDate);
 
-    if (title && link) {
-      items.push({
-        title: cleanHTML(title),
+      // Handle guid which might have attributes
+      let guid = '';
+      if (item.guid) {
+        if (typeof item.guid === 'string') {
+          guid = item.guid;
+        } else if (typeof item.guid === 'object') {
+          guid = item.guid['#text'] || String(item.guid);
+        }
+      }
+      guid = guid || link;
+
+      if (!title || !link) {
+        return null;
+      }
+
+      return {
+        title: cleanText(title),
         link: link.trim(),
-        description: cleanHTML(description),
-        content: cleanHTML(content),
+        description: cleanText(description),
+        content: cleanText(content),
         pubDate: pubDate.trim(),
         guid: guid.trim(),
-      });
-    }
-  }
-
-  return items;
+      };
+    })
+    .filter((item: RSSItem | null): item is RSSItem => item !== null);
 }
 
-function parseAtomFeed(xml: string): RSSItem[] {
-  const items: RSSItem[] = [];
+function parseAtomData(feed: any): RSSItem[] {
+  if (!feed || !feed.entry) {
+    return [];
+  }
 
-  // Match all <entry>...</entry> blocks
-  const entryRegex = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
-  let match;
+  // Ensure entries is always an array
+  const entries = Array.isArray(feed.entry) ? feed.entry : [feed.entry];
 
-  while ((match = entryRegex.exec(xml)) !== null) {
-    const entryXml = match[1];
+  return entries
+    .map((entry: any) => {
+      const getTextContent = (value: any): string => {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'object') {
+          return value['#text'] || value['__cdata'] || String(value);
+        }
+        return String(value);
+      };
 
-    const title = extractTag(entryXml, 'title');
-    // For Atom, link is an attribute: <link href="..." />
-    const linkMatch = entryXml.match(/<link[^>]+href=["']([^"']+)["']/i);
-    const link = linkMatch ? linkMatch[1] : '';
-    const summary = extractTag(entryXml, 'summary');
-    const content = extractTag(entryXml, 'content') || summary;
-    const published = extractTag(entryXml, 'published') || extractTag(entryXml, 'updated');
-    const id = extractTag(entryXml, 'id') || link;
+      const title = getTextContent(entry.title);
 
-    if (title && link) {
-      items.push({
-        title: cleanHTML(title),
+      // Atom link can be an attribute: <link href="..." />
+      let link = '';
+      if (entry.link) {
+        if (typeof entry.link === 'string') {
+          link = entry.link;
+        } else if (Array.isArray(entry.link)) {
+          // Multiple links - prefer alternate or first
+          const alternateLink = entry.link.find((l: any) => l['@_rel'] === 'alternate' || !l['@_rel']);
+          link = alternateLink?.['@_href'] || entry.link[0]?.['@_href'] || '';
+        } else if (entry.link['@_href']) {
+          link = entry.link['@_href'];
+        }
+      }
+
+      const summary = getTextContent(entry.summary);
+      const content = getTextContent(entry.content) || summary;
+      const published = getTextContent(entry.published || entry.updated);
+      const id = getTextContent(entry.id) || link;
+
+      if (!title || !link) {
+        return null;
+      }
+
+      return {
+        title: cleanText(title),
         link: link.trim(),
-        description: cleanHTML(summary),
-        content: cleanHTML(content),
+        description: cleanText(summary),
+        content: cleanText(content),
         pubDate: published.trim(),
         guid: id.trim(),
-      });
-    }
-  }
-
-  return items;
+      };
+    })
+    .filter((item: RSSItem | null): item is RSSItem => item !== null);
 }
 
-// Helper function to extract content from XML tags
-function extractTag(xml: string, tagName: string): string {
-  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
-  const match = xml.match(regex);
-  return match ? match[1] : '';
-}
+// Clean up text content - remove HTML tags and extra whitespace
+function cleanText(text: string): string {
+  if (!text) return '';
 
-function cleanHTML(html: string): string {
-  if (!html) return '';
+  let cleaned = text;
 
-  // FIRST: Strip CDATA markers
-  let text = html.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  // Remove HTML tags
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
 
-  // THEN: Remove HTML tags
-  text = text.replace(/<[^>]*>/g, ' ');
-
-  // Decode common HTML entities
-  text = text
+  // Decode any remaining HTML entities (XMLParser should handle most)
+  cleaned = cleaned
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -104,9 +159,9 @@ function cleanHTML(html: string): string {
     .replace(/&nbsp;/g, ' ');
 
   // Clean up whitespace
-  text = text.replace(/\s+/g, ' ').trim();
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
-  return text;
+  return cleaned;
 }
 
 export function parseDate(dateString: string): number {
