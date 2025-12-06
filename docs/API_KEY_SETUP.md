@@ -1,21 +1,34 @@
-# 🔐 API Key Setup Guide
+# 🔐 Local Development API Key Setup
 
-This guide explains how to set up API key authentication for management endpoints (`/api/trigger-ingestion` and `/api/process-ai`).
+**⚠️ Note:** API keys are **no longer required for production deployment**. Management endpoints are disabled in production for security, and cron triggers handle all automation internally.
 
-## Why API Keys?
-
-Management endpoints are restricted to **GitHub Actions only** for security:
-- Prevents public access to expensive AI operations
-- Protects against resource exhaustion attacks
-- Ensures only your automated workflow can trigger ingestion
+This guide is **only for local development** if you want to test management endpoints manually.
 
 ---
 
-## 🚀 Setup Instructions
+## 📋 Production vs Development
 
-### Step 1: Generate a Secret API Key
+### Production (Cloudflare Workers)
+- ✅ **No API key needed**
+- ✅ Cron triggers run automatically every 6 hours
+- ✅ Management endpoints (`/api/trigger-ingestion`, `/api/process-ai`) return HTTP 403
+- ✅ Public endpoints (`/api/stats`, `/api/threats`, `/api/search`) work without auth
 
-Generate a strong random key (32+ characters):
+### Development (Local Testing)
+- 🔧 **Optional API key for testing**
+- 🔧 Allows manual triggering of `/api/trigger-ingestion` and `/api/process-ai`
+- 🔧 Useful for debugging feed processing
+- 🔧 Configured via `.dev.vars` file
+
+---
+
+## 🚀 Setup for Local Development (Optional)
+
+If you want to test management endpoints locally, follow these steps:
+
+### Step 1: Generate a Development API Key
+
+Generate any random string for local testing:
 
 ```bash
 # On Linux/macOS:
@@ -28,190 +41,183 @@ openssl rand -base64 32
 # Xk3mP9vL2Qw8Zr5Hn7Jt4Gy6Fb1Dc0SaUv3Ex8Yz=
 ```
 
-**Save this key** - you'll need it for steps 2 and 3.
-
 ---
 
-### Step 2: Add Secret to Cloudflare Pages
+### Step 2: Create `.dev.vars` File
 
-Use Wrangler CLI to add the secret to your Cloudflare Pages project:
+Create a `.dev.vars` file in the project root:
 
 ```bash
-npx wrangler pages secret put API_SECRET --project-name=threat-intel-dashboard
+# .dev.vars (for local development only)
+ENVIRONMENT=development
+API_SECRET=your-random-key-from-step-1
 ```
 
-When prompted, paste the generated key. Press Enter.
-
-**Note:** Secrets are encrypted and NOT visible in `wrangler.jsonc` or the Dashboard.
-
----
-
-### Step 3: Add Secret to GitHub Actions
-
-1. Go to your GitHub repository
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Enter:
-   - **Name:** `API_SECRET`
-   - **Value:** (paste the same key from Step 1)
-5. Click **Add secret**
+**⚠️ Important:**
+- `.dev.vars` is in `.gitignore` - never commit this file
+- Only use this for local testing
+- Not needed for production deployment
 
 ---
 
-### Step 4: Deploy Changes
-
-The code changes are already committed. Just push to deploy:
+### Step 3: Start Local Development Server
 
 ```bash
-git push origin main
+npm run dev
 ```
 
-Cloudflare will automatically deploy with the new authentication.
+The dev server starts at `http://localhost:8787`
 
 ---
 
-## ✅ Verification
-
-Test that authentication is working:
-
-### Test 1: Unauthorized Request (should fail)
+### Step 4: Test Management Endpoints Locally
 
 ```bash
-# Without API key - should return 401 Unauthorized
-curl https://threat-intel-dashboard.pages.dev/api/trigger-ingestion
+# Set your API key from .dev.vars
+export API_KEY="your-random-key-from-step-1"
+
+# Test trigger ingestion
+curl -H "Authorization: Bearer $API_KEY" \
+  http://localhost:8787/api/trigger-ingestion
 
 # Expected response:
-# {
-#   "error": "Unauthorized",
-#   "message": "Valid API key required. This endpoint is restricted to authorized clients only."
-# }
-```
+# {"success": true, "message": "Feed ingestion triggered successfully!"}
 
-### Test 2: Authorized Request (should succeed)
-
-```bash
-# With API key - should return 200 OK
-curl -H "Authorization: Bearer YOUR_API_KEY_HERE" \
-  https://threat-intel-dashboard.pages.dev/api/trigger-ingestion
+# Test AI processing
+curl -H "Authorization: Bearer $API_KEY" \
+  http://localhost:8787/api/process-ai?limit=5
 
 # Expected response:
-# {
-#   "success": true,
-#   "message": "Feed ingestion triggered successfully!",
-#   "timestamp": "2025-12-05T..."
-# }
+# {"success": true, "processed": 5}
 ```
 
-### Test 3: GitHub Actions (automatic)
+---
 
-1. Go to GitHub repository → **Actions** tab
-2. Click **Scheduled Feed Ingestion**
-3. Click **Run workflow** → **Run workflow**
-4. Watch the logs - should complete successfully with API key auth
+## 🔒 Why No API Key in Production?
+
+### Old Approach (Pages + GitHub Actions)
+```
+User → GitHub Actions → API call with API_SECRET → Pages Function
+                              ↓
+                         Vulnerable to:
+                         - API key leaks
+                         - Brute force attacks
+                         - Rate limit bypass attempts
+```
+
+### New Approach (Workers + Native Cron)
+```
+Cloudflare Scheduler → Direct internal function call → Worker
+                              ↓
+                         Advantages:
+                         ✅ No HTTP request (faster)
+                         ✅ No exposed endpoint
+                         ✅ No API key needed
+                         ✅ Cannot be triggered externally
+```
+
+**Result:** Management endpoints are disabled in production (`HTTP 403`) because they're not needed. Cron handles everything automatically and securely.
 
 ---
 
-## 🔄 Rotating the API Key
+## 🛡️ Security Benefits
 
-If the key is compromised, rotate it:
+### Before (Pages + API Keys)
+- ❌ Management endpoints exposed to internet
+- ❌ Potential for API key compromise
+- ❌ Brute force attack surface
+- ❌ External dependency (GitHub Actions)
 
-1. Generate a new key:
-   ```bash
-   openssl rand -base64 32
-   ```
-
-2. Update Cloudflare Pages secret:
-   ```bash
-   npx wrangler pages secret put API_SECRET --project-name=threat-intel-dashboard
-   ```
-
-3. Update GitHub Actions secret:
-   - Go to repo **Settings** → **Secrets** → **Actions**
-   - Click **API_SECRET** → **Update secret**
-   - Paste new key → **Update secret**
-
-4. Old key is immediately invalid; new key is active.
+### After (Workers + Disabled Endpoints)
+- ✅ Management endpoints disabled in production
+- ✅ No API key to compromise
+- ✅ Zero attack surface
+- ✅ Native Cloudflare cron (no external dependencies)
 
 ---
 
-## 🛡️ Security Best Practices
+## ❓ Frequently Asked Questions
 
-✅ **DO:**
-- Keep the API key secret (never commit to git)
-- Use the key only in GitHub Actions secrets
-- Rotate the key if you suspect compromise
-- Use HTTPS for all API requests (automatic with Cloudflare)
+### Q: Do I need to set API_SECRET as a Cloudflare secret?
 
-❌ **DON'T:**
-- Share the API key publicly
-- Put the key in code or environment variables (use secrets)
-- Use the same key across multiple projects
-- Log the API key in application logs
+**A: No.** API_SECRET is no longer used in production. You only need it in `.dev.vars` for local testing.
 
----
+### Q: How does data get ingested if endpoints are disabled?
 
-## 📊 Protected Endpoints
+**A: Via native cron triggers.** The cron scheduler directly calls the `scheduled()` function in `src/worker.ts`, which triggers `functions/scheduled.ts`. No HTTP request, no API key needed.
 
-These endpoints now require API key authentication:
+### Q: What if I want to manually trigger ingestion in production?
 
-| Endpoint | Method | Purpose | Required Header |
-|----------|--------|---------|-----------------|
-| `/api/trigger-ingestion` | GET | Trigger feed ingestion | `Authorization: Bearer <key>` |
-| `/api/process-ai?limit=N` | GET | Process AI analysis | `Authorization: Bearer <key>` |
+**A: You can't (by design).** This is a security feature. If you absolutely need to trigger ingestion:
+1. Wait for the next cron run (every 6 hours)
+2. Or temporarily set `ENVIRONMENT=development` in production (not recommended)
+3. Or deploy a one-time manual trigger (then revert)
 
-**Public endpoints** (no authentication required):
-- `/api/stats` - Dashboard statistics
-- `/api/threats` - List threats
-- `/api/search` - Search threats
-- All other read-only endpoints
+### Q: Can I still test locally with API keys?
+
+**A: Yes!** Use `.dev.vars` with `ENVIRONMENT=development` and `API_SECRET=your-key`. Management endpoints work in dev mode.
+
+### Q: Do public endpoints require authentication?
+
+**A: No.** Public read-only endpoints (`/api/stats`, `/api/threats`, `/api/search`, `/api/threat/:id`) work without authentication in all environments. They're protected by rate limiting instead.
 
 ---
 
-## ❓ Troubleshooting
+## 🔧 Troubleshooting
 
-### GitHub Actions fails with 401 Unauthorized
+### Management endpoint returns 403 in production
 
-**Cause:** API_SECRET not set in GitHub Actions secrets.
+**This is expected behavior!** Management endpoints are disabled in production for security.
 
 **Solution:**
-1. Go to repo Settings → Secrets → Actions
-2. Verify `API_SECRET` exists
-3. If not, add it (see Step 3 above)
-4. Re-run the workflow
+- Use cron triggers (automatic every 6 hours)
+- Or test locally with `ENVIRONMENT=development` in `.dev.vars`
 
-### Cloudflare deployment fails
+### Management endpoint returns 401 locally
 
-**Cause:** API_SECRET not set in Cloudflare Pages.
+**Cause:** Missing or incorrect `Authorization` header
 
 **Solution:**
 ```bash
-npx wrangler pages secret put API_SECRET --project-name=threat-intel-dashboard
-```
-Paste the key, then redeploy.
+# Check .dev.vars has API_SECRET set
+cat .dev.vars
 
-### Local development
-
-**For local testing,** create a `.dev.vars` file:
-```
-API_SECRET=your-test-key-here
+# Use the correct header format
+curl -H "Authorization: Bearer YOUR_KEY_FROM_DEV_VARS" \
+  http://localhost:8787/api/trigger-ingestion
 ```
 
-Then run `npm run dev` and test locally.
+### Public endpoints return 401
+
+**This should never happen!** Public endpoints don't require authentication.
+
+**Possible causes:**
+- You're calling a management endpoint by mistake
+- There's a code error (check logs: `npx wrangler tail`)
 
 ---
 
-## 🔗 Alternative: X-API-Key Header
+## 📊 Endpoint Authentication Matrix
 
-If you prefer `X-API-Key` header instead of `Authorization: Bearer`:
-
-```bash
-# Both formats are supported:
-curl -H "Authorization: Bearer YOUR_KEY" https://...
-curl -H "X-API-Key: YOUR_KEY" https://...
-```
-
-The authentication middleware accepts both formats.
+| Endpoint | Production | Development |
+|----------|------------|-------------|
+| `/api/stats` | ✅ No auth | ✅ No auth |
+| `/api/threats` | ✅ No auth | ✅ No auth |
+| `/api/threat/:id` | ✅ No auth | ✅ No auth |
+| `/api/search` | ✅ No auth | ✅ No auth |
+| `/api/trigger-ingestion` | ❌ Disabled (403) | 🔑 Requires API key |
+| `/api/process-ai` | ❌ Disabled (403) | 🔑 Requires API key |
 
 ---
 
-**Done!** Management endpoints are now secured and only accessible to GitHub Actions. 🎉
+## 🎉 Summary
+
+**For production deployment:** No API key needed! Cron triggers handle everything automatically.
+
+**For local development:** Create `.dev.vars` with `API_SECRET` to test management endpoints.
+
+**Security:** Management endpoints are disabled in production, reducing attack surface to zero.
+
+---
+
+**Questions?** Check [Deployment Guide](./DEPLOYMENT.md) or [Security Implementation](./SECURITY_IMPLEMENTATION.md)
