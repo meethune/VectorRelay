@@ -196,6 +196,62 @@ export function addCacheHeaders(
 }
 
 /**
+ * Add CORS headers to response
+ *
+ * Allows cross-origin requests from specified origins
+ * Set origin to '*' to allow all origins (use with caution)
+ */
+export function addCORSHeaders(
+  response: Response,
+  origin: string = '*',
+  methods: string = 'GET, POST, OPTIONS',
+  allowedHeaders: string = 'Content-Type, Authorization'
+): Response {
+  const headers = new Headers(response.headers);
+
+  headers.set('Access-Control-Allow-Origin', origin);
+  headers.set('Access-Control-Allow-Methods', methods);
+  headers.set('Access-Control-Allow-Headers', allowedHeaders);
+  headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+/**
+ * Handle CORS preflight requests (OPTIONS)
+ *
+ * Example usage in an API endpoint:
+ *
+ * export const onRequestOptions: PagesFunction<Env> = async () => {
+ *   return handleCORSPreflight('*', 'GET, POST, OPTIONS', 'Content-Type, Authorization');
+ * };
+ *
+ * export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+ *   const response = Response.json({ data: 'example' });
+ *   return wrapResponse(response, {
+ *     cors: { origin: '*' },
+ *     cacheMaxAge: 300
+ *   });
+ * };
+ */
+export function handleCORSPreflight(
+  origin: string = '*',
+  methods: string = 'GET, POST, OPTIONS',
+  allowedHeaders: string = 'Content-Type, Authorization'
+): Response {
+  return addCORSHeaders(
+    new Response(null, { status: 204 }),
+    origin,
+    methods,
+    allowedHeaders
+  );
+}
+
+/**
  * Input Validation
  */
 
@@ -323,12 +379,23 @@ export function wrapResponse(
     rateLimit?: { limit: number; remaining: number; resetAt: number };
     cacheMaxAge?: number;
     cachePrivacy?: 'public' | 'private';
+    cors?: { origin?: string; methods?: string; allowedHeaders?: string };
   } = {}
 ): Response {
   let wrapped = response;
 
   // Add security headers
   wrapped = addSecurityHeaders(wrapped);
+
+  // Add CORS headers if provided
+  if (options.cors) {
+    wrapped = addCORSHeaders(
+      wrapped,
+      options.cors.origin,
+      options.cors.methods,
+      options.cors.allowedHeaders
+    );
+  }
 
   // Add rate limit headers if provided
   if (options.rateLimit) {
