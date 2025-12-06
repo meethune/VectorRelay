@@ -42,157 +42,38 @@ GitHub Actions (Scheduled Triggers)
 
 ## 🚀 Quick Start
 
-### 1. Clone and Install
+**Full deployment instructions:** See [Deployment Guide](./docs/DEPLOYMENT.md)
+
+### TL;DR
 
 ```bash
-git clone https://github.com/meethune/VectorRelay.git
-cd VectorRelay
+# 1. Install dependencies
 npm install
-```
 
-### 2. Authenticate with Cloudflare
-
-```bash
+# 2. Login to Cloudflare
 npx wrangler login
-```
 
-This will open your browser to authenticate with Cloudflare.
-
-### 3. Create Cloudflare Resources
-
-**Create D1 Database:**
-```bash
+# 3. Create resources (save the IDs!)
 npx wrangler d1 create threat-intel-db
-```
-Copy the `database_id` from the output - you'll need it for step 6.
-
-**Create Vectorize Index (1024 dimensions for BGE-Large model):**
-```bash
 npx wrangler vectorize create threat-embeddings --dimensions=1024 --metric=cosine
-```
-
-**Create KV Namespaces:**
-```bash
 npx wrangler kv namespace create CACHE
 npx wrangler kv namespace create CACHE --preview
-```
-Copy both `id` values - you'll need them for step 6.
 
-### 4. Initialize Database Schema
+# 4. Update wrangler.jsonc with the IDs
 
-```bash
+# 5. Initialize database
 npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
+
+# 6. Push to GitHub and connect to Cloudflare Pages
+
+# 7. Enable Analytics Engine on first deployment (one-time)
+
+# 8. Load initial data
+curl https://YOUR-SITE.pages.dev/api/trigger-ingestion
+curl https://YOUR-SITE.pages.dev/api/process-ai?limit=30
 ```
 
-This creates all tables and populates default feed sources.
-
-### 5. Update Configuration
-
-Edit `wrangler.jsonc` and replace the placeholder IDs:
-
-```jsonc
-{
-  "d1_databases": [
-    {
-      "database_id": "YOUR_D1_DATABASE_ID"  // ← Replace this
-    }
-  ],
-  "kv_namespaces": [
-    {
-      "id": "YOUR_KV_NAMESPACE_ID",          // ← Replace this
-      "preview_id": "YOUR_KV_PREVIEW_ID"     // ← Replace this
-    }
-  ]
-}
-```
-
-### 6. Connect to GitHub
-
-1. Push your repository to GitHub (if not already done)
-2. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **Workers & Pages**
-3. Click **"Create Application"** → **"Pages"** → **"Connect to Git"**
-4. Select your `VectorRelay` repository
-5. Configure build settings:
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - **Root directory:** (leave empty)
-   - **Deploy command:** (leave empty)
-6. Click **"Save and Deploy"**
-
-Cloudflare will automatically detect `wrangler.jsonc` and configure all bindings.
-
-### 7. Set Production Environment Variable
-
-**Security Step:** Configure the production environment variable to disable debug/test endpoints:
-
-1. In Cloudflare Dashboard, with your Pages project selected
-2. Go to **Settings** tab
-3. Scroll to **Variables and Secrets** section
-4. Click **Add variable**
-5. Add:
-   - **Variable name:** `ENVIRONMENT`
-   - **Value:** `production`
-   - **Environment:** Select **Production** only
-6. Click **Save**
-
-This disables debug endpoints (`/api/debug-ingestion`, `/api/test-ai`, `/api/test-bindings`) in production to prevent information disclosure.
-
-### 8. Enable Analytics Engine (First Deployment Only)
-
-**This is expected!** On your first deployment, you'll see:
-
-```
-Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to enable
-[code: 10089]
-```
-
-This is normal - Analytics Engine is an **account-level feature** that requires one-time enablement:
-
-1. Click the error link in the deployment logs, or manually go to:
-   - Dashboard → **Workers & Pages** → **Analytics Engine**
-2. Click **"Enable Analytics Engine"** (one-time button)
-3. The dataset (`threat_metrics`) will auto-create on first use
-4. Re-deploy: Push any change to GitHub, or click "Retry deployment"
-
-**Why this happens:**
-- Unlike D1/Vectorize/KV (created per-project via CLI), Analytics Engine is an account capability
-- No CLI command exists to enable it - must be done via dashboard
-- Once enabled, **all your projects can use it** (never need to enable again)
-- The actual dataset auto-creates when your Worker first calls `writeDataPoint()`
-
-### 9. Verify Deployment
-
-Your site will be live at: `https://YOUR-PROJECT-NAME.pages.dev`
-
-**Note:** The `/api/test-bindings` endpoint is now disabled in production for security. You can verify the deployment by checking the site loads correctly and viewing the Cloudflare Dashboard logs.
-
-### 10. Trigger Initial Data Load
-
-**Manual trigger:**
-```bash
-curl https://YOUR-PROJECT-NAME.pages.dev/api/trigger-ingestion
-```
-
-**Process AI analysis:**
-```bash
-curl https://YOUR-PROJECT-NAME.pages.dev/api/process-ai?limit=30
-```
-
-Wait 2-3 minutes, then check your dashboard - you should see threat data!
-
-### 11. Automated Updates (Already Configured!)
-
-The repository includes `.github/workflows/scheduled-ingestion.yml` which:
-- ✅ Runs **every 6 hours** (00:00, 06:00, 12:00, 18:00 UTC)
-- ✅ Fetches new threats from all 7 security feeds
-- ✅ Processes them with AI analysis
-- ✅ Stores results in your database
-
-**Test it manually:**
-1. Go to your GitHub repository → **Actions** tab
-2. Click **"Scheduled Feed Ingestion"**
-3. Click **"Run workflow"** → **"Run workflow"**
-4. Watch the logs to see it fetch and process threats
+**Automated updates:** GitHub Actions runs every 6 hours to fetch and analyze new threats
 
 ## 🧪 Local Development
 
@@ -472,30 +353,19 @@ npm install
 npm run build
 ```
 
-### Check Cloudflare Logs
+### Debugging
 
-For production debugging, you have two options:
+For production logs and debugging, see the [Deployment Guide](./docs/DEPLOYMENT.md#-debugging-with-logs)
 
-**Option 1: Web UI (Real-time Logs)**
+## 📚 Documentation
 
-Follow these exact steps ([official docs](https://developers.cloudflare.com/pages/functions/debugging-and-logging/#view-logs-in-the-cloudflare-dashboard)):
+For detailed documentation on setup, deployment, security, and architecture, see the [docs](./docs/) directory:
 
-1. Go to [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages)
-2. Select your Pages project (e.g., `threat-intel-dashboard`)
-3. Click **"View details"** on the production deployment (main branch)
-4. Select the **"Functions"** tab
-5. Scroll down to **"Real-time Logs"**
-6. Click **"Begin log stream"**
-7. Trigger an action (like `/api/trigger-ingestion`) and watch for errors in real-time
-
-**Option 2: CLI (Wrangler Tail)**
-
-From your terminal:
-```bash
-npx wrangler pages deployment tail --project-name=threat-intel-dashboard
-```
-
-Then trigger actions and watch logs stream in your terminal. Both methods provide equivalent output
+- [API Key Setup](./docs/API_KEY_SETUP.md) - Authentication setup for management endpoints
+- [Deployment Guide](./docs/DEPLOYMENT.md) - Step-by-step deployment instructions
+- [Project Structure](./docs/PROJECT_STRUCTURE.md) - Codebase organization
+- [Security Audit](./docs/SECURITY_AUDIT.md) - Security analysis and best practices
+- [Workers vs Pages Audit](./docs/WORKERS_VS_PAGES_AUDIT.md) - Platform differences reference
 
 ## 📚 Learn More
 
