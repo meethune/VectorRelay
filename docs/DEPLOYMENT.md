@@ -1,6 +1,6 @@
 # 🚀 Production Deployment Guide
 
-This guide walks through deploying the Threat Intelligence Dashboard to Cloudflare Pages with all required services.
+This guide walks through deploying the Threat Intelligence Dashboard to Cloudflare Workers with all required services.
 
 ## 📋 Prerequisites Checklist
 
@@ -70,6 +70,12 @@ Edit `wrangler.jsonc` and replace these values:
       "database_id": "YOUR_D1_DATABASE_ID"  // ← Paste your D1 ID here
     }
   ],
+  "vectorize": [
+    {
+      "index_name": "threat-embeddings",
+      "binding": "VECTORIZE_INDEX"
+    }
+  ],
   "kv_namespaces": [
     {
       "id": "YOUR_KV_NAMESPACE_ID",          // ← Paste production KV ID
@@ -103,34 +109,56 @@ You should see: `✅ Executed 24 queries` (or similar)
 
 ---
 
-### Step 5: Deploy to Cloudflare Pages
+### Step 5: Set Up GitHub Actions (Automatic Deployment)
 
-**Push to GitHub and connect:**
+GitHub Actions will automatically deploy your Worker when you push to `main`.
 
-1. Push your code:
-   ```bash
-   git push origin main
-   ```
+**Required GitHub Secrets:**
 
-2. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
-3. Click **Workers & Pages** → **"Create Application"** → **"Pages"** → **"Connect to Git"**
-4. Select your repository
-5. Configure build settings:
-   - **Build command:** `npm run build`
-   - **Build output directory:** `dist`
-   - **Root directory:** (leave empty)
-   - **Deploy command:** (leave empty - IMPORTANT!)
-6. Click **"Save and Deploy"**
+1. **CLOUDFLARE_API_TOKEN**
+   - Go to https://dash.cloudflare.com/profile/api-tokens
+   - Create token with "Edit Cloudflare Workers" template
+   - Copy the token
 
-Cloudflare automatically detects `wrangler.jsonc` and configures all bindings.
+2. **CLOUDFLARE_ACCOUNT_ID**
+   - Go to https://dash.cloudflare.com/
+   - Copy your Account ID from the sidebar
 
-**Note:** The `ENVIRONMENT=production` variable is configured in `wrangler.jsonc`. Debug/test endpoints are automatically disabled in production and preview deployments. For local development with debug endpoints enabled, create a `.dev.vars` file with `ENVIRONMENT=development`.
+**Add to GitHub:**
+1. Go to your repo → Settings → Secrets and variables → Actions
+2. Add `CLOUDFLARE_API_TOKEN` secret
+3. Add `CLOUDFLARE_ACCOUNT_ID` secret
+
+See [GitHub CI/CD Setup Guide](./GITHUB_CICD_SETUP.md) for detailed instructions.
 
 ---
 
-### Step 6: Enable Analytics Engine (First Deployment Only)
+### Step 6: Deploy to Cloudflare Workers
 
-**This is expected!** On your first deployment, you'll see:
+**Option A: Deploy via GitHub Actions (Recommended)**
+
+```bash
+git push origin main
+```
+
+GitHub Actions will automatically:
+1. Build the frontend
+2. Compile Pages Functions to `_worker.js`
+3. Deploy to Cloudflare Workers
+
+**Option B: Deploy Manually**
+
+```bash
+npm run deploy
+```
+
+This builds and deploys directly from your local machine.
+
+---
+
+### Step 7: Enable Analytics Engine (First Deployment Only)
+
+**This is expected!** On your first deployment, you may see:
 
 ```
 Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to enable
@@ -139,9 +167,9 @@ Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to 
 
 **This is normal** - Analytics Engine is an account-level feature that requires one-time enablement:
 
-1. Click the error link in deployment logs, or go to: Dashboard → Workers & Pages → Analytics Engine
+1. Go to Dashboard → Workers & Pages → Analytics Engine
 2. Click **"Enable Analytics Engine"** (one-time setup for your entire account)
-3. Re-deploy (push to GitHub or click "Retry deployment")
+3. Re-deploy (push to GitHub or run `npm run deploy`)
 4. **Note:** The dataset (`threat_metrics`) auto-creates on first use - you don't manually create it
 
 **Why this happens:**
@@ -156,29 +184,43 @@ Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to 
 
 ---
 
-### Step 7: Load Initial Data
+### Step 8: Wait for Automatic Data Ingestion
+
+**The Worker will automatically fetch and process threat data!**
+
+- **Cron schedule:** Every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+- **First run:** Happens within 6 hours of deployment
+- **No manual intervention needed!**
+
+**Monitor the cron execution:**
 
 ```bash
-# Trigger feed ingestion
-curl https://YOUR-SITE.pages.dev/api/trigger-ingestion
-
-# Wait 60 seconds, then process AI
-curl https://YOUR-SITE.pages.dev/api/process-ai?limit=30
-
-# Check stats
-curl https://YOUR-SITE.pages.dev/api/stats
+npx wrangler tail
 ```
+
+You'll see logs like:
+```
+[Cron] Scheduled event triggered: 0 */6 * * *
+Starting scheduled feed ingestion...
+Processed Krebs on Security: 15 articles (3 new)
+Ingestion complete. New threats: 42
+```
+
+**Note:** Management endpoints (`/api/trigger-ingestion`, `/api/process-ai`) are **disabled in production** for security. The cron trigger handles all data ingestion automatically.
 
 ---
 
 ## ✅ You're Done!
 
 Your dashboard is now:
-- ✅ Live on Cloudflare Pages
-- ✅ Auto-updating every 6 hours via GitHub Actions
+- ✅ Live on Cloudflare Workers
+- ✅ Auto-updating every 6 hours via native cron triggers
 - ✅ Processing threats with AI
+- ✅ 100% serverless and free tier compatible
 
-Visit: `https://YOUR-PROJECT-NAME.pages.dev`
+Visit: `https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev`
+
+Or set up a custom domain in the Cloudflare dashboard.
 
 ---
 
@@ -186,21 +228,94 @@ Visit: `https://YOUR-PROJECT-NAME.pages.dev`
 
 If you encounter issues, you can monitor production logs in real-time:
 
+**CLI Method (Recommended):**
+
+```bash
+npx wrangler tail
+```
+
 **Web UI Method:**
 
 1. Go to [Workers & Pages](https://dash.cloudflare.com/?to=/:account/workers-and-pages)
-2. Select your Pages project (`threat-intel-dashboard`)
-3. Click **"View details"** on the production deployment (main branch)
-4. Select the **"Functions"** tab
-5. Scroll down to **"Real-time Logs"**
-6. Click **"Begin log stream"**
+2. Select your Worker (`threat-intel-dashboard`)
+3. Click the **"Logs"** tab
+4. Click **"Begin log stream"**
 
-**CLI Method:**
+Both methods provide equivalent output. Trigger an action and watch for errors in real-time.
+
+---
+
+## 🛠️ Local Development
+
+**For local development:**
 
 ```bash
-npx wrangler pages deployment tail --project-name=threat-intel-dashboard
+npm run dev
 ```
 
-Both methods provide equivalent output. Trigger an action (like `/api/trigger-ingestion`) and watch for errors in real-time.
+This starts Wrangler dev server at `http://localhost:8787` with local bindings.
 
-**Reference:** [Cloudflare Pages Debugging & Logging](https://developers.cloudflare.com/pages/functions/debugging-and-logging/#view-logs-in-the-cloudflare-dashboard)
+---
+
+## 📊 View Cron Trigger History
+
+**Cloudflare Dashboard:**
+1. Go to Workers & Pages → threat-intel-dashboard
+2. Click **"Triggers"** tab
+3. View cron execution history
+
+**CLI:**
+```bash
+npx wrangler tail
+# Wait for next cron execution (00:00, 06:00, 12:00, or 18:00 UTC)
+```
+
+---
+
+## 🎛️ Changing Cron Schedule
+
+To change the ingestion frequency, edit `wrangler.jsonc`:
+
+```jsonc
+"triggers": {
+  "crons": ["0 */6 * * *"]  // Every 6 hours (current)
+  // "crons": ["0 */3 * * *"]  // Every 3 hours
+  // "crons": ["0 * * * *"]    // Every hour (uses more quota)
+}
+```
+
+Re-deploy after changes:
+```bash
+git add wrangler.jsonc
+git commit -m "Update cron schedule"
+git push origin main
+```
+
+**Note:** The free tier includes 5 cron triggers. See [Cloudflare Workers cron syntax](https://developers.cloudflare.com/workers/configuration/cron-triggers/) for more options.
+
+---
+
+## 🔒 Security Note
+
+**Production security posture:**
+- ✅ Management endpoints disabled (HTTP 403)
+- ✅ Cron triggers run internally (not exposed to internet)
+- ✅ Public API endpoints are read-only
+- ✅ Rate limiting protects against abuse
+- ✅ Security headers on all responses
+
+See [Security Implementation Guide](./SECURITY_IMPLEMENTATION.md) for details.
+
+---
+
+## 📚 Additional Resources
+
+- [GitHub CI/CD Setup](./GITHUB_CICD_SETUP.md) - Configure automatic deployment
+- [Project Structure](./PROJECT_STRUCTURE.md) - Understand the codebase
+- [Security Implementation](./SECURITY_IMPLEMENTATION.md) - Security features explained
+- [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
+- [Workers Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
+
+---
+
+**Need help?** Check the [Cloudflare Discord](https://discord.gg/cloudflaredev) or [Community Forum](https://community.cloudflare.com/)
