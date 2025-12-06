@@ -1,9 +1,12 @@
 // Scheduled Function - Runs every 6 hours to fetch threat intelligence feeds
-import type { Env, FeedSource, Threat, Summary, IOC } from './types';
+import type { Env, FeedSource, Threat } from './types';
 import { parseFeed, parseDate, generateId } from './utils/rss-parser';
 import { analyzeArticle, generateEmbedding } from './utils/ai-processor';
 
-export const onSchedule: PagesFunction<Env> = async ({ env }) => {
+/// <reference types="@cloudflare/workers-types" />
+/// <reference types="@cloudflare/workers-types/experimental" />
+
+export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
   console.log('Starting scheduled feed ingestion...');
 
   try {
@@ -164,7 +167,7 @@ async function processArticleWithAI(env: Env, threat: Threat): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
 
     // Store summary
-    const summaryResult = await env.DB.prepare(
+    await env.DB.prepare(
       `INSERT INTO summaries
        (threat_id, tldr, key_points, category, severity, affected_sectors, threat_actors, confidence_score, generated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`

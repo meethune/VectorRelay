@@ -172,7 +172,7 @@ export async function semanticSearch(
       returnMetadata: true,
     });
 
-    return results.matches.map((match) => ({
+    return results.matches.map((match: VectorizeMatch) => ({
       id: match.id,
       score: match.score,
     }));

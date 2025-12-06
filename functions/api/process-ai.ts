@@ -5,7 +5,20 @@ import { analyzeArticle, generateEmbedding } from '../utils/ai-processor';
 import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
-  // Security: Require API key for management endpoints
+  // Security: Disable management endpoints in production
+  // AI processing happens automatically during feed ingestion
+  if (env.ENVIRONMENT === 'production') {
+    return new Response(JSON.stringify({
+      error: 'Endpoint disabled',
+      message: 'This endpoint is disabled in production. AI processing happens automatically during feed ingestion.',
+      note: 'All threats are analyzed inline when ingested by the cron trigger.'
+    }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // In development, require API key
   if (!validateApiKey(request, env)) {
     return unauthorizedResponse();
   }

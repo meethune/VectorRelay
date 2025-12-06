@@ -1,9 +1,21 @@
-// Cloudflare Pages + Functions Configuration
+// Cloudflare Workers Configuration
 {
   "name": "threat-intel-dashboard",
-  "pages_build_output_dir": "./dist",
+  "main": "./src/worker.ts",
   "compatibility_date": "2025-03-07",
   "compatibility_flags": ["nodejs_compat"],
+
+  // Static assets (React frontend)
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+
+  // Native cron triggers - runs every 6 hours
+  // Handles both feed ingestion AND automatic AI processing
+  "triggers": {
+    "crons": ["0 */6 * * *"]
+  },
 
   // D1 Database binding
   "d1_databases": [
@@ -45,7 +57,7 @@
   ],
 
   // Environment variables
-  // Production/Preview: ENVIRONMENT=production (debug endpoints disabled)
+  // Production: ENVIRONMENT=production (debug endpoints disabled)
   // Local dev: Create .dev.vars with ENVIRONMENT=development (debug endpoints enabled)
   "vars": {
     "ENVIRONMENT": "production"

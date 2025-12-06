@@ -5,7 +5,20 @@ import type { Env } from '../types';
 import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
-  // Security: Require API key for management endpoints
+  // Security: Disable management endpoints in production
+  // Cron triggers handle automatic ingestion; manual triggers not needed in prod
+  if (env.ENVIRONMENT === 'production') {
+    return new Response(JSON.stringify({
+      error: 'Endpoint disabled',
+      message: 'This endpoint is disabled in production. Feed ingestion runs automatically via cron triggers.',
+      cron_schedule: '0 */6 * * * (every 6 hours)'
+    }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  // In development, require API key
   if (!validateApiKey(request, env)) {
     return unauthorizedResponse();
   }

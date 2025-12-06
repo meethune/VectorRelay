@@ -1,5 +1,7 @@
 // TypeScript types for Threat Intelligence Dashboard
 
+/// <reference types="@cloudflare/workers-types" />
+
 export interface Env {
   DB: D1Database;
   AI: Ai;
@@ -8,6 +10,7 @@ export interface Env {
   ANALYTICS: AnalyticsEngineDataset;
   ENVIRONMENT?: string;
   API_SECRET?: string; // Secret key for authenticating management endpoints
+  ASSETS: Fetcher; // Added for Workers static assets support
 }
 
 export interface Threat {

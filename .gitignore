@@ -49,3 +49,4 @@ coverage/
 .cache/
 .temp/
 .tmp/
+.api-key.txt

@@ -1,6 +1,8 @@
 # 🛡️ Threat Intelligence Dashboard
 
-A real-time threat intelligence aggregation and analysis platform powered by Cloudflare Pages, Workers AI, D1, Vectorize, and GitHub Actions.
+A real-time threat intelligence aggregation and analysis platform powered by Cloudflare Workers, Workers AI, D1, Vectorize, and native cron triggers.
+
+> **✨ Migrated from Pages to Workers** - This project now runs on Cloudflare Workers with native cron triggers, eliminating the need for GitHub Actions and providing better performance and developer experience.
 
 ## ✨ Features
 
@@ -8,8 +10,8 @@ A real-time threat intelligence aggregation and analysis platform powered by Clo
 - **🔍 Semantic Search**: Find related threats using vector embeddings (1024-dim)
 - **📊 Trend Detection**: Weekly AI-generated threat trend analysis
 - **🎯 IOC Extraction**: Automatic extraction of IPs, domains, CVEs, hashes
-- **📡 Auto-Ingestion**: Scheduled fetching from 7+ reputable security feeds via GitHub Actions
-- **⚡ Real-time Updates**: Dashboard updates every 6 hours automatically
+- **⏰ Native Cron Triggers**: Scheduled fetching from 7+ reputable security feeds every 6 hours
+- **⚡ Real-time Updates**: Dashboard updates automatically via Workers cron
 - **🎨 Modern UI**: Responsive React dashboard with CRT terminal green theme
 - **💰 100% Free Tier**: Runs entirely on Cloudflare's free tier
 
@@ -18,7 +20,7 @@ A real-time threat intelligence aggregation and analysis platform powered by Clo
 ```
 Frontend (React + Vite)
     ↓
-Cloudflare Pages + Functions
+Cloudflare Workers (with Static Assets)
     ↓
 ├─ Workers AI (Llama 3.3 + BGE Embeddings)
 ├─ D1 Database (SQLite)
@@ -26,7 +28,7 @@ Cloudflare Pages + Functions
 ├─ KV (Caching & Rate Limiting)
 └─ Analytics Engine (Metrics)
     ↓
-GitHub Actions (Scheduled Triggers)
+Native Cron Triggers (Every 6 hours)
 ```
 
 ## 📋 Prerequisites
@@ -64,16 +66,17 @@ npx wrangler kv namespace create CACHE --preview
 # 5. Initialize database
 npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
 
-# 6. Push to GitHub and connect to Cloudflare Pages
+# 6. Deploy to Cloudflare Workers
+npm run deploy
 
 # 7. Enable Analytics Engine on first deployment (one-time)
 
 # 8. Load initial data
-curl https://YOUR-SITE.pages.dev/api/trigger-ingestion
-curl https://YOUR-SITE.pages.dev/api/process-ai?limit=30
+curl https://YOUR-WORKER.workers.dev/api/trigger-ingestion
+curl https://YOUR-WORKER.workers.dev/api/process-ai?limit=30
 ```
 
-**Automated updates:** GitHub Actions runs every 6 hours to fetch and analyze new threats
+**Automated updates:** Native Workers cron trigger runs every 6 hours to fetch and analyze new threats automatically
 
 ## 🧪 Local Development
 
@@ -82,13 +85,9 @@ curl https://YOUR-SITE.pages.dev/api/process-ai?limit=30
 npm run dev
 ```
 
-This starts Vite dev server at `http://localhost:5173`
+This starts Wrangler dev server with local bindings at `http://localhost:8787`
 
-**Note:** Local development uses the Vite dev server for the frontend only. Pages Functions and Cloudflare bindings (D1, AI, Vectorize) are not available locally. For testing:
-
-1. Push to GitHub to trigger automatic deployment
-2. Use the deployed preview URL for testing
-3. Or use `wrangler pages dev` after building (bindings still won't work without additional setup)
+**Note:** Wrangler dev provides local development with access to Workers bindings. For full testing with remote resources, deploy to Workers and test there.
 
 ## 📊 Data Sources
 
@@ -134,25 +133,23 @@ Set secrets using Wrangler CLI:
 
 ```bash
 # If you want to add API keys for paid services (optional)
-npx wrangler pages secret put ALIENVAULT_API_KEY --project-name=threat-intel-dashboard
-npx wrangler pages secret put ABUSEIPDB_API_KEY --project-name=threat-intel-dashboard
+npx wrangler secret put ALIENVAULT_API_KEY
+npx wrangler secret put ABUSEIPDB_API_KEY
 ```
 
 ### Scheduled Frequency
 
-**Note:** Cloudflare Pages does not support native cron triggers. This project uses GitHub Actions for scheduled execution.
+To change the ingestion frequency, edit `wrangler.jsonc`:
 
-To change the ingestion frequency, edit `.github/workflows/scheduled-ingestion.yml`:
-
-```yaml
-on:
-  schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
-    # - cron: '0 */3 * * *'  # Every 3 hours
-    # - cron: '0 * * * *'    # Every hour
+```jsonc
+"triggers": {
+  "crons": ["0 */6 * * *"]  // Every 6 hours
+  // "crons": ["0 */3 * * *"]  // Every 3 hours
+  // "crons": ["0 * * * *"]    // Every hour (uses more free tier quota)
+}
 ```
 
-See [GitHub Actions cron syntax](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule) for more options.
+**Note:** The free tier includes 5 cron triggers. See [Cloudflare Workers cron syntax](https://developers.cloudflare.com/workers/configuration/cron-triggers/) for more options.
 
 ## 📖 API Endpoints
 
@@ -174,22 +171,22 @@ See [GitHub Actions cron syntax](https://docs.github.com/en/actions/using-workfl
 
 ```bash
 # Get dashboard stats
-curl https://threat-intel-dashboard.pages.dev/api/stats
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/stats
 
 # Search for ransomware threats semantically
-curl https://threat-intel-dashboard.pages.dev/api/search?q=ransomware&mode=semantic
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/search?q=ransomware&mode=semantic
 
 # Get threats by category and severity
-curl https://threat-intel-dashboard.pages.dev/api/threats?category=apt&severity=critical
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/threats?category=apt&severity=critical
 
 # Manually trigger feed ingestion
-curl https://threat-intel-dashboard.pages.dev/api/trigger-ingestion
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/trigger-ingestion
 
 # Process 10 threats with AI
-curl https://threat-intel-dashboard.pages.dev/api/process-ai?limit=10
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/process-ai?limit=10
 
 # Test all bindings
-curl https://threat-intel-dashboard.pages.dev/api/test-bindings
+curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/test-bindings
 ```
 
 ## 🎨 Customization
@@ -323,13 +320,15 @@ The BGE-Large embedding model outputs 1024 dimensions.
 
 2. If you see "No AI analysis generated", check that `functions/utils/ai-processor.ts` properly handles the Workers AI response format (should be updated to handle `{ response: {...} }` format)
 
-### Issue: GitHub Actions not running
+### Cron Triggers
 
-**Solution:**
-1. Go to GitHub repository → **Settings** → **Actions** → **General**
-2. Ensure "Allow all actions and reusable workflows" is enabled
-3. Check **Actions** tab for any failed runs
-4. Manually trigger: Actions → Scheduled Feed Ingestion → Run workflow
+**Viewing cron execution logs:**
+```bash
+# Stream live logs from your Worker
+npx wrangler tail
+```
+
+**Note:** This project now uses native Workers cron triggers instead of GitHub Actions for scheduled tasks. The `.github/workflows/scheduled-ingestion.yml` file is no longer needed and can be safely deleted.
 
 ### Database reinitialization
 
