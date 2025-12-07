@@ -98,7 +98,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
     return (
       <div>
         <EmptyState
-          icon={<AlertCircle className={`w-12 h-12 ${isTerminal ? 'icon-glow' : ''}`} />}
+          icon={<AlertCircle className="w-12 h-12" />}
           message="Threat not found"
         />
         <div className="flex justify-center mt-4">

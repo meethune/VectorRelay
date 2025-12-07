@@ -16,28 +16,69 @@ export default {
           black: '#000000',
           'gray-dark': '#0a0a0a',
         },
-        // Business theme colors (soft professional)
+        // Business theme colors (cybersecurity professional - deep navy/blue)
         business: {
+          // Backgrounds - Deep navy/space theme
           bg: {
-            primary: '#2C2C2C',    // slate gray
-            secondary: '#363636',  // slightly lighter gray
-            tertiary: '#404040',   // medium gray
+            primary: '#0a0e1a',      // Deep navy (main background)
+            secondary: '#131720',    // Slightly lighter navy (cards)
+            tertiary: '#1a1f2e',     // Elevated surfaces
+            elevated: '#1e2433',     // Hover/active states
+            accent: '#0f1729',       // Subtle variation
           },
+          // Text colors - High contrast
           text: {
-            primary: '#E4E4E4',    // light gray
-            secondary: '#D0D0D0',  // slightly dimmer
-            muted: '#A0A0A0',      // muted gray
+            primary: '#e5e7eb',      // Bright white-gray (headings)
+            secondary: '#cbd5e1',    // Medium gray (body text)
+            muted: '#94a3b8',        // Dimmed gray (labels)
+            disabled: '#64748b',     // Disabled state
           },
+          // Border colors - Blue-tinted
           border: {
-            primary: '#404040',    // medium gray
-            secondary: '#4A4A4A',  // lighter border
+            primary: '#1e3a5f',      // Deep blue border (default)
+            secondary: '#2d4a73',    // Lighter blue border (hover)
+            accent: '#3b82f6',       // Bright blue (focus)
+            subtle: '#1a2942',       // Very subtle borders
           },
+          // Accent colors - Technology/Security themed
           accent: {
-            primary: '#A8DADC',    // light cyan
-            hover: '#8FC7C9',      // darker cyan
-            secondary: '#FFC1CC',  // soft pink
-            button: '#B39CD0',     // lavender
-            'button-hover': '#9B84B8', // darker lavender
+            primary: '#3b82f6',        // Bright blue (primary actions)
+            primaryHover: '#2563eb',   // Darker blue (hover)
+            secondary: '#8b5cf6',      // Purple (premium features)
+            secondaryHover: '#7c3aed', // Darker purple (hover)
+            cyber: '#06b6d4',          // Cyan (cyber aesthetic)
+            cyberHover: '#0891b2',     // Darker cyan (hover)
+            success: '#10b981',        // Green (safe/secure)
+            warning: '#f59e0b',        // Amber (caution)
+            danger: '#ef4444',         // Red (critical)
+          },
+          // Threat severity colors - High visibility
+          threat: {
+            critical: {
+              bg: '#7f1d1d',         // Dark red background
+              border: '#dc2626',     // Bright red border
+              text: '#fecaca',       // Light red text
+            },
+            high: {
+              bg: '#7c2d12',         // Dark orange background
+              border: '#ea580c',     // Bright orange border
+              text: '#fed7aa',       // Light orange text
+            },
+            medium: {
+              bg: '#78350f',         // Dark amber background
+              border: '#f59e0b',     // Bright amber border
+              text: '#fde68a',       // Light amber text
+            },
+            low: {
+              bg: '#14532d',         // Dark green background
+              border: '#22c55e',     // Bright green border
+              text: '#bbf7d0',       // Light green text
+            },
+            info: {
+              bg: '#1e3a8a',         // Dark blue background
+              border: '#3b82f6',     // Bright blue border
+              text: '#bfdbfe',       // Light blue text
+            },
           },
         },
         // Severity colors (work for both themes)
@@ -50,6 +91,20 @@ export default {
       fontFamily: {
         mono: ['Share Tech Mono', 'VT323', 'monospace'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      animation: {
+        grid: "grid 15s linear infinite",
+        "blink-cursor": "blink-cursor 1s step-end infinite",
+      },
+      keyframes: {
+        grid: {
+          "0%": { transform: "translateY(-50%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        "blink-cursor": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" },
+        },
       },
     },
   },

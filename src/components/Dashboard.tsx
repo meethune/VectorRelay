@@ -22,6 +22,16 @@ import { useTheme } from '../contexts/ThemeContext';
 import { CATEGORY_COLORS } from '../constants/theme';
 import { LoadingState } from './common/LoadingState';
 import { EmptyState } from './common/EmptyState';
+import { RetroGrid } from './ui/retro-grid';
+import { FlickeringGrid } from './ui/flickering-grid';
+import { AnimatedGridPattern } from './ui/animated-grid-pattern';
+import { TextAnimate } from './ui/text-animate';
+import { HyperText } from './ui/hyper-text';
+import { NumberTicker } from './ui/number-ticker';
+import { Particles } from './ui/particles';
+import { DotPattern } from './ui/dot-pattern';
+import { BorderBeam } from './ui/border-beam';
+import { MagicCard } from './ui/magic-card';
 
 interface DashboardStats {
   total_threats: number;
@@ -73,7 +83,7 @@ export default function Dashboard() {
   if (!stats) {
     return (
       <EmptyState
-        icon={<AlertTriangle className={`w-12 h-12 ${isTerminal ? 'icon-glow' : ''}`} />}
+        icon={<AlertTriangle className="w-12 h-12" />}
         message={isTerminal ? 'ERROR' : 'Failed to load dashboard statistics'}
         description={isTerminal ? 'FAILED_TO_LOAD_DASHBOARD_STATISTICS' : undefined}
       />
@@ -92,29 +102,121 @@ export default function Dashboard() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* RetroGrid Background (Terminal Theme Only) */}
+      {isTerminal && (
+        <RetroGrid
+          className="absolute inset-0 z-0 opacity-20"
+          angle={65}
+          cellSize={60}
+          opacity={0.3}
+          darkLineColor="#00ff00"
+        />
+      )}
+
+      {/* Particle and Dot Pattern Backgrounds (Business Theme Only) */}
+      {!isTerminal && (
+        <>
+          {/* Particle effect background */}
+          <Particles
+            className="absolute inset-0 -z-10 pointer-events-none"
+            quantity={40}
+            color="#3b82f6"
+            size={0.5}
+            staticity={50}
+            ease={50}
+            vx={0}
+            vy={0}
+          />
+
+          {/* Subtle dot pattern overlay */}
+          <DotPattern
+            className="absolute inset-0 -z-10 opacity-10"
+            width={20}
+            height={20}
+            cx={1}
+            cy={1}
+            cr={1}
+            color="#3b82f6"
+          />
+        </>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className={`p-6 border-2 relative overflow-hidden ${
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={`p-6 border-2 relative overflow-hidden rounded-lg ${
           isTerminal
-            ? 'bg-black border-terminal-green'
+            ? 'bg-black border-terminal-green card-scanlines'
             : 'bg-business-bg-secondary border-business-border-primary'
         }`}>
-          <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${
-            isTerminal ? 'bg-terminal-green' : 'bg-business-accent-primary'
-          }`}></div>
-          <div className="flex items-center justify-between">
+          {/* Business Theme Effects */}
+          {!isTerminal && (
+            <>
+              {/* Animated border effect */}
+              <BorderBeam
+                size={100}
+                duration={8}
+                delay={0}
+                colorFrom="#3b82f6"
+                colorTo="#8b5cf6"
+                borderWidth={2}
+              />
+
+              {/* Subtle dot pattern background */}
+              <DotPattern
+                className="absolute inset-0 -z-10 opacity-5"
+                width={16}
+                height={16}
+                cr={1}
+                color="#3b82f6"
+              />
+            </>
+          )}
+
+          {/* FlickeringGrid Background (Terminal Theme Only) */}
+          {isTerminal && (
+            <FlickeringGrid
+              className="absolute inset-0 z-0"
+              squareSize={4}
+              gridGap={6}
+              color="rgb(0, 255, 0)"
+              maxOpacity={0.2}
+              flickerChance={0.3}
+            />
+          )}
+          <div className={`absolute top-0 left-0 w-full h-1 ${
+            isTerminal
+              ? 'bg-terminal-green opacity-50'
+              : 'bg-gradient-to-r from-business-accent-primary to-business-accent-secondary'
+          } z-10`}></div>
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p className={`text-sm ${
-                isTerminal
-                  ? 'text-terminal-green-dim font-mono'
-                  : 'text-business-text-muted font-sans'
-              }`}>{formatText('Total Threats', { style: 'label' })}</p>
-              <p className={`text-4xl font-bold mt-2 ${
-                isTerminal
-                  ? 'text-terminal-green font-mono'
-                  : 'text-business-text-primary font-sans'
-              }`}>{stats.total_threats}</p>
+              {isTerminal ? (
+                <TextAnimate
+                  as="p"
+                  className="text-sm text-terminal-green-dim font-mono"
+                  animation="blurIn"
+                  by="character"
+                  duration={0.5}
+                  delay={0.1}
+                >
+                  {formatText('Total Threats', { style: 'label' })}
+                </TextAnimate>
+              ) : (
+                <p className="text-sm text-business-text-muted font-sans">
+                  {formatText('Total Threats', { style: 'label' })}
+                </p>
+              )}
+              <NumberTicker
+                value={stats.total_threats}
+                className={`text-4xl font-bold mt-2 ${
+                  isTerminal
+                    ? 'text-terminal-green font-mono'
+                    : 'text-business-text-primary font-sans'
+                }`}
+                delay={isTerminal ? 0.2 : 0}
+                direction="up"
+              />
             </div>
             <BarChart3 className={`w-12 h-12 opacity-30 ${
               isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
@@ -122,26 +224,76 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className={`p-6 border-2 relative overflow-hidden ${
+        <div className={`p-6 border-2 relative overflow-hidden rounded-lg ${
           isTerminal
-            ? 'bg-black border-terminal-green'
+            ? 'bg-black border-terminal-green card-scanlines'
             : 'bg-business-bg-secondary border-business-border-primary'
         }`}>
-          <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${
-            isTerminal ? 'bg-terminal-green' : 'bg-business-accent-primary'
-          }`}></div>
-          <div className="flex items-center justify-between">
+          {/* Business Theme Effects */}
+          {!isTerminal && (
+            <>
+              <BorderBeam
+                size={100}
+                duration={8}
+                delay={2}
+                colorFrom="#3b82f6"
+                colorTo="#8b5cf6"
+                borderWidth={2}
+              />
+              <DotPattern
+                className="absolute inset-0 -z-10 opacity-5"
+                width={16}
+                height={16}
+                cr={1}
+                color="#3b82f6"
+              />
+            </>
+          )}
+
+          {/* FlickeringGrid Background (Terminal Theme Only) */}
+          {isTerminal && (
+            <FlickeringGrid
+              className="absolute inset-0 z-0"
+              squareSize={4}
+              gridGap={6}
+              color="rgb(0, 255, 0)"
+              maxOpacity={0.2}
+              flickerChance={0.3}
+            />
+          )}
+          <div className={`absolute top-0 left-0 w-full h-1 ${
+            isTerminal
+              ? 'bg-terminal-green opacity-50'
+              : 'bg-gradient-to-r from-business-accent-primary to-business-accent-secondary'
+          } z-10`}></div>
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p className={`text-sm ${
-                isTerminal
-                  ? 'text-terminal-green-dim font-mono'
-                  : 'text-business-text-muted font-sans'
-              }`}>{formatText('Today', { style: 'label' })}</p>
-              <p className={`text-4xl font-bold mt-2 ${
-                isTerminal
-                  ? 'text-terminal-green font-mono'
-                  : 'text-business-text-primary font-sans'
-              }`}>{stats.threats_today}</p>
+              {isTerminal ? (
+                <TextAnimate
+                  as="p"
+                  className="text-sm text-terminal-green-dim font-mono"
+                  animation="blurIn"
+                  by="character"
+                  duration={0.5}
+                  delay={0.2}
+                >
+                  {formatText('Today', { style: 'label' })}
+                </TextAnimate>
+              ) : (
+                <p className="text-sm text-business-text-muted font-sans">
+                  {formatText('Today', { style: 'label' })}
+                </p>
+              )}
+              <NumberTicker
+                value={stats.threats_today}
+                className={`text-4xl font-bold mt-2 ${
+                  isTerminal
+                    ? 'text-terminal-green font-mono'
+                    : 'text-business-text-primary font-sans'
+                }`}
+                delay={isTerminal ? 0.3 : 0.1}
+                direction="up"
+              />
             </div>
             <Activity className={`w-12 h-12 opacity-30 ${
               isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
@@ -149,26 +301,76 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className={`p-6 border-2 relative overflow-hidden ${
+        <div className={`p-6 border-2 relative overflow-hidden rounded-lg ${
           isTerminal
-            ? 'bg-black border-terminal-green'
+            ? 'bg-black border-terminal-green card-scanlines'
             : 'bg-business-bg-secondary border-business-border-primary'
         }`}>
-          <div className={`absolute top-0 left-0 w-full h-1 opacity-50 ${
-            isTerminal ? 'bg-terminal-green' : 'bg-business-accent-primary'
-          }`}></div>
-          <div className="flex items-center justify-between">
+          {/* Business Theme Effects */}
+          {!isTerminal && (
+            <>
+              <BorderBeam
+                size={100}
+                duration={8}
+                delay={4}
+                colorFrom="#3b82f6"
+                colorTo="#8b5cf6"
+                borderWidth={2}
+              />
+              <DotPattern
+                className="absolute inset-0 -z-10 opacity-5"
+                width={16}
+                height={16}
+                cr={1}
+                color="#3b82f6"
+              />
+            </>
+          )}
+
+          {/* FlickeringGrid Background (Terminal Theme Only) */}
+          {isTerminal && (
+            <FlickeringGrid
+              className="absolute inset-0 z-0"
+              squareSize={4}
+              gridGap={6}
+              color="rgb(0, 255, 0)"
+              maxOpacity={0.2}
+              flickerChance={0.3}
+            />
+          )}
+          <div className={`absolute top-0 left-0 w-full h-1 ${
+            isTerminal
+              ? 'bg-terminal-green opacity-50'
+              : 'bg-gradient-to-r from-business-accent-primary to-business-accent-secondary'
+          } z-10`}></div>
+          <div className="relative z-10 flex items-center justify-between">
             <div>
-              <p className={`text-sm ${
-                isTerminal
-                  ? 'text-terminal-green-dim font-mono'
-                  : 'text-business-text-muted font-sans'
-              }`}>{formatText('This Week', { style: 'label' })}</p>
-              <p className={`text-4xl font-bold mt-2 ${
-                isTerminal
-                  ? 'text-terminal-green font-mono'
-                  : 'text-business-text-primary font-sans'
-              }`}>{stats.threats_this_week}</p>
+              {isTerminal ? (
+                <TextAnimate
+                  as="p"
+                  className="text-sm text-terminal-green-dim font-mono"
+                  animation="blurIn"
+                  by="character"
+                  duration={0.5}
+                  delay={0.3}
+                >
+                  {formatText('This Week', { style: 'label' })}
+                </TextAnimate>
+              ) : (
+                <p className="text-sm text-business-text-muted font-sans">
+                  {formatText('This Week', { style: 'label' })}
+                </p>
+              )}
+              <NumberTicker
+                value={stats.threats_this_week}
+                className={`text-4xl font-bold mt-2 ${
+                  isTerminal
+                    ? 'text-terminal-green font-mono'
+                    : 'text-business-text-primary font-sans'
+                }`}
+                delay={isTerminal ? 0.4 : 0.2}
+                direction="up"
+              />
             </div>
             <TrendingUp className={`w-12 h-12 opacity-30 ${
               isTerminal ? 'text-terminal-green icon-glow' : 'text-business-accent-primary'
@@ -179,18 +381,40 @@ export default function Dashboard() {
 
       {/* Trending Insights */}
       {stats.recent_trends && stats.recent_trends.length > 0 && (
-        <div className={`p-6 border-2 ${
+        <div className={`p-6 border-2 relative overflow-hidden ${
           isTerminal
             ? 'bg-black border-terminal-green'
             : 'bg-business-bg-secondary border-business-border-primary'
         }`}>
-          <h2 className={`text-xl font-bold mb-4 flex items-center ${
-            isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
-          }`}>
-            <TrendingUp className={`w-5 h-5 mr-2 ${isTerminal ? 'icon-glow' : ''}`} />
-            {formatText('AI-Detected Trends', { style: 'heading' })}
-          </h2>
-          <div className="space-y-4">
+          {/* AnimatedGridPattern Background (Terminal Theme Only) */}
+          {isTerminal && (
+            <AnimatedGridPattern
+              className="absolute inset-0 z-0 opacity-30"
+              width={40}
+              height={40}
+              numSquares={30}
+              maxOpacity={0.3}
+              duration={3}
+            />
+          )}
+          <div className="relative z-10 text-xl font-bold mb-4 flex items-center">
+            <TrendingUp className={`w-5 h-5 mr-2 ${isTerminal ? 'icon-glow text-terminal-green' : 'text-business-text-primary'}`} />
+            {isTerminal ? (
+              <HyperText
+                className="text-xl text-terminal-green font-mono font-bold"
+                duration={600}
+                animateOnHover={false}
+                startOnView={true}
+              >
+                {formatText('AI-Detected Trends', { style: 'heading' })}
+              </HyperText>
+            ) : (
+              <span className="text-business-text-primary font-sans">
+                {formatText('AI-Detected Trends', { style: 'heading' })}
+              </span>
+            )}
+          </div>
+          <div className="relative z-10 space-y-4">
             {stats.recent_trends.slice(0, 1).map((trend) => (
               <div key={trend.id} className={`border-l-4 pl-4 p-4 ${
                 isTerminal
@@ -217,18 +441,28 @@ export default function Dashboard() {
       )}
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Breakdown */}
-        <div className={`p-6 border-2 ${
+        <div className={`p-6 border-2 rounded-lg ${
           isTerminal
             ? 'bg-black border-terminal-green'
             : 'bg-business-bg-secondary border-business-border-primary'
         }`}>
-          <h2 className={`text-lg font-bold mb-4 ${
-            isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
-          }`}>
-            {isTerminal ? '[ THREATS_BY_CATEGORY ] (30_DAYS)' : 'Threats by Category (30 days)'}
-          </h2>
+          {isTerminal ? (
+            <HyperText
+              as="h2"
+              className="text-lg font-bold mb-4 text-terminal-green font-mono"
+              duration={600}
+              animateOnHover={false}
+              startOnView={true}
+            >
+              [ THREATS_BY_CATEGORY ] (30_DAYS)
+            </HyperText>
+          ) : (
+            <h2 className="text-lg font-bold mb-4 text-business-text-primary font-sans">
+              Threats by Category (30 days)
+            </h2>
+          )}
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -251,18 +485,22 @@ export default function Dashboard() {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isTerminal ? '#000000' : '#2C2C2C',
-                  border: isTerminal ? '2px solid #00ff00' : '2px solid #404040',
-                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
-                  color: isTerminal ? '#00ff00' : '#E4E4E4',
+                  backgroundColor: isTerminal ? '#000000' : '#131720',
+                  border: isTerminal ? '2px solid #00ff00' : '2px solid #1e3a5f',
+                  borderRadius: '8px',
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
+                  color: isTerminal ? '#00ff00' : '#e5e7eb',
+                  boxShadow: !isTerminal ? '0 4px 12px rgba(0, 0, 0, 0.3)' : 'none',
                 }}
                 labelStyle={{
-                  color: isTerminal ? '#00ff00' : '#E4E4E4',
-                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                  color: isTerminal ? '#00ff00' : '#e5e7eb',
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
+                  fontWeight: '600',
+                  marginBottom: '4px',
                 }}
                 itemStyle={{
-                  color: isTerminal ? '#00ff00' : '#E4E4E4',
-                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                  color: isTerminal ? '#00ff00' : '#cbd5e1',
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
                 }}
               />
             </PieChart>
@@ -270,85 +508,147 @@ export default function Dashboard() {
         </div>
 
         {/* Severity Breakdown */}
-        <div className={`p-6 border-2 ${
+        <div className={`p-6 border-2 rounded-lg ${
           isTerminal
             ? 'bg-black border-terminal-green'
             : 'bg-business-bg-secondary border-business-border-primary'
         }`}>
-          <h2 className={`text-lg font-bold mb-4 ${
-            isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
-          }`}>
-            {formatText('Severity Distribution', { style: 'heading' })}
-          </h2>
+          {isTerminal ? (
+            <HyperText
+              as="h2"
+              className="text-lg font-bold mb-4 text-terminal-green font-mono"
+              duration={600}
+              animateOnHover={false}
+              startOnView={true}
+            >
+              {formatText('Severity Distribution', { style: 'heading' })}
+            </HyperText>
+          ) : (
+            <h2 className="text-lg font-bold mb-4 text-business-text-primary font-sans">
+              {formatText('Severity Distribution', { style: 'heading' })}
+            </h2>
+          )}
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={severityData}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke={isTerminal ? '#00ff00' : '#404040'}
-                opacity={0.2}
+                stroke={isTerminal ? '#00ff00' : '#1e3a5f'}
+                opacity={isTerminal ? 0.2 : 0.3}
               />
               <XAxis
                 dataKey="name"
-                stroke={isTerminal ? '#00ff00' : '#A0A0A0'}
-                style={{ fontFamily: isTerminal ? 'monospace' : 'sans-serif' }}
+                stroke={isTerminal ? '#00ff00' : '#cbd5e1'}
+                style={{
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}
               />
               <YAxis
-                stroke={isTerminal ? '#00ff00' : '#A0A0A0'}
-                style={{ fontFamily: isTerminal ? 'monospace' : 'sans-serif' }}
+                stroke={isTerminal ? '#00ff00' : '#cbd5e1'}
+                style={{
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
+                  fontSize: '12px'
+                }}
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: isTerminal ? '#000000' : '#2C2C2C',
-                  border: isTerminal ? '2px solid #00ff00' : '2px solid #404040',
-                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
-                  color: isTerminal ? '#00ff00' : '#E4E4E4',
+                  backgroundColor: isTerminal ? '#000000' : '#131720',
+                  border: isTerminal ? '2px solid #00ff00' : '2px solid #1e3a5f',
+                  borderRadius: '8px',
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
+                  color: isTerminal ? '#00ff00' : '#e5e7eb',
+                  boxShadow: !isTerminal ? '0 4px 12px rgba(0, 0, 0, 0.3)' : 'none',
                 }}
                 labelStyle={{
-                  color: isTerminal ? '#00ff00' : '#E4E4E4',
-                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                  color: isTerminal ? '#00ff00' : '#e5e7eb',
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
+                  fontWeight: '600',
+                  marginBottom: '4px',
                 }}
                 itemStyle={{
-                  color: isTerminal ? '#00ff00' : '#E4E4E4',
-                  fontFamily: isTerminal ? 'monospace' : 'sans-serif',
+                  color: isTerminal ? '#00ff00' : '#cbd5e1',
+                  fontFamily: isTerminal ? 'monospace' : 'Inter, sans-serif',
                 }}
               />
-              <Bar dataKey="value" fill={isTerminal ? '#00ff00' : '#A8DADC'} />
+              <Bar
+                dataKey="value"
+                fill={isTerminal ? '#00ff00' : 'url(#barGradient)'}
+                radius={[4, 4, 0, 0]}
+              />
+              {!isTerminal && (
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.6}/>
+                  </linearGradient>
+                </defs>
+              )}
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Top Sources */}
-      <div className={`p-6 border-2 ${
+      <div className={`relative z-10 p-6 border-2 rounded-lg ${
         isTerminal
           ? 'bg-black border-terminal-green'
           : 'bg-business-bg-secondary border-business-border-primary'
       }`}>
-        <h2 className={`text-lg font-bold mb-4 ${
-          isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
-        }`}>
-          {isTerminal ? '[ TOP_SOURCES ] (30_DAYS)' : 'Top Sources (30 days)'}
-        </h2>
+        {isTerminal ? (
+          <HyperText
+            as="h2"
+            className="text-lg font-bold mb-4 text-terminal-green font-mono"
+            duration={600}
+            animateOnHover={false}
+            startOnView={true}
+          >
+            [ TOP_SOURCES ] (30_DAYS)
+          </HyperText>
+        ) : (
+          <h2 className="text-lg font-bold mb-4 text-business-text-primary font-sans">
+            Top Sources (30 days)
+          </h2>
+        )}
         <div className="space-y-3">
           {stats.top_sources.slice(0, 5).map((source, index) => (
-            <div key={source.source} className={`flex items-center justify-between border-l-2 pl-4 py-2 ${
-              isTerminal
-                ? 'border-terminal-green-dark'
-                : 'border-business-border-secondary'
-            }`}>
-              <div className="flex items-center space-x-3">
-                <span className={`text-xl font-bold ${
-                  isTerminal
-                    ? 'text-terminal-green-dim font-mono'
-                    : 'text-business-accent-primary font-sans'
-                }`}>{isTerminal ? `[${index + 1}]` : `${index + 1}.`}</span>
-                <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-                  {source.source}
-                </span>
-              </div>
-              <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-secondary font-sans'}>
-                {source.count} {formatText('threats')}
-              </span>
+            <div key={source.source} className="relative">
+              {isTerminal ? (
+                <div className="flex items-center justify-between border-l-2 border-terminal-green-dark pl-4 py-2">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xl font-bold text-terminal-green-dim font-mono">
+                      [{index + 1}]
+                    </span>
+                    <span className="text-terminal-green font-mono">
+                      {source.source}
+                    </span>
+                  </div>
+                  <span className="text-terminal-green font-mono">
+                    {source.count} {formatText('threats')}
+                  </span>
+                </div>
+              ) : (
+                <MagicCard
+                  className="flex items-center justify-between border-l-2 border-business-accent-primary pl-4 py-3 rounded-r-lg"
+                  gradientSize={200}
+                  gradientColor="#0a0e1a"
+                  gradientFrom="#3b82f6"
+                  gradientTo="#8b5cf6"
+                  gradientOpacity={0.3}
+                >
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl font-bold text-business-accent-primary font-sans">
+                      {index + 1}.
+                    </span>
+                    <span className="text-business-text-primary font-sans font-medium">
+                      {source.source}
+                    </span>
+                  </div>
+                  <span className="text-business-text-secondary font-sans">
+                    {source.count} {formatText('threats')}
+                  </span>
+                </MagicCard>
+              )}
             </div>
           ))}
         </div>

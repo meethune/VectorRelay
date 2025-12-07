@@ -28,10 +28,29 @@ threat-intel-dashboard/
 │   │   ├── common/               # Shared reusable components
 │   │   │   ├── LoadingState.tsx  # Theme-aware loading component
 │   │   │   └── EmptyState.tsx    # Theme-aware empty state component
+│   │   ├── ui/                   # Magic UI component library (15 components)
+│   │   │   ├── border-beam.tsx          # Animated border effect
+│   │   │   ├── neon-gradient-card.tsx   # Neon gradient border card
+│   │   │   ├── shine-border.tsx         # Animated shine border
+│   │   │   ├── particles.tsx            # Canvas-based particle animation
+│   │   │   ├── dot-pattern.tsx          # SVG dot pattern background
+│   │   │   ├── grid-pattern.tsx         # SVG grid pattern background
+│   │   │   ├── number-ticker.tsx        # Animated number counting
+│   │   │   ├── magic-card.tsx           # Interactive spotlight card
+│   │   │   ├── ripple.tsx               # Ripple animation effect
+│   │   │   ├── retro-grid.tsx           # 3D perspective grid (terminal theme)
+│   │   │   ├── flickering-grid.tsx      # Dynamic flickering grid (terminal theme)
+│   │   │   ├── animated-grid-pattern.tsx # Animated square patterns
+│   │   │   ├── text-animate.tsx         # Text animation effects
+│   │   │   ├── hyper-text.tsx           # Glitch/scramble text effect
+│   │   │   └── terminal.tsx             # Dedicated terminal UI
 │   │   ├── Dashboard.tsx         # Main dashboard with stats & charts
 │   │   ├── ThreatList.tsx        # List of threats with pagination
 │   │   ├── ThreatDetail.tsx      # Single threat view with IOCs
-│   │   └── SearchBar.tsx         # Search and filter controls
+│   │   ├── SearchBar.tsx         # Search and filter controls
+│   │   └── ThemeToggle.tsx       # Theme switcher component
+│   ├── contexts/
+│   │   └── ThemeContext.tsx      # Theme state management (terminal/business)
 │   ├── constants/
 │   │   └── theme.ts              # Theme color schemes and UI constants
 │   ├── hooks/
@@ -40,7 +59,7 @@ threat-intel-dashboard/
 │   │   └── cache.ts              # Client-side caching utility
 │   ├── App.tsx                    # Main application component
 │   ├── main.tsx                   # React entry point
-│   └── index.css                  # Tailwind CSS styles
+│   └── index.css                  # Tailwind CSS styles & theme definitions
 │
 ├── public/                        # Static assets
 │   └── shield.svg                # App icon
@@ -112,6 +131,14 @@ threat-intel-dashboard/
 |------|---------|
 | `src/components/common/LoadingState.tsx` | Reusable theme-aware loading component |
 | `src/components/common/EmptyState.tsx` | Reusable theme-aware empty state component |
+
+**Theme System:**
+
+| File | Purpose |
+|------|---------|
+| `src/contexts/ThemeContext.tsx` | Theme state management (terminal/business modes) |
+| `src/components/ThemeToggle.tsx` | Theme switcher UI component |
+| `src/components/ui/*` | 15 Magic UI components for animations & effects |
 
 **Hooks:**
 
@@ -194,6 +221,7 @@ Returns results to frontend
 - **react** - UI framework
 - **react-router-dom** - Client-side routing
 - **recharts** - Charts and visualizations
+- **framer-motion** - Animation library (powers Magic UI components)
 - **date-fns** - Date formatting
 - **lucide-react** - Icon library
 - **tailwindcss** - CSS framework
@@ -344,6 +372,79 @@ The codebase follows DRY (Don't Repeat Yourself) principles to minimize code dup
 - Single source of truth for all shared logic
 
 For full details, see: `docs/DRY_REFACTORING_FINAL_REPORT.md`
+
+## 🎨 Dual-Theme System
+
+The dashboard features a sophisticated dual-theme system with two distinct visual modes:
+
+### Theme Modes
+
+**Terminal Theme (Retro CRT)**:
+- Classic green-on-black (#00ff00 on #000000)
+- Monospace fonts (Share Tech Mono, VT323)
+- CRT scanline effects and screen glow
+- RetroGrid 3D perspective background
+- FlickeringGrid animations on stat cards
+- HyperText glitch effects for emphasis
+- Authentic terminal aesthetic
+
+**Business Theme (Cybersecurity Professional)**:
+- Deep navy backgrounds (#0a0e1a)
+- Bright blue (#3b82f6) and purple (#8b5cf6) accents
+- Particle effects and gradient animations
+- BorderBeam animated borders
+- NumberTicker smooth number animations
+- MagicCard spotlight effects
+- Modern, professional aesthetic
+
+### Magic UI Component Library
+
+15 components installed via shadcn CLI from magicui.design:
+
+**Background Effects:**
+- `retro-grid` - 3D perspective grid (terminal theme)
+- `flickering-grid` - Dynamic flickering grid (terminal theme)
+- `animated-grid-pattern` - Animated square patterns
+- `dot-pattern` - SVG dot pattern backgrounds
+- `grid-pattern` - SVG grid pattern backgrounds
+
+**Visual Effects:**
+- `border-beam` - Animated border gradients (business theme)
+- `neon-gradient-card` - Neon border cards
+- `shine-border` - Animated shine effects
+- `magic-card` - Interactive spotlight cards (business theme)
+
+**Animation Components:**
+- `particles` - Canvas-based particle system (business theme)
+- `number-ticker` - Animated number counting (both themes)
+- `text-animate` - Text animation effects (both themes)
+- `hyper-text` - Glitch/scramble text (terminal theme)
+
+**Special Components:**
+- `ripple` - Ripple animation effects
+- `terminal` - Dedicated terminal UI component
+
+### Theme Implementation
+
+**Theme State**: Managed by `ThemeContext` (React Context API)
+**Persistence**: Theme preference saved to localStorage
+**Switching**: Seamless toggle via `ThemeToggle` component
+**Performance**: Conditional rendering prevents unnecessary component loads
+
+### Color System
+
+All colors defined in `tailwind.config.js` with theme-specific prefixes:
+- `terminal-*` - Terminal theme colors
+- `business-*` - Business theme colors
+
+Threat severity colors mapped in `src/constants/theme.ts`:
+- Critical: Red (#dc2626)
+- High: Orange (#ea580c)
+- Medium: Amber (#f59e0b)
+- Low: Green (#22c55e)
+- Info: Blue (#3b82f6)
+
+For complete theme documentation, see: `docs/THEME_REFACTOR_REPORT.md`
 
 ## 🚀 Performance Optimizations
 

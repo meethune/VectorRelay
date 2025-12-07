@@ -108,7 +108,7 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
   if (threats.length === 0) {
     return (
       <EmptyState
-        icon={<AlertCircle className={`w-12 h-12 ${isTerminal ? 'icon-glow' : ''}`} />}
+        icon={<AlertCircle className="w-12 h-12" />}
         message="No threats found"
         description={searchQuery ? 'Try a different search query' : undefined}
       />

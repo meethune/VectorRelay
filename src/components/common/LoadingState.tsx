@@ -19,6 +19,9 @@
  */
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { Loader2 } from 'lucide-react';
+import { DotPattern } from '../ui/dot-pattern';
+import { TextAnimate } from '../ui/text-animate';
 
 interface LoadingStateProps {
   /**
@@ -45,18 +48,49 @@ export function LoadingState({ message, className = '' }: LoadingStateProps) {
   const displayMessage = message || defaultMessage;
 
   return (
-    <div className={`flex items-center justify-center h-64 ${className}`}>
-      <div
-        className={
-          isTerminal
-            ? 'text-terminal-green font-mono'
-            : 'text-business-text-primary font-sans'
-        }
-      >
-        <div className="text-2xl mb-4">{displayMessage}</div>
-        <div className="animate-pulse">
-          {isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}
-        </div>
+    <div className={`relative flex items-center justify-center min-h-[400px] ${className}`}>
+      {!isTerminal && (
+        <>
+          {/* Animated dot pattern background */}
+          <DotPattern
+            className="absolute inset-0 -z-10 opacity-10"
+            width={20}
+            height={20}
+            glow={true}
+            color="#3b82f6"
+          />
+
+          {/* Pulse effect */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-32 h-32 rounded-full bg-business-accent-primary opacity-20 animate-ping" />
+          </div>
+        </>
+      )}
+
+      <div className="relative z-10 flex flex-col items-center gap-4">
+        {isTerminal ? (
+          <>
+            <TextAnimate
+              animation="blurIn"
+              className="font-mono text-terminal-green text-lg"
+            >
+              {displayMessage}
+            </TextAnimate>
+            <div className="animate-pulse text-terminal-green font-mono">
+              ▓▓▓▓▓▓▓▓▓▓
+            </div>
+          </>
+        ) : (
+          <>
+            <Loader2 className="w-12 h-12 animate-spin text-business-accent-primary" />
+            <TextAnimate
+              animation="fadeIn"
+              className="text-business-text-secondary"
+            >
+              {displayMessage}
+            </TextAnimate>
+          </>
+        )}
       </div>
     </div>
   );

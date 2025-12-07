@@ -30,6 +30,32 @@ export const SEVERITY_COLORS: Record<string, string> = {
 } as const;
 
 /**
+ * Business Theme Severity Badge Styles
+ *
+ * Enhanced severity styling for the business theme with:
+ * - Dark colored backgrounds
+ * - Bright borders for visibility
+ * - High-contrast text colors
+ *
+ * Usage:
+ * ```tsx
+ * const { theme } = useTheme();
+ * if (theme === 'business') {
+ *   <span className={BUSINESS_SEVERITY_STYLES[severity]}>
+ *     {severity}
+ *   </span>
+ * }
+ * ```
+ */
+export const BUSINESS_SEVERITY_STYLES: Record<string, string> = {
+  critical: 'bg-business-threat-critical-bg border-business-threat-critical-border text-business-threat-critical-text',
+  high: 'bg-business-threat-high-bg border-business-threat-high-border text-business-threat-high-text',
+  medium: 'bg-business-threat-medium-bg border-business-threat-medium-border text-business-threat-medium-text',
+  low: 'bg-business-threat-low-bg border-business-threat-low-border text-business-threat-low-text',
+  info: 'bg-business-threat-info-bg border-business-threat-info-border text-business-threat-info-text',
+} as const;
+
+/**
  * Category color schemes for different UI themes
  *
  * Contains two color palettes:

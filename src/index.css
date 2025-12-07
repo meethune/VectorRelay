@@ -15,11 +15,27 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Business Theme (Default - Dark Professional) */
+/* Business Theme (Cybersecurity Professional - Deep Navy/Blue) */
 :root.dark {
   font-family: 'Inter', system-ui, sans-serif;
-  color: #f1f5f9;
-  background-color: #0f172a;
+  color: #e5e7eb;
+  background-color: #0a0e1a;
+
+  /* CSS variables for easy theming */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #131720;
+  --bg-tertiary: #1a1f2e;
+
+  --text-primary: #e5e7eb;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+
+  --accent-primary: #3b82f6;
+  --accent-secondary: #8b5cf6;
+  --accent-cyber: #06b6d4;
+
+  --border-primary: #1e3a5f;
+  --border-accent: #3b82f6;
 }
 
 /* Terminal Theme (CRT Style) */
@@ -148,11 +164,28 @@ body {
 
 /* Glow effects - ONLY for terminal theme */
 .terminal-theme .icon-glow {
-  filter: drop-shadow(0 0 3px #00ff00) drop-shadow(0 0 5px #00ff00);
+  filter: drop-shadow(0 0 1px #00ff00) drop-shadow(0 0 2px #00ff00);
 }
 
 .terminal-theme .border-glow {
-  box-shadow: 0 0 5px #00ff00, 0 0 10px #00ff00);
+  box-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00;
+}
+
+/* Card scanline overlay for terminal theme */
+.terminal-theme .card-scanlines::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 255, 0, 0.02) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* No glow effects in business theme */
@@ -216,4 +249,79 @@ body {
   .dark .scrollbar-terminal::-webkit-scrollbar-thumb:hover {
     background: #64748b;
   }
+}
+
+@layer base {
+  .theme {
+    --animate-background-position-spin: background-position-spin 3000ms infinite alternate;
+    --animate-shine: shine var(--duration) infinite linear;
+    --animate-ripple: ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite;
+  }
+}
+
+@theme inline {
+  @keyframes background-position-spin {
+  0% {
+    background-position: top center;
+    }
+  100% {
+    background-position: bottom center;
+    }
+  }
+  @keyframes shine {
+  0% {
+    background-position: 0% 0%;
+    }
+  50% {
+    background-position: 100% 100%;
+    }
+  to {
+    background-position: 0% 0%;
+    }
+  }
+  @keyframes ripple {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    }
+  50% {
+    transform: translate(-50%, -50%) scale(0.9);
+    }
+  }
+}
+
+/* Business Theme Custom Animations */
+
+/* Glow pulse for accents */
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.5),
+                0 0 10px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.8),
+                0 0 20px rgba(59, 130, 246, 0.5),
+                0 0 30px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.dark .glow-accent {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Hover lift effect for interactive cards */
+.dark .hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dark .hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+}
+
+/* Cyber grid background effect */
+.dark .cyber-grid {
+  background-image:
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
 }

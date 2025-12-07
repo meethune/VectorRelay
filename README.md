@@ -12,7 +12,7 @@ A real-time threat intelligence aggregation and analysis platform powered by Clo
 - **🎯 IOC Extraction**: Automatic extraction of IPs, domains, CVEs, hashes
 - **⏰ Native Cron Triggers**: Scheduled fetching from 7+ reputable security feeds every 6 hours
 - **⚡ Real-time Updates**: Dashboard updates automatically via Workers cron
-- **🎨 Modern UI**: Responsive React dashboard with CRT terminal green theme
+- **🎨 Dual Theme System**: Terminal (retro CRT) and Business (cybersecurity pro) themes with 15 Magic UI components
 - **💰 100% Free Tier**: Runs entirely on Cloudflare's free tier
 
 ## 🏗️ Architecture
@@ -210,30 +210,47 @@ curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/test-bindings
 
 ## 🎨 Customization
 
-### UI Theme
+### Dual Theme System
 
-Edit `src/index.css` to customize colors:
+The dashboard features two distinct visual modes that can be toggled seamlessly:
 
-```css
-:root {
-  color-scheme: dark;
-  background-color: #0f172a; /* Change to your preferred color */
-}
-```
+**Terminal Theme (Retro CRT)**:
+- Classic green-on-black aesthetic (#00ff00 on #000000)
+- Monospace fonts with scanline effects
+- RetroGrid 3D backgrounds and FlickeringGrid animations
+- HyperText glitch effects for emphasis
+- Authentic terminal experience
 
-### Severity Colors
+**Business Theme (Cybersecurity Professional)**:
+- Deep navy backgrounds with blue/purple accents
+- Particle effects and gradient animations
+- BorderBeam animated borders on cards
+- NumberTicker smooth number animations
+- Modern, professional aesthetic
 
-Edit `tailwind.config.js`:
+Theme preference is automatically saved to localStorage. For complete theme documentation and customization options, see [`docs/THEME_REFACTOR_REPORT.md`](./docs/THEME_REFACTOR_REPORT.md).
+
+### Color Customization
+
+Edit color palettes in `tailwind.config.js`:
 
 ```js
-theme: {
-  extend: {
-    colors: {
-      critical: '#dc2626',  // Customize colors
-      high: '#f59e0b',
-      // ...
-    },
+// Business theme colors
+business: {
+  bg: {
+    primary: '#0a0e1a',    // Deep navy
+    secondary: '#131720',   // Card backgrounds
   },
+  accent: {
+    primary: '#3b82f6',    // Bright blue
+    secondary: '#8b5cf6',  // Purple
+  }
+}
+
+// Terminal theme colors (fixed palette)
+terminal: {
+  green: '#00ff00',        // Classic CRT green
+  'green-dim': '#00cc00',  // Dimmed green
 }
 ```
 

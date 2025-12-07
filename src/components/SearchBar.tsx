@@ -72,7 +72,12 @@ export default function SearchBar({
     }`}>
       {/* Search Input */}
       <div className="relative mb-4">
-        <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
+        {isTerminal && (
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-terminal-green-dim font-mono text-sm pointer-events-none">
+            root@vectorrelay:~$
+          </span>
+        )}
+        <Search className={`absolute ${isTerminal ? 'left-[180px]' : 'left-3'} top-1/2 transform -translate-y-1/2 w-5 h-5 ${
           isTerminal ? 'text-terminal-green-dim' : 'text-business-text-muted'
         }`} />
         <input
@@ -80,7 +85,7 @@ export default function SearchBar({
           placeholder={formatText('Search threats (keyword or semantic)...')}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className={`w-full pl-10 pr-10 py-3 border-2 focus:outline-none ${
+          className={`w-full ${isTerminal ? 'pl-[215px]' : 'pl-10'} pr-10 py-3 border-2 focus:outline-none ${
             isTerminal
               ? 'bg-black text-terminal-green border-terminal-green-dark focus:border-terminal-green font-mono placeholder-terminal-green-dark'
               : 'bg-business-bg-tertiary text-business-text-primary border-business-border-primary focus:border-business-accent-primary font-sans placeholder:text-business-text-muted'
