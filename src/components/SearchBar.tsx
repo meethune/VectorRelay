@@ -1,5 +1,6 @@
 import { Search, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
+import { useState, useEffect } from 'react';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -12,6 +13,14 @@ interface SearchBarProps {
   onFiltersChange: (filters: any) => void;
 }
 
+interface FeedSource {
+  id: number;
+  name: string;
+  url: string;
+  type: string;
+  enabled: number;
+}
+
 export default function SearchBar({
   searchQuery,
   onSearchChange,
@@ -20,6 +29,71 @@ export default function SearchBar({
 }: SearchBarProps) {
   const { theme, formatText } = useTheme();
   const isTerminal = theme === 'terminal';
+  const [sources, setSources] = useState<FeedSource[]>([]);
+  const [isLoadingSources, setIsLoadingSources] = useState(true);
+
+  // Fetch sources from the database with client-side caching
+  useEffect(() => {
+    const CACHE_KEY = 'threat-intel-sources';
+    const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    const fetchSources = async () => {
+      try {
+        setIsLoadingSources(true);
+
+        // Check for cached sources
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          try {
+            const { sources: cachedSources, timestamp } = JSON.parse(cached);
+            const age = Date.now() - timestamp;
+
+            // If cache is still valid, use it
+            if (age < CACHE_DURATION && cachedSources && Array.isArray(cachedSources)) {
+              setSources(cachedSources);
+              setIsLoadingSources(false);
+              return;
+            }
+          } catch (e) {
+            // Invalid cache data, continue to fetch
+            localStorage.removeItem(CACHE_KEY);
+          }
+        }
+
+        // Fetch from API
+        const response = await fetch('/api/sources');
+        if (!response.ok) {
+          throw new Error('Failed to fetch sources');
+        }
+        const data = await response.json();
+        const fetchedSources = data.sources || [];
+
+        setSources(fetchedSources);
+
+        // Cache the sources
+        try {
+          localStorage.setItem(
+            CACHE_KEY,
+            JSON.stringify({
+              sources: fetchedSources,
+              timestamp: Date.now(),
+            })
+          );
+        } catch (e) {
+          // localStorage might be full or disabled, continue without caching
+          console.warn('Failed to cache sources:', e);
+        }
+      } catch (error) {
+        console.error('Error fetching sources:', error);
+        // Keep empty array on error
+        setSources([]);
+      } finally {
+        setIsLoadingSources(false);
+      }
+    };
+
+    fetchSources();
+  }, []);
 
   return (
     <div className={`p-4 border-2 mb-6 ${
@@ -127,25 +201,23 @@ export default function SearchBar({
           <select
             value={filters.source}
             onChange={(e) => onFiltersChange({ ...filters, source: e.target.value })}
+            disabled={isLoadingSources}
             className={`w-full px-4 py-2 border-2 focus:outline-none ${
               isTerminal
                 ? 'bg-black text-terminal-green border-terminal-green-dark focus:border-terminal-green font-mono'
                 : 'bg-business-bg-tertiary text-business-text-primary border-business-border-primary focus:border-business-accent-primary font-sans'
-            }`}
+            } ${isLoadingSources ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <option value="">{formatText('All Sources')}</option>
-            <option value="CISA Alerts">{formatText('CISA Alerts')}</option>
-            <option value="Krebs on Security">{formatText('Krebs on Security')}</option>
-            <option value="BleepingComputer">{formatText('BleepingComputer')}</option>
-            <option value="The Hacker News">{formatText('The Hacker News')}</option>
-            <option value="SANS ISC">{formatText('SANS ISC')}</option>
-            <option value="Schneier on Security">{formatText('Schneier on Security')}</option>
-            <option value="Dark Reading">{formatText('Dark Reading')}</option>
-            <option value="Cisco Talos">{formatText('Cisco Talos')}</option>
-            <option value="Malwarebytes Labs">{formatText('Malwarebytes Labs')}</option>
-            <option value="Threatpost">{formatText('Threatpost')}</option>
-            <option value="The Record">{formatText('The Record')}</option>
-            <option value="US-CERT Current Activity">{formatText('US-CERT Current Activity')}</option>
+            <option value="">
+              {isLoadingSources
+                ? formatText('Loading sources...')
+                : formatText('All Sources')}
+            </option>
+            {sources.map((source) => (
+              <option key={source.id} value={source.name}>
+                {formatText(source.name)}
+              </option>
+            ))}
           </select>
         </div>
       </div>
