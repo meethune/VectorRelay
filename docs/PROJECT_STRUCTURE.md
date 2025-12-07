@@ -2,7 +2,7 @@
 
 ```
 threat-intel-dashboard/
-├── functions/                      # Cloudflare Pages Functions (Backend)
+├── functions/                      # Cloudflare Workers Functions (Backend)
 │   ├── api/                       # API endpoints
 │   │   ├── stats.ts              # Dashboard statistics
 │   │   ├── threats.ts            # List threats with filters
@@ -11,7 +11,8 @@ threat-intel-dashboard/
 │   │       └── [id].ts           # Single threat details
 │   ├── utils/                     # Utility functions
 │   │   ├── rss-parser.ts         # RSS/Atom feed parser
-│   │   └── ai-processor.ts       # Workers AI integration
+│   │   ├── ai-processor.ts       # Workers AI integration
+│   │   └── security.ts           # Security middleware & validation
 │   ├── types.ts                   # TypeScript type definitions
 │   └── scheduled.ts               # Scheduled feed ingestion (runs every 6 hours)
 │
@@ -77,12 +78,16 @@ threat-intel-dashboard/
 
 ## 🔄 Data Flow
 
-### Ingestion (Scheduled)
+### Ingestion (Scheduled - Native Cron)
 
 ```
-Cron Trigger (every 6 hours)
+Cloudflare Cron Scheduler (every 6 hours)
     ↓
-scheduled.ts fetches RSS feeds
+src/worker.ts → scheduled() handler
+    ↓
+scheduled.ts → onSchedule()
+    ↓
+Fetches RSS feeds
     ↓
 Parses XML with rss-parser.ts
     ↓
@@ -135,8 +140,9 @@ Returns results to frontend
 - **tailwindcss** - CSS framework
 
 ### Backend
-- **@cloudflare/workers-types** - TypeScript types for Cloudflare APIs
-- No external dependencies! Everything runs on Cloudflare's platform
+- **@cloudflare/workers-types** - TypeScript types for Cloudflare Workers APIs
+- **fast-xml-parser** - RSS/Atom feed parsing
+- No other external dependencies! Everything runs on Cloudflare's platform
 
 ### Dev Tools
 - **vite** - Frontend build tool
@@ -146,15 +152,28 @@ Returns results to frontend
 ## 🎯 NPM Scripts
 
 ```bash
-npm run dev          # Start Vite dev server
-npm run build        # Build React app for production
+npm run dev          # Start Wrangler dev server (Workers + React)
+npm run build        # Build React app + compile Pages Functions to _worker.js
 npm run preview      # Preview production build locally
-npm run deploy       # Build and deploy to Cloudflare Pages
+npm run deploy       # Build and deploy to Cloudflare Workers
+npm run typecheck    # Run TypeScript type checking
 npm run cf-typegen   # Generate TypeScript types for bindings
-npm run db:create    # Create D1 database
-npm run db:init      # Initialize database schema (local)
-npm run db:migrate   # Run migrations (remote)
-npm run vectorize:create  # Create Vectorize index
+```
+
+**Note:** Database and Vectorize operations use `wrangler` directly (not npm scripts).
+
+```bash
+# Database operations
+npx wrangler d1 create threat-intel-db
+npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
+
+# Vectorize operations
+npx wrangler vectorize create threat-embeddings --dimensions=1024 --metric=cosine
+npx wrangler vectorize list
+
+# KV operations
+npx wrangler kv namespace create CACHE
+npx wrangler kv namespace list
 ```
 
 ## 🔌 Cloudflare Bindings
