@@ -469,12 +469,61 @@ export default function Dashboard() {
                 data={categoryData}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }) =>
-                  isTerminal
-                    ? `${name.toUpperCase()} (${(percent * 100).toFixed(0)}%)`
-                    : `${name} (${(percent * 100).toFixed(0)}%)`
-                }
+                labelLine={true}
+                label={(props) => {
+                  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
+                  const RADIAN = Math.PI / 180;
+                  const threshold = 0.05; // 5% threshold
+
+                  if (percent < threshold) {
+                    // Small slice: label outside with line
+                    const radius = outerRadius + 25;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        fill={isTerminal ? '#00ff00' : '#e5e7eb'}
+                        textAnchor={x > cx ? 'start' : 'end'}
+                        dominantBaseline="central"
+                        fontSize={11}
+                        fontFamily={isTerminal ? 'monospace' : 'Inter, sans-serif'}
+                      >
+                        {isTerminal
+                          ? `${name.toUpperCase()} ${(percent * 100).toFixed(0)}%`
+                          : `${name} ${(percent * 100).toFixed(0)}%`
+                        }
+                      </text>
+                    );
+                  } else {
+                    // Large slice: label inside
+                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                    return (
+                      <text
+                        x={x}
+                        y={y}
+                        fill={isTerminal ? '#000000' : '#1a1f2e'}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={12}
+                        fontWeight="700"
+                        fontFamily={isTerminal ? 'monospace' : 'Inter, sans-serif'}
+                      >
+                        <tspan x={x} dy="-0.5em">
+                          {isTerminal ? name.toUpperCase() : name}
+                        </tspan>
+                        <tspan x={x} dy="1.2em">
+                          {(percent * 100).toFixed(0)}%
+                        </tspan>
+                      </text>
+                    );
+                  }
+                }}
                 outerRadius={80}
                 fill={isTerminal ? '#00ff00' : '#A8DADC'}
                 dataKey="value"
