@@ -469,42 +469,59 @@ export default function Dashboard() {
                 data={categoryData}
                 cx="50%"
                 cy="50%"
-                labelLine={true}
+                labelLine={false}
                 label={(props) => {
-                  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
+                  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name, index } = props;
                   const RADIAN = Math.PI / 180;
-                  const threshold = 0.05; // 5% threshold
+                  const threshold = 0.08; // 8% threshold - higher to reduce overlap
 
                   if (percent < threshold) {
-                    // Small slice: label outside with line
-                    const radius = outerRadius + 25;
-                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                    // Small slice: label outside with custom line
+                    const lineStartRadius = outerRadius + 5;
+                    const lineEndRadius = outerRadius + 20;
+                    const labelRadius = outerRadius + 35;
+
+                    const lineStartX = cx + lineStartRadius * Math.cos(-midAngle * RADIAN);
+                    const lineStartY = cy + lineStartRadius * Math.sin(-midAngle * RADIAN);
+                    const lineEndX = cx + lineEndRadius * Math.cos(-midAngle * RADIAN);
+                    const lineEndY = cy + lineEndRadius * Math.sin(-midAngle * RADIAN);
+                    const labelX = cx + labelRadius * Math.cos(-midAngle * RADIAN);
+                    const labelY = cy + labelRadius * Math.sin(-midAngle * RADIAN);
 
                     return (
-                      <text
-                        x={x}
-                        y={y}
-                        fill={isTerminal ? '#00ff00' : '#e5e7eb'}
-                        textAnchor={x > cx ? 'start' : 'end'}
-                        dominantBaseline="central"
-                        fontSize={11}
-                        fontFamily={isTerminal ? 'monospace' : 'Inter, sans-serif'}
-                      >
-                        {isTerminal
-                          ? `${name.toUpperCase()} ${(percent * 100).toFixed(0)}%`
-                          : `${name} ${(percent * 100).toFixed(0)}%`
-                        }
-                      </text>
+                      <g key={`label-${index}`}>
+                        {/* Custom line for small slices only */}
+                        <polyline
+                          points={`${lineStartX},${lineStartY} ${lineEndX},${lineEndY} ${labelX},${labelY}`}
+                          stroke={isTerminal ? '#00ff00' : '#94a3b8'}
+                          strokeWidth={1}
+                          fill="none"
+                        />
+                        <text
+                          x={labelX}
+                          y={labelY}
+                          fill={isTerminal ? '#00ff00' : '#e5e7eb'}
+                          textAnchor={labelX > cx ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          fontSize={10}
+                          fontFamily={isTerminal ? 'monospace' : 'Inter, sans-serif'}
+                        >
+                          {isTerminal
+                            ? `${name.toUpperCase()} ${(percent * 100).toFixed(0)}%`
+                            : `${name} ${(percent * 100).toFixed(0)}%`
+                          }
+                        </text>
+                      </g>
                     );
                   } else {
-                    // Large slice: label inside
+                    // Large slice: label inside (no line)
                     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
                     const x = cx + radius * Math.cos(-midAngle * RADIAN);
                     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
                     return (
                       <text
+                        key={`label-${index}`}
                         x={x}
                         y={y}
                         fill={isTerminal ? '#000000' : '#1a1f2e'}
