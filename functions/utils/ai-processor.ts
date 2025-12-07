@@ -1,5 +1,9 @@
 // AI Processing Utilities using Workers AI
 import type { Env, AIAnalysis, Threat } from '../types';
+import { AI_MODELS } from '../constants';
+import { logError } from './logger';
+import { truncateText } from './text';
+import { parseAIResponse, parseAITextResponse, validateAIResponse } from './ai-response-parser';
 
 const SYSTEM_PROMPT = `You are a cybersecurity analyst. Analyze threat intelligence articles and extract key information.
 
@@ -26,15 +30,11 @@ If no IOCs found, use empty arrays. Be conservative with severity ratings.`;
 export async function analyzeArticle(env: Env, article: Threat): Promise<AIAnalysis | null> {
   try {
     // Truncate content to fit model context (roughly 4000 tokens)
-    const maxContentLength = 12000;
-    const truncatedContent =
-      article.content.length > maxContentLength
-        ? article.content.substring(0, maxContentLength) + '...'
-        : article.content;
+    const truncatedContent = truncateText(article.content, 12000);
 
     const userPrompt = `Title: ${article.title}\n\nContent: ${truncatedContent}\n\nSource: ${article.source}`;
 
-    const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+    const response = await env.AI.run(AI_MODELS.TEXT_GENERATION, {
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
@@ -43,49 +43,19 @@ export async function analyzeArticle(env: Env, article: Threat): Promise<AIAnaly
       max_tokens: 1024,
     });
 
-    // Parse the response - handle new Workers AI response format
-    let analysis: AIAnalysis;
+    // Parse the response using unified parser
+    const analysis = parseAIResponse<AIAnalysis>(response);
 
-    if (typeof response === 'object' && 'response' in response) {
-      // New format: { response: { tldr, key_points, ... }, tool_calls: [], usage: {} }
-      if (typeof response.response === 'object') {
-        // Response is already parsed JSON
-        analysis = response.response as AIAnalysis;
-      } else {
-        // Response is a JSON string
-        const jsonMatch = (response.response as string).match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          console.error('No JSON found in AI response:', response.response);
-          return null;
-        }
-        analysis = JSON.parse(jsonMatch[0]);
-      }
-    } else if (typeof response === 'string') {
-      // Legacy format: just a string
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        console.error('No JSON found in AI response:', response);
-        return null;
-      }
-      analysis = JSON.parse(jsonMatch[0]);
-    } else {
-      console.error('Unexpected AI response format:', response);
-      return null;
-    }
-
-    // Validate the analysis
-    if (!analysis.tldr || !analysis.category || !analysis.severity) {
-      console.error('Invalid analysis structure:', analysis);
+    // Validate the analysis has required fields
+    if (!analysis || !validateAIResponse(analysis, ['tldr', 'category', 'severity'])) {
       return null;
     }
 
     return analysis;
   } catch (error) {
-    console.error('Error analyzing article:', {
-      error: error instanceof Error ? error.message : String(error),
+    logError('Error analyzing article', error, {
       threatId: article.id,
       threatTitle: article.title,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return null;
   }
@@ -94,10 +64,9 @@ export async function analyzeArticle(env: Env, article: Threat): Promise<AIAnaly
 export async function generateEmbedding(env: Env, text: string): Promise<number[] | null> {
   try {
     // Truncate text for embedding model (max ~512 tokens)
-    const maxLength = 2000;
-    const truncatedText = text.length > maxLength ? text.substring(0, maxLength) : text;
+    const truncatedText = truncateText(text, 2000);
 
-    const response = await env.AI.run('@cf/baai/bge-large-en-v1.5', {
+    const response = await env.AI.run(AI_MODELS.EMBEDDINGS, {
       text: truncatedText,
     });
 
@@ -105,13 +74,11 @@ export async function generateEmbedding(env: Env, text: string): Promise<number[
       return response.data[0] as number[];
     }
 
-    console.error('Invalid embedding response:', response);
+    logError('Invalid embedding response', new Error('Unexpected format'), { response });
     return null;
   } catch (error) {
-    console.error('Error generating embedding:', {
-      error: error instanceof Error ? error.message : String(error),
+    logError('Error generating embedding', error, {
       textLength: text.length,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return null;
   }
@@ -138,7 +105,7 @@ ${threatSummary}
 
 Provide a concise analysis (3-5 paragraphs).`;
 
-    const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+    const response = await env.AI.run(AI_MODELS.TEXT_GENERATION, {
       messages: [
         {
           role: 'system',
@@ -150,19 +117,11 @@ Provide a concise analysis (3-5 paragraphs).`;
       max_tokens: 1024,
     });
 
-    if (typeof response === 'object' && 'response' in response) {
-      return response.response as string;
-    } else if (typeof response === 'string') {
-      return response;
-    }
-
-    return 'Unable to generate trend analysis.';
+    return parseAITextResponse(response, 'Unable to generate trend analysis.');
   } catch (error) {
-    console.error('Error analyzing trends:', {
-      error: error instanceof Error ? error.message : String(error),
+    logError('Error analyzing trends', error, {
       threatCount: threats.length,
       summaryCount: summaries.length,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return 'Error generating trend analysis.';
   }
@@ -191,11 +150,9 @@ export async function semanticSearch(
       score: match.score,
     }));
   } catch (error) {
-    console.error('Error in semantic search:', {
-      error: error instanceof Error ? error.message : String(error),
+    logError('Error in semantic search', error, {
       query,
       limit,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return [];
   }

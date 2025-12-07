@@ -13,6 +13,9 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
 import { fetchWithCache, CacheTTL } from '../utils/cache';
+import { SEVERITY_COLORS } from '../constants/theme';
+import { LoadingState } from './common/LoadingState';
+import { EmptyState } from './common/EmptyState';
 
 interface ThreatDetail {
   id: string;
@@ -42,14 +45,6 @@ interface ThreatDetailProps {
   threatId: string;
   onBack: () => void;
 }
-
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'bg-critical',
-  high: 'bg-high',
-  medium: 'bg-medium',
-  low: 'bg-low',
-  info: 'bg-info',
-};
 
 export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
   const { theme, formatText } = useTheme();
@@ -93,36 +88,31 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING_THREAT_DETAILS ]' : 'Loading threat details...'}</div>
-          <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
-        </div>
-      </div>
+      <LoadingState
+        message={isTerminal ? '[ LOADING_THREAT_DETAILS ]' : 'Loading threat details...'}
+      />
     );
   }
 
   if (!threat) {
     return (
-      <div className={`text-center py-12 border-2 p-8 ${
-        isTerminal
-          ? 'bg-black border-terminal-green text-terminal-green'
-          : 'bg-business-bg-secondary border-business-border-primary text-business-text-primary'
-      }`}>
-        <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
-        <p className={isTerminal ? 'font-mono' : 'font-sans'}>
-          {isTerminal ? '[ THREAT_NOT_FOUND ]' : 'Threat not found'}
-        </p>
-        <button
-          onClick={onBack}
-          className={`mt-4 ${
-            isTerminal
-              ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
-              : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
-          }`}
-        >
-          {isTerminal ? '> GO_BACK' : '← Go back'}
-        </button>
+      <div>
+        <EmptyState
+          icon={<AlertCircle className={`w-12 h-12 ${isTerminal ? 'icon-glow' : ''}`} />}
+          message="Threat not found"
+        />
+        <div className="flex justify-center mt-4">
+          <button
+            onClick={onBack}
+            className={`${
+              isTerminal
+                ? 'text-terminal-green hover:text-terminal-green-dim font-mono'
+                : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
+            }`}
+          >
+            {isTerminal ? '> GO_BACK' : '← Go back'}
+          </button>
+        </div>
       </div>
     );
   }

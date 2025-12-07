@@ -19,6 +19,9 @@ import {
   Cell,
 } from 'recharts';
 import { useTheme } from '../contexts/ThemeContext';
+import { CATEGORY_COLORS } from '../constants/theme';
+import { LoadingState } from './common/LoadingState';
+import { EmptyState } from './common/EmptyState';
 
 interface DashboardStats {
   total_threats: number;
@@ -30,39 +33,13 @@ interface DashboardStats {
   recent_trends: Array<any>;
 }
 
-const CATEGORY_COLORS_TERMINAL: Record<string, string> = {
-  ransomware: '#00ff00',
-  apt: '#00dd00',
-  vulnerability: '#00cc00',
-  phishing: '#00bb00',
-  malware: '#00aa00',
-  data_breach: '#009900',
-  ddos: '#008800',
-  supply_chain: '#007700',
-  insider_threat: '#006600',
-  other: '#005500',
-};
-
-const CATEGORY_COLORS_BUSINESS: Record<string, string> = {
-  ransomware: '#ef4444',
-  apt: '#f97316',
-  vulnerability: '#eab308',
-  phishing: '#84cc16',
-  malware: '#22c55e',
-  data_breach: '#14b8a6',
-  ddos: '#06b6d4',
-  supply_chain: '#3b82f6',
-  insider_threat: '#8b5cf6',
-  other: '#64748b',
-};
-
 export default function Dashboard() {
   const { theme, formatText } = useTheme();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isTerminal = theme === 'terminal';
-  const CATEGORY_COLORS = isTerminal ? CATEGORY_COLORS_TERMINAL : CATEGORY_COLORS_BUSINESS;
+  const categoryColors = CATEGORY_COLORS[theme];
 
   useEffect(() => {
     fetchStats();
@@ -90,33 +67,23 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING_DATA ]' : 'Loading...'}</div>
-          <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
-        </div>
-      </div>
-    );
+    return <LoadingState />;
   }
 
   if (!stats) {
     return (
-      <div className={`text-center py-12 border-2 p-8 ${
-        isTerminal
-          ? 'text-terminal-green border-terminal-green font-mono'
-          : 'text-business-text-primary border-business-border-primary font-sans'
-      }`}>
-        <AlertTriangle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
-        <p>{isTerminal ? '[ ERROR ] FAILED_TO_LOAD_DASHBOARD_STATISTICS' : 'Failed to load dashboard statistics'}</p>
-      </div>
+      <EmptyState
+        icon={<AlertTriangle className={`w-12 h-12 ${isTerminal ? 'icon-glow' : ''}`} />}
+        message={isTerminal ? 'ERROR' : 'Failed to load dashboard statistics'}
+        description={isTerminal ? 'FAILED_TO_LOAD_DASHBOARD_STATISTICS' : undefined}
+      />
     );
   }
 
   const categoryData = Object.entries(stats.category_breakdown).map(([name, value]) => ({
     name,
     value,
-    color: CATEGORY_COLORS[name] || '#6b7280',
+    color: categoryColors[name] || '#6b7280',
   }));
 
   const severityData = Object.entries(stats.severity_breakdown).map(([name, value]) => ({

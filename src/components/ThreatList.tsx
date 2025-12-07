@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { ExternalLink, Clock, Tag, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
+import { SEVERITY_COLORS } from '../constants/theme';
+import { LoadingState } from './common/LoadingState';
+import { EmptyState } from './common/EmptyState';
 
 interface Threat {
   id: string;
@@ -41,14 +44,6 @@ interface ThreatsResponse {
     total_pages: number;
   };
 }
-
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: 'bg-critical',
-  high: 'bg-high',
-  medium: 'bg-medium',
-  low: 'bg-low',
-  info: 'bg-info',
-};
 
 export default function ThreatList({ searchQuery, filters, onThreatClick }: ThreatListProps) {
   const { theme, formatText } = useTheme();
@@ -104,36 +99,19 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING_THREATS ]' : 'Loading threats...'}</div>
-          <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
-        </div>
-      </div>
+      <LoadingState
+        message={isTerminal ? '[ LOADING_THREATS ]' : 'Loading threats...'}
+      />
     );
   }
 
   if (threats.length === 0) {
     return (
-      <div className={`text-center py-12 border-2 p-8 ${
-        isTerminal
-          ? 'bg-black border-terminal-green text-terminal-green'
-          : 'bg-business-bg-secondary border-business-border-primary text-business-text-primary'
-      }`}>
-        <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
-        <p className={isTerminal ? 'font-mono' : 'font-sans'}>
-          {isTerminal ? '[ NO_THREATS_FOUND ]' : 'No threats found'}
-        </p>
-        {searchQuery && (
-          <p className={`text-sm mt-2 ${
-            isTerminal
-              ? 'text-terminal-green-dim font-mono'
-              : 'text-business-text-muted font-sans'
-          }`}>
-            {isTerminal ? '> Try a different search query' : 'Try a different search query'}
-          </p>
-        )}
-      </div>
+      <EmptyState
+        icon={<AlertCircle className={`w-12 h-12 ${isTerminal ? 'icon-glow' : ''}`} />}
+        message="No threats found"
+        description={searchQuery ? 'Try a different search query' : undefined}
+      />
     );
   }
 

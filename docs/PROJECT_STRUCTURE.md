@@ -11,18 +11,31 @@ threat-intel-dashboard/
 │   │   └── threat/
 │   │       └── [id].ts           # Single threat details
 │   ├── utils/                     # Utility functions
-│   │   ├── rss-parser.ts         # RSS/Atom feed parser
 │   │   ├── ai-processor.ts       # Workers AI integration
-│   │   └── security.ts           # Security middleware & validation
+│   │   ├── ai-response-parser.ts # Unified AI response parsing
+│   │   ├── logger.ts             # Structured logging utilities
+│   │   ├── response-helper.ts    # Standardized API responses
+│   │   ├── rss-parser.ts         # RSS/Atom feed parser
+│   │   ├── security.ts           # Security middleware & validation
+│   │   ├── text.ts               # Text processing utilities
+│   │   └── validation.ts         # Generic validation utilities
+│   ├── constants.ts               # Shared constants (categories, severities, AI models)
 │   ├── types.ts                   # TypeScript type definitions
 │   └── scheduled.ts               # Scheduled feed ingestion (runs every 6 hours)
 │
 ├── src/                           # React Frontend
 │   ├── components/
+│   │   ├── common/               # Shared reusable components
+│   │   │   ├── LoadingState.tsx  # Theme-aware loading component
+│   │   │   └── EmptyState.tsx    # Theme-aware empty state component
 │   │   ├── Dashboard.tsx         # Main dashboard with stats & charts
 │   │   ├── ThreatList.tsx        # List of threats with pagination
 │   │   ├── ThreatDetail.tsx      # Single threat view with IOCs
 │   │   └── SearchBar.tsx         # Search and filter controls
+│   ├── constants/
+│   │   └── theme.ts              # Theme color schemes and UI constants
+│   ├── hooks/
+│   │   └── useThemeClasses.ts    # Theme-aware CSS class hook
 │   ├── utils/
 │   │   └── cache.ts              # Client-side caching utility
 │   ├── App.tsx                    # Main application component
@@ -50,19 +63,40 @@ threat-intel-dashboard/
 
 ### Backend (Functions)
 
+**Core:**
+
 | File | Purpose |
 |------|---------|
+| `functions/constants.ts` | Shared constants (threat categories, severities, AI models) |
+| `functions/types.ts` | TypeScript type definitions |
 | `functions/scheduled.ts` | Runs every 6 hours to fetch RSS feeds, process with AI, store in D1 |
+
+**API Endpoints:**
+
+| File | Purpose |
+|------|---------|
 | `functions/api/stats.ts` | Returns dashboard statistics (counts, breakdowns, trends) |
 | `functions/api/threats.ts` | Returns paginated list of threats with filters |
 | `functions/api/search.ts` | Handles keyword and semantic search using Vectorize |
 | `functions/api/sources.ts` | Returns list of feed sources from database (server-cached 5 min) |
 | `functions/api/threat/[id].ts` | Returns single threat with IOCs and similar threats |
-| `functions/utils/rss-parser.ts` | Parses RSS/Atom feeds into structured data |
+
+**Utilities:**
+
+| File | Purpose |
+|------|---------|
 | `functions/utils/ai-processor.ts` | Interfaces with Workers AI for summarization & embeddings |
+| `functions/utils/ai-response-parser.ts` | Unified parsing for AI responses (handles 3 response formats) |
+| `functions/utils/logger.ts` | Structured JSON logging (logError, logWarning, logInfo, logDebug) |
+| `functions/utils/response-helper.ts` | Standardized API response creation with headers |
+| `functions/utils/rss-parser.ts` | Parses RSS/Atom feeds into structured data |
 | `functions/utils/security.ts` | Rate limiting, security headers, input validation |
+| `functions/utils/text.ts` | Text processing (truncate, count words, extract sentences) |
+| `functions/utils/validation.ts` | Generic validators with TypeScript type guards |
 
 ### Frontend (React)
+
+**Core Components:**
 
 | File | Purpose |
 |------|---------|
@@ -71,6 +105,25 @@ threat-intel-dashboard/
 | `src/components/ThreatList.tsx` | Scrollable threat cards with filters |
 | `src/components/ThreatDetail.tsx` | Full threat view with IOCs (client-cached 15 min) |
 | `src/components/SearchBar.tsx` | Search input and filter dropdowns (sources cached 1 hour) |
+
+**Shared Components:**
+
+| File | Purpose |
+|------|---------|
+| `src/components/common/LoadingState.tsx` | Reusable theme-aware loading component |
+| `src/components/common/EmptyState.tsx` | Reusable theme-aware empty state component |
+
+**Hooks:**
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useThemeClasses.ts` | Pre-composed theme-aware CSS classes (12 variants) |
+
+**Constants & Utilities:**
+
+| File | Purpose |
+|------|---------|
+| `src/constants/theme.ts` | Theme color schemes (severity colors, category colors) |
 | `src/utils/cache.ts` | Generalized localStorage cache utility with TTL support |
 
 ### Configuration
@@ -245,6 +298,52 @@ App
 - Rate limiting via KV prevents abuse
 - SQL injection protection via prepared statements
 - XSS protection via React's escaping
+
+## 📐 Code Quality & DRY Principles
+
+The codebase follows DRY (Don't Repeat Yourself) principles to minimize code duplication and improve maintainability.
+
+### Centralized Constants
+
+**`functions/constants.ts`** - Single source of truth for shared constants:
+- `THREAT_CATEGORIES` - 10 threat categories (used in frontend dropdowns, backend validation, AI prompts)
+- `THREAT_SEVERITIES` - 5 severity levels (used in badges, filters, database queries)
+- `AI_MODELS` - AI model configuration (TEXT_GENERATION, EMBEDDINGS)
+- TypeScript types exported: `ThreatCategory`, `ThreatSeverity`
+
+**`src/constants/theme.ts`** - Centralized theme configuration:
+- `SEVERITY_COLORS` - Maps severity levels to Tailwind CSS classes
+- `CATEGORY_COLORS` - Color schemes for terminal and business themes
+
+### Shared UI Components
+
+**LoadingState & EmptyState** - Consistent UI patterns across all views:
+- Theme-aware (automatically adapts to terminal/business theme)
+- Optional customization (messages, icons, className)
+- Used in Dashboard, ThreatList, ThreatDetail
+
+**useThemeClasses Hook** - Pre-composed CSS classes:
+- 12 variants: input, button, card, text, link, badge, etc.
+- Eliminates 50+ duplicate className patterns
+- Ensures consistent styling across components
+
+### Utility Libraries
+
+**Backend Utilities:**
+- `logger.ts` - Structured JSON logging with context
+- `text.ts` - Text processing (truncate, count words)
+- `response-helper.ts` - Standardized API responses with headers
+- `ai-response-parser.ts` - Unified AI response parsing (3 formats)
+- `validation.ts` - Generic validators with TypeScript type guards
+
+**Benefits:**
+- ~244 lines of duplicate code eliminated
+- Code duplication reduced from 18% to ~10%
+- Improved type safety with type guards
+- Consistent error logging and validation
+- Single source of truth for all shared logic
+
+For full details, see: `docs/DRY_REFACTORING_FINAL_REPORT.md`
 
 ## 🚀 Performance Optimizations
 

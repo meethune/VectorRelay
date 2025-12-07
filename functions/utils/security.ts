@@ -2,6 +2,9 @@
 // Includes rate limiting, security headers, and input validation
 
 import type { Env } from '../types';
+import { THREAT_CATEGORIES, THREAT_SEVERITIES } from '../constants';
+import { logError } from './logger';
+import { createEnumValidator, createStringValidator } from './validation';
 
 /**
  * Rate Limiting using KV
@@ -60,11 +63,9 @@ export async function checkRateLimit(
     };
   } catch (error) {
     // If rate limiting fails, allow the request (fail open)
-    console.error('Rate limit check failed:', {
-      error: error instanceof Error ? error.message : String(error),
+    logError('Rate limit check failed', error, {
       endpoint,
       identifier,
-      stack: error instanceof Error ? error.stack : undefined,
     });
     return {
       allowed: true,
@@ -259,28 +260,37 @@ export function handleCORSPreflight(
  * Validate threat ID format
  * Threat IDs are base36-encoded cyrb53 hashes (alphanumeric, typically 10-15 characters)
  */
-export function validateThreatId(id: string): boolean {
-  if (!id || typeof id !== 'string') return false;
-
-  // Threat IDs are base36 strings (0-9, a-z), typically 10-15 characters
-  // Allow up to 20 characters for safety
-  return /^[a-z0-9]{8,20}$/i.test(id);
-}
+export const validateThreatId = createStringValidator({
+  minLength: 8,
+  maxLength: 20,
+  pattern: /^[a-z0-9]+$/i,
+  fieldName: 'threat ID',
+});
 
 /**
  * Validate search query
  */
+const searchQueryValidator = createStringValidator({
+  minLength: 1,
+  maxLength: 500,
+  fieldName: 'search query',
+});
+
 export function validateSearchQuery(query: string): { valid: boolean; error?: string } {
   if (!query || typeof query !== 'string') {
     return { valid: false, error: 'Query is required' };
   }
 
-  if (query.length < 1) {
-    return { valid: false, error: 'Query must be at least 1 character' };
-  }
+  const isValid = searchQueryValidator(query);
 
-  if (query.length > 500) {
-    return { valid: false, error: 'Query must be 500 characters or less' };
+  if (!isValid) {
+    if (query.length < 1) {
+      return { valid: false, error: 'Query must be at least 1 character' };
+    }
+    if (query.length > 500) {
+      return { valid: false, error: 'Query must be 500 characters or less' };
+    }
+    return { valid: false, error: 'Invalid query format' };
   }
 
   return { valid: true };
@@ -289,27 +299,17 @@ export function validateSearchQuery(query: string): { valid: boolean; error?: st
 /**
  * Validate enum values
  */
-export function validateCategory(category: string): boolean {
-  const validCategories = [
-    'ransomware',
-    'apt',
-    'vulnerability',
-    'phishing',
-    'malware',
-    'data_breach',
-    'ddos',
-    'supply_chain',
-    'insider_threat',
-    'other',
-  ];
+export const validateCategory = createEnumValidator(
+  THREAT_CATEGORIES,
+  'threat category',
+  { caseSensitive: false }
+);
 
-  return validCategories.includes(category);
-}
-
-export function validateSeverity(severity: string): boolean {
-  const validSeverities = ['critical', 'high', 'medium', 'low', 'info'];
-  return validSeverities.includes(severity);
-}
+export const validateSeverity = createEnumValidator(
+  THREAT_SEVERITIES,
+  'threat severity',
+  { caseSensitive: false }
+);
 
 /**
  * Sanitize string input to prevent injection attacks

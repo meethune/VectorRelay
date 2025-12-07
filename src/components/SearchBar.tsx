@@ -2,6 +2,7 @@ import { Search, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useState, useEffect } from 'react';
 import { fetchWithCache, CacheTTL } from '../utils/cache';
+import { THREAT_CATEGORIES, THREAT_SEVERITIES } from '../../functions/constants';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -119,16 +120,11 @@ export default function SearchBar({
             }`}
           >
             <option value="">{formatText('All Categories')}</option>
-            <option value="ransomware">{formatText('Ransomware')}</option>
-            <option value="apt">{formatText('APT')}</option>
-            <option value="vulnerability">{formatText('Vulnerability')}</option>
-            <option value="phishing">{formatText('Phishing')}</option>
-            <option value="malware">{formatText('Malware')}</option>
-            <option value="data_breach">{formatText('Data Breach')}</option>
-            <option value="ddos">{formatText('DDoS')}</option>
-            <option value="supply_chain">{formatText('Supply Chain')}</option>
-            <option value="insider_threat">{formatText('Insider Threat')}</option>
-            <option value="other">{formatText('Other')}</option>
+            {THREAT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {formatText(category.replace('_', ' '))}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -150,11 +146,11 @@ export default function SearchBar({
             }`}
           >
             <option value="">{formatText('All Severities')}</option>
-            <option value="critical">{formatText('Critical')}</option>
-            <option value="high">{formatText('High')}</option>
-            <option value="medium">{formatText('Medium')}</option>
-            <option value="low">{formatText('Low')}</option>
-            <option value="info">{formatText('Info')}</option>
+            {THREAT_SEVERITIES.map((severity) => (
+              <option key={severity} value={severity}>
+                {formatText(severity)}
+              </option>
+            ))}
           </select>
         </div>
 
