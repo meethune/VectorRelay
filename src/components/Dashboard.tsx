@@ -18,6 +18,7 @@ import {
   Cell,
 } from 'recharts';
 import { useTheme } from '../contexts/ThemeContext';
+import { formatTerminalText } from '../utils/formatting';
 
 interface DashboardStats {
   total_threats: number;
@@ -83,7 +84,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING DATA ]' : 'Loading...'}</div>
+          <div className="text-2xl mb-4">{isTerminal ? `[ ${formatTerminalText('Loading data')} ]` : 'Loading...'}</div>
           <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
         </div>
       </div>
@@ -98,7 +99,7 @@ export default function Dashboard() {
           : 'text-business-text-primary border-business-border-primary font-sans'
       }`}>
         <AlertTriangle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
-        <p>{isTerminal ? '[ ERROR ] FAILED TO LOAD DASHBOARD STATISTICS' : 'Failed to load dashboard statistics'}</p>
+        <p>{isTerminal ? `[ ERROR ] ${formatTerminalText('Failed to load dashboard statistics')}` : 'Failed to load dashboard statistics'}</p>
       </div>
     );
   }
@@ -132,7 +133,7 @@ export default function Dashboard() {
                 isTerminal
                   ? 'text-terminal-green-dim font-mono'
                   : 'text-business-text-muted font-sans'
-              }`}>{isTerminal ? '> TOTAL_THREATS' : 'Total Threats'}</p>
+              }`}>{isTerminal ? `> ${formatTerminalText('Total Threats')}` : 'Total Threats'}</p>
               <p className={`text-4xl font-bold mt-2 ${
                 isTerminal
                   ? 'text-terminal-green font-mono'
@@ -159,7 +160,7 @@ export default function Dashboard() {
                 isTerminal
                   ? 'text-terminal-green-dim font-mono'
                   : 'text-business-text-muted font-sans'
-              }`}>{isTerminal ? '> TODAY' : 'Today'}</p>
+              }`}>{isTerminal ? `> ${formatTerminalText('Today')}` : 'Today'}</p>
               <p className={`text-4xl font-bold mt-2 ${
                 isTerminal
                   ? 'text-terminal-green font-mono'
@@ -186,7 +187,7 @@ export default function Dashboard() {
                 isTerminal
                   ? 'text-terminal-green-dim font-mono'
                   : 'text-business-text-muted font-sans'
-              }`}>{isTerminal ? '> THIS_WEEK' : 'This Week'}</p>
+              }`}>{isTerminal ? `> ${formatTerminalText('This Week')}` : 'This Week'}</p>
               <p className={`text-4xl font-bold mt-2 ${
                 isTerminal
                   ? 'text-terminal-green font-mono'
@@ -211,7 +212,7 @@ export default function Dashboard() {
             isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
           }`}>
             <TrendingUp className={`w-5 h-5 mr-2 ${isTerminal ? 'icon-glow' : ''}`} />
-            {isTerminal ? '[ AI_DETECTED_TRENDS ]' : 'AI-Detected Trends'}
+            {isTerminal ? `[ ${formatTerminalText('AI-Detected Trends')} ]` : 'AI-Detected Trends'}
           </h2>
           <div className="space-y-4">
             {stats.recent_trends.slice(0, 1).map((trend) => (
@@ -250,7 +251,7 @@ export default function Dashboard() {
           <h2 className={`text-lg font-bold mb-4 ${
             isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
           }`}>
-            {isTerminal ? '[ THREATS_BY_CATEGORY ] (30_DAYS)' : 'Threats by Category (30 days)'}
+            {isTerminal ? `[ ${formatTerminalText('Threats by Category')} ] (30_DAYS)` : 'Threats by Category (30 days)'}
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -301,7 +302,7 @@ export default function Dashboard() {
           <h2 className={`text-lg font-bold mb-4 ${
             isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
           }`}>
-            {isTerminal ? '[ SEVERITY_DISTRIBUTION ]' : 'Severity Distribution'}
+            {isTerminal ? `[ ${formatTerminalText('Severity Distribution')} ]` : 'Severity Distribution'}
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={severityData}>
@@ -350,7 +351,7 @@ export default function Dashboard() {
         <h2 className={`text-lg font-bold mb-4 ${
           isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
         }`}>
-          {isTerminal ? '[ TOP_SOURCES ] (30_DAYS)' : 'Top Sources (30 days)'}
+          {isTerminal ? `[ ${formatTerminalText('Top Sources')} ] (30_DAYS)` : 'Top Sources (30 days)'}
         </h2>
         <div className="space-y-3">
           {stats.top_sources.slice(0, 5).map((source, index) => (
@@ -370,7 +371,7 @@ export default function Dashboard() {
                 </span>
               </div>
               <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-secondary font-sans'}>
-                {source.count} {isTerminal ? 'THREATS' : 'threats'}
+                {source.count} {isTerminal ? formatTerminalText('threats') : 'threats'}
               </span>
             </div>
           ))}

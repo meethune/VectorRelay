@@ -7,6 +7,7 @@ import ThreatDetail from './components/ThreatDetail';
 import SearchBar from './components/SearchBar';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { formatTerminalText } from './utils/formatting';
 
 // Route components
 function DashboardRoute() {
@@ -88,7 +89,7 @@ function AppContent() {
                   ? 'text-terminal-green font-mono'
                   : 'text-business-text-primary font-sans'
               }`}>
-                {isTerminal ? '[ THREAT INTEL DASHBOARD ]' : 'Threat Intelligence Dashboard'}
+                {isTerminal ? `[ ${formatTerminalText('Threat Intel Dashboard')} ]` : 'Threat Intelligence Dashboard'}
               </h1>
             </Link>
 
@@ -108,7 +109,7 @@ function AppContent() {
                 }`}
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />
-                {isTerminal ? '[ DASHBOARD ]' : 'Dashboard'}
+                {isTerminal ? `[ ${formatTerminalText('Dashboard')} ]` : 'Dashboard'}
               </Link>
               <Link
                 to="/threats"
@@ -125,7 +126,7 @@ function AppContent() {
                 }`}
               >
                 <Filter className="w-4 h-4 inline mr-2" />
-                {isTerminal ? '[ ALL THREATS ]' : 'All Threats'}
+                {isTerminal ? `[ ${formatTerminalText('All Threats')} ]` : 'All Threats'}
               </Link>
               <ThemeToggle />
             </nav>
@@ -165,7 +166,7 @@ function AppContent() {
               : 'text-business-text-muted font-sans'
           }`}>
             {isTerminal
-              ? '> POWERED_BY: CLOUDFLARE_WORKERS_AI | DATA_SOURCE: PUBLIC_THREAT_FEEDS'
+              ? `> ${formatTerminalText('Powered by')}: ${formatTerminalText('Cloudflare Workers AI')} | ${formatTerminalText('Data source')}: ${formatTerminalText('Public threat feeds')}`
               : 'Powered by Cloudflare Workers AI • Data from public threat feeds'
             }
           </p>

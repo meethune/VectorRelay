@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ExternalLink, Clock, Tag, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
+import { formatTerminalText } from '../utils/formatting';
 
 interface Threat {
   id: string;
@@ -106,7 +107,7 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
     return (
       <div className="flex items-center justify-center h-64">
         <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING THREATS ]' : 'Loading threats...'}</div>
+          <div className="text-2xl mb-4">{isTerminal ? `[ ${formatTerminalText('Loading threats')} ]` : 'Loading threats...'}</div>
           <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
         </div>
       </div>
@@ -122,7 +123,7 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
       }`}>
         <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
         <p className={isTerminal ? 'font-mono' : 'font-sans'}>
-          {isTerminal ? '[ NO THREATS FOUND ]' : 'No threats found'}
+          {isTerminal ? `[ ${formatTerminalText('No threats found')} ]` : 'No threats found'}
         </p>
         {searchQuery && (
           <p className={`text-sm mt-2 ${
@@ -224,7 +225,7 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
                   : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
               }`}
             >
-              {isTerminal ? '> VIEW_ORIGINAL_SOURCE' : 'View original source'}
+              {isTerminal ? `> ${formatTerminalText('View original source')}` : 'View original source'}
               <ExternalLink className="w-3 h-3 ml-1" />
             </a>
           </div>
@@ -243,11 +244,11 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
                 : 'bg-business-bg-secondary text-business-text-primary border-business-border-primary hover:bg-business-bg-tertiary font-sans'
             }`}
           >
-            {isTerminal ? '[ < PREV ]' : '← Previous'}
+            {isTerminal ? `[ < ${formatTerminalText('Prev')} ]` : '← Previous'}
           </button>
 
           <span className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-            {isTerminal ? `PAGE ${page} / ${totalPages}` : `Page ${page} of ${totalPages}`}
+            {isTerminal ? `${formatTerminalText('Page')} ${page} / ${totalPages}` : `Page ${page} of ${totalPages}`}
           </span>
 
           <button
@@ -259,7 +260,7 @@ export default function ThreatList({ searchQuery, filters, onThreatClick }: Thre
                 : 'bg-business-bg-secondary text-business-text-primary border-business-border-primary hover:bg-business-bg-tertiary font-sans'
             }`}
           >
-            {isTerminal ? '[ NEXT > ]' : 'Next →'}
+            {isTerminal ? `[ ${formatTerminalText('Next')} > ]` : 'Next →'}
           </button>
         </div>
       )}
