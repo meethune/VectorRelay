@@ -7,6 +7,7 @@ threat-intel-dashboard/
 │   │   ├── stats.ts              # Dashboard statistics
 │   │   ├── threats.ts            # List threats with filters
 │   │   ├── search.ts             # Keyword & semantic search
+│   │   ├── sources.ts            # Feed sources list (with caching)
 │   │   └── threat/
 │   │       └── [id].ts           # Single threat details
 │   ├── utils/                     # Utility functions
@@ -22,6 +23,8 @@ threat-intel-dashboard/
 │   │   ├── ThreatList.tsx        # List of threats with pagination
 │   │   ├── ThreatDetail.tsx      # Single threat view with IOCs
 │   │   └── SearchBar.tsx         # Search and filter controls
+│   ├── utils/
+│   │   └── cache.ts              # Client-side caching utility
 │   ├── App.tsx                    # Main application component
 │   ├── main.tsx                   # React entry point
 │   └── index.css                  # Tailwind CSS styles
@@ -53,19 +56,22 @@ threat-intel-dashboard/
 | `functions/api/stats.ts` | Returns dashboard statistics (counts, breakdowns, trends) |
 | `functions/api/threats.ts` | Returns paginated list of threats with filters |
 | `functions/api/search.ts` | Handles keyword and semantic search using Vectorize |
+| `functions/api/sources.ts` | Returns list of feed sources from database (server-cached 5 min) |
 | `functions/api/threat/[id].ts` | Returns single threat with IOCs and similar threats |
 | `functions/utils/rss-parser.ts` | Parses RSS/Atom feeds into structured data |
 | `functions/utils/ai-processor.ts` | Interfaces with Workers AI for summarization & embeddings |
+| `functions/utils/security.ts` | Rate limiting, security headers, input validation |
 
 ### Frontend (React)
 
 | File | Purpose |
 |------|---------|
 | `src/App.tsx` | Main app with routing and navigation |
-| `src/components/Dashboard.tsx` | Stats cards, charts, and trending insights |
+| `src/components/Dashboard.tsx` | Stats cards, charts, trending insights (client-cached 5 min) |
 | `src/components/ThreatList.tsx` | Scrollable threat cards with filters |
-| `src/components/ThreatDetail.tsx` | Full threat view with IOCs and related threats |
-| `src/components/SearchBar.tsx` | Search input and filter dropdowns |
+| `src/components/ThreatDetail.tsx` | Full threat view with IOCs (client-cached 15 min) |
+| `src/components/SearchBar.tsx` | Search input and filter dropdowns (sources cached 1 hour) |
+| `src/utils/cache.ts` | Generalized localStorage cache utility with TTL support |
 
 ### Configuration
 
@@ -242,12 +248,120 @@ App
 
 ## 🚀 Performance Optimizations
 
+### Server-Side Caching
 - Vector embeddings cached in Vectorize for instant semantic search
 - Feed results cached in KV for 6 hours
+- API responses cached via Cache-Control headers (5 min)
+- Rate limiting via KV prevents abuse
+
+### Client-Side Caching (localStorage)
+- **Feed sources**: 1 hour TTL - rarely change, loaded once per session
+- **Dashboard stats**: 5 min TTL - balance between freshness and performance
+- **Threat details**: 15 min TTL - immutable once ingested, safe to cache
+- **Reusable cache utility** (`src/utils/cache.ts`) with TTL, invalidation, and stats
+
+### Database & Code
 - D1 indexes on commonly queried fields
+- Prepared statements prevent SQL injection
 - Frontend code-split by route
 - Lazy loading for charts
 - Pagination prevents large data transfers
+
+## 💾 Client-Side Cache Utility
+
+The `src/utils/cache.ts` utility provides a reusable, DRY-compliant caching layer for API requests.
+
+### Core Functions
+
+**`fetchWithCache<T>(key, fetcher, options)`** - Main caching function
+```typescript
+import { fetchWithCache, CacheTTL } from '../utils/cache';
+
+const data = await fetchWithCache(
+  'dashboard-stats',                    // Unique cache key
+  async () => {                         // Fetcher function
+    const res = await fetch('/api/stats');
+    return res.json();
+  },
+  { ttl: CacheTTL.FIVE_MINUTES, keyPrefix: 'threat-intel' }
+);
+```
+
+**`invalidateCache(key, prefix)`** - Clear specific cache entry
+```typescript
+import { invalidateCache } from '../utils/cache';
+
+invalidateCache('dashboard-stats', 'threat-intel');
+```
+
+**`clearCacheByPrefix(prefix)`** - Clear all cache with prefix
+```typescript
+import { clearCacheByPrefix } from '../utils/cache';
+
+clearCacheByPrefix('threat-intel');  // Clear all app cache
+```
+
+**`getCacheStats(prefix)`** - Monitor cache usage
+```typescript
+import { getCacheStats } from '../utils/cache';
+
+const stats = getCacheStats('threat-intel');
+// Returns: { totalEntries, totalSize, entries: [{key, age, size}] }
+```
+
+### Predefined TTL Constants
+
+```typescript
+CacheTTL.ONE_MINUTE      // 60 seconds
+CacheTTL.FIVE_MINUTES    // 5 minutes
+CacheTTL.TEN_MINUTES     // 10 minutes
+CacheTTL.FIFTEEN_MINUTES // 15 minutes
+CacheTTL.THIRTY_MINUTES  // 30 minutes
+CacheTTL.ONE_HOUR        // 1 hour
+CacheTTL.ONE_DAY         // 24 hours
+```
+
+### Cache Storage Format
+
+All caches use localStorage with prefix `threat-intel:`:
+
+```
+threat-intel:sources           → Feed sources (1 hour)
+threat-intel:dashboard-stats   → Dashboard stats (5 min)
+threat-intel:threat-{id}       → Individual threats (15 min)
+```
+
+### Example Usage in Components
+
+```typescript
+// Dashboard.tsx - Cache stats for 5 minutes
+const stats = await fetchWithCache(
+  'dashboard-stats',
+  async () => fetch('/api/stats').then(r => r.json()),
+  { ttl: CacheTTL.FIVE_MINUTES, keyPrefix: 'threat-intel' }
+);
+
+// ThreatDetail.tsx - Cache individual threat for 15 minutes
+const threat = await fetchWithCache(
+  `threat-${threatId}`,
+  async () => fetch(`/api/threat/${threatId}`).then(r => r.json()),
+  { ttl: CacheTTL.FIFTEEN_MINUTES, keyPrefix: 'threat-intel' }
+);
+
+// SearchBar.tsx - Cache sources for 1 hour
+const sources = await fetchWithCache(
+  'sources',
+  async () => fetch('/api/sources').then(r => r.json()),
+  { ttl: CacheTTL.ONE_HOUR, keyPrefix: 'threat-intel' }
+);
+```
+
+### Benefits
+- **DRY principle**: Single source of truth for caching logic
+- **Type-safe**: Full TypeScript support with generics
+- **Automatic expiry**: TTL-based cache invalidation
+- **Error handling**: Graceful degradation if localStorage unavailable
+- **Developer tools**: Cache stats and manual invalidation
 
 ---
 
