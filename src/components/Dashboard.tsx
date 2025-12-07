@@ -5,6 +5,7 @@ import {
   Activity,
   BarChart3,
 } from 'lucide-react';
+import { fetchWithCache, CacheTTL } from '../utils/cache';
 import {
   BarChart,
   Bar,
@@ -69,8 +70,17 @@ export default function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/stats');
-      const data = await response.json() as DashboardStats;
+      const data = await fetchWithCache(
+        'dashboard-stats',
+        async () => {
+          const response = await fetch('/api/stats');
+          if (!response.ok) {
+            throw new Error('Failed to fetch stats');
+          }
+          return response.json() as Promise<DashboardStats>;
+        },
+        { ttl: CacheTTL.FIVE_MINUTES, keyPrefix: 'threat-intel' }
+      );
       setStats(data);
     } catch (error) {
       console.error('Failed to fetch stats:', error);

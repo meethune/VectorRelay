@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
+import { fetchWithCache, CacheTTL } from '../utils/cache';
 
 interface ThreatDetail {
   id: string;
@@ -65,8 +66,17 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
   const fetchThreatDetail = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/threat/${threatId}`);
-      const data = await response.json() as ThreatDetail;
+      const data = await fetchWithCache(
+        `threat-${threatId}`,
+        async () => {
+          const response = await fetch(`/api/threat/${threatId}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch threat details');
+          }
+          return response.json() as Promise<ThreatDetail>;
+        },
+        { ttl: CacheTTL.FIFTEEN_MINUTES, keyPrefix: 'threat-intel' }
+      );
       setThreat(data);
     } catch (error) {
       console.error('Failed to fetch threat details:', error);

@@ -1,6 +1,7 @@
 import { Search, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useState, useEffect } from 'react';
+import { fetchWithCache, CacheTTL } from '../utils/cache';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -34,65 +35,32 @@ export default function SearchBar({
 
   // Fetch sources from the database with client-side caching
   useEffect(() => {
-    const CACHE_KEY = 'threat-intel-sources';
-    const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
-
-    const fetchSources = async () => {
+    const loadSources = async () => {
       try {
         setIsLoadingSources(true);
 
-        // Check for cached sources
-        const cached = localStorage.getItem(CACHE_KEY);
-        if (cached) {
-          try {
-            const { sources: cachedSources, timestamp } = JSON.parse(cached);
-            const age = Date.now() - timestamp;
-
-            // If cache is still valid, use it
-            if (age < CACHE_DURATION && cachedSources && Array.isArray(cachedSources)) {
-              setSources(cachedSources);
-              setIsLoadingSources(false);
-              return;
+        const data = await fetchWithCache(
+          'sources',
+          async () => {
+            const response = await fetch('/api/sources');
+            if (!response.ok) {
+              throw new Error('Failed to fetch sources');
             }
-          } catch (e) {
-            // Invalid cache data, continue to fetch
-            localStorage.removeItem(CACHE_KEY);
-          }
-        }
+            return response.json();
+          },
+          { ttl: CacheTTL.ONE_HOUR, keyPrefix: 'threat-intel' }
+        );
 
-        // Fetch from API
-        const response = await fetch('/api/sources');
-        if (!response.ok) {
-          throw new Error('Failed to fetch sources');
-        }
-        const data = await response.json();
-        const fetchedSources = data.sources || [];
-
-        setSources(fetchedSources);
-
-        // Cache the sources
-        try {
-          localStorage.setItem(
-            CACHE_KEY,
-            JSON.stringify({
-              sources: fetchedSources,
-              timestamp: Date.now(),
-            })
-          );
-        } catch (e) {
-          // localStorage might be full or disabled, continue without caching
-          console.warn('Failed to cache sources:', e);
-        }
+        setSources(data.sources || []);
       } catch (error) {
         console.error('Error fetching sources:', error);
-        // Keep empty array on error
         setSources([]);
       } finally {
         setIsLoadingSources(false);
       }
     };
 
-    fetchSources();
+    loadSources();
   }, []);
 
   return (
