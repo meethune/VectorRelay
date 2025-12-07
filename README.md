@@ -243,14 +243,13 @@ theme: {
 - No external API keys required for basic functionality
 - RSS feeds are fetched server-side (no client-side requests)
 - Rate limiting via KV cache prevents feed abuse
-- CORS is automatically handled by Pages Functions
+- Security headers and CORS automatically handled by Workers middleware
 
 ## 📊 Free Tier Limits
 
 | Resource | Free Tier | Estimated Usage |
 |----------|-----------|-----------------|
-| Pages Requests | Unlimited | ✅ |
-| Functions Requests | 100k/day | ~5k/day |
+| Workers Requests | 100k/day | ~5k/day |
 | Workers AI | 10k neurons/day | ~3k neurons/day |
 | D1 Reads | 5M/day | ~50k/day |
 | D1 Writes | 100k/day | ~500/day |
@@ -387,18 +386,19 @@ For production logs and debugging, see the [Deployment Guide](./docs/DEPLOYMENT.
 
 For detailed documentation on setup, deployment, security, and architecture, see the [docs](./docs/) directory:
 
-- [API Key Setup](./docs/API_KEY_SETUP.md) - Authentication setup for management endpoints
+- [API Key Setup](./docs/API_KEY_SETUP.md) - Local development API key setup (optional)
 - [Deployment Guide](./docs/DEPLOYMENT.md) - Step-by-step deployment instructions
+- [GitHub CI/CD Setup](./docs/GITHUB_CICD_SETUP.md) - Automatic deployment configuration
 - [Project Structure](./docs/PROJECT_STRUCTURE.md) - Codebase organization
-- [Security Audit](./docs/SECURITY_AUDIT.md) - Security analysis and best practices
-- [Workers vs Pages Audit](./docs/WORKERS_VS_PAGES_AUDIT.md) - Platform differences reference
+- [Security Audit](./docs/SECURITY_AUDIT_2025-12-06.md) - Security analysis and implementation status
 
 ## 📚 Learn More
 
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
 - [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/)
 - [D1 Database](https://developers.cloudflare.com/d1/)
 - [Vectorize](https://developers.cloudflare.com/vectorize/)
-- [Pages Functions](https://developers.cloudflare.com/pages/functions/)
+- [Workers Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/)
 
 ## 🤝 Contributing
