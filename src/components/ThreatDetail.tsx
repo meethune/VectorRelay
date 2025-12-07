@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useTheme } from '../contexts/ThemeContext';
-import { formatTerminalText } from '../utils/formatting';
 
 interface ThreatDetail {
   id: string;
@@ -52,7 +51,7 @@ const SEVERITY_COLORS: Record<string, string> = {
 };
 
 export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
-  const { theme } = useTheme();
+  const { theme, formatText } = useTheme();
   const navigate = useNavigate();
   const isTerminal = theme === 'terminal';
   const [threat, setThreat] = useState<ThreatDetail | null>(null);
@@ -86,7 +85,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'}>
-          <div className="text-2xl mb-4">{isTerminal ? `[ ${formatTerminalText('Loading threat details')} ]` : 'Loading threat details...'}</div>
+          <div className="text-2xl mb-4">{isTerminal ? '[ LOADING_THREAT_DETAILS ]' : 'Loading threat details...'}</div>
           <div className="animate-pulse">{isTerminal ? '▓▓▓▓▓▓▓▓▓▓' : '...'}</div>
         </div>
       </div>
@@ -102,7 +101,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
       }`}>
         <AlertCircle className={`w-12 h-12 mx-auto mb-4 ${isTerminal ? 'icon-glow' : ''}`} />
         <p className={isTerminal ? 'font-mono' : 'font-sans'}>
-          {isTerminal ? `[ ${formatTerminalText('Threat not found')} ]` : 'Threat not found'}
+          {isTerminal ? '[ THREAT_NOT_FOUND ]' : 'Threat not found'}
         </p>
         <button
           onClick={onBack}
@@ -112,7 +111,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
               : 'text-business-accent-primary hover:text-business-accent-hover font-sans'
           }`}
         >
-          {isTerminal ? `> ${formatTerminalText('Go back')}` : '← Go back'}
+          {isTerminal ? '> GO_BACK' : '← Go back'}
         </button>
       </div>
     );
@@ -136,7 +135,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
         }`}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {isTerminal ? `< ${formatTerminalText('Back to list')}` : '← Back to list'}
+        {isTerminal ? '< BACK_TO_LIST' : '← Back to list'}
       </button>
 
       {/* Main Content */}
@@ -192,7 +191,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
             <h3 className={`text-sm font-semibold mb-2 ${
               isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
             }`}>
-              {isTerminal ? `[ ${formatTerminalText('TL;DR')} ]` : 'Summary'}
+              {isTerminal ? '[ TL;DR ]' : 'Summary'}
             </h3>
             <p className={isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-secondary font-sans'}>
               {threat.tldr}
@@ -206,7 +205,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
             <h3 className={`text-lg font-semibold mb-3 ${
               isTerminal ? 'text-terminal-green font-mono' : 'text-business-text-primary font-sans'
             }`}>
-              {isTerminal ? `[ ${formatTerminalText('Key Points')} ]` : 'Key Points'}
+              {formatText('Key Points', { style: 'heading' })}
             </h3>
             <ul className="space-y-2">
               {threat.key_points.map((point, index) => (
@@ -234,7 +233,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
                   ? 'text-terminal-green-dim font-mono'
                   : 'text-business-text-muted font-sans'
               }`}>
-                {isTerminal ? `> ${formatTerminalText('Category')}` : 'Category'}
+                {formatText('Category', { style: 'label' })}
               </h4>
               <span className={`px-3 py-1 border text-sm ${
                 isTerminal
@@ -253,7 +252,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
                   ? 'text-terminal-green-dim font-mono'
                   : 'text-business-text-muted font-sans'
               }`}>
-                {isTerminal ? `> ${formatTerminalText('Affected Sectors')}` : 'Affected Sectors'}
+                {formatText('Affected Sectors', { style: 'label' })}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {threat.affected_sectors.map((sector) => (
@@ -276,7 +275,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
                   ? 'text-terminal-green-dim font-mono'
                   : 'text-business-text-muted font-sans'
               }`}>
-                {isTerminal ? `> ${formatTerminalText('Threat Actors')}` : 'Threat Actors'}
+                {formatText('Threat Actors', { style: 'label' })}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {threat.threat_actors.map((actor) => (
@@ -305,7 +304,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
           }`}
         >
           <ExternalLink className="w-4 h-4 mr-2" />
-          {isTerminal ? `> ${formatTerminalText('View Original Article')}` : 'View Original Article'}
+          {formatText('View Original Article', { style: 'label' })}
         </a>
       </div>
 
@@ -321,7 +320,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
               ? 'text-terminal-green font-mono'
               : 'text-business-text-primary font-sans'
           }`}>
-            {isTerminal ? `[ ${formatTerminalText('Indicators of Compromise (IOCs)')} ]` : 'Indicators of Compromise (IOCs)'}
+            {formatText('Indicators of Compromise (IOCs)', { style: 'heading' })}
           </h2>
           <div className="space-y-4">
             {Object.entries(iocsByType).map(([type, values]) => (
@@ -386,7 +385,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
               : 'text-business-text-primary font-sans'
           }`}>
             <Link2 className={`w-5 h-5 mr-2 ${isTerminal ? 'icon-glow' : ''}`} />
-            {isTerminal ? `[ ${formatTerminalText('Similar Threats')} ]` : 'Similar Threats'}
+            {formatText('Similar Threats', { style: 'heading' })}
           </h2>
           <div className="space-y-3">
             {threat.similar_threats.map((similar) => (
@@ -407,7 +406,7 @@ export default function ThreatDetail({ threatId, onBack }: ThreatDetailProps) {
                     ? 'text-terminal-green-dim font-mono'
                     : 'text-business-text-muted font-sans'
                 }`}>
-                  {Math.round(similar.score * 100)}% {isTerminal ? formatTerminalText('match') : 'match'}
+                  {Math.round(similar.score * 100)}% {formatText('match')}
                 </span>
               </div>
             ))}

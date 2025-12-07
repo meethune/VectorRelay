@@ -1,6 +1,5 @@
 import { Search, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
-import { formatTerminalText } from '../utils/formatting';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -19,7 +18,7 @@ export default function SearchBar({
   filters,
   onFiltersChange,
 }: SearchBarProps) {
-  const { theme } = useTheme();
+  const { theme, formatText } = useTheme();
   const isTerminal = theme === 'terminal';
 
   return (
@@ -35,7 +34,7 @@ export default function SearchBar({
         }`} />
         <input
           type="text"
-          placeholder={isTerminal ? formatTerminalText('Search threats (keyword or semantic)...') : 'Search threats (keyword or semantic)...'}
+          placeholder={formatText('Search threats (keyword or semantic)...')}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className={`w-full pl-10 pr-10 py-3 border-2 focus:outline-none ${
@@ -66,7 +65,7 @@ export default function SearchBar({
               ? 'text-terminal-green-dim font-mono'
               : 'text-business-text-muted font-sans'
           }`}>
-            {isTerminal ? `> ${formatTerminalText('Category')}` : 'Category'}
+            {formatText('Category', { style: 'label' })}
           </label>
           <select
             value={filters.category}
@@ -77,17 +76,17 @@ export default function SearchBar({
                 : 'bg-business-bg-tertiary text-business-text-primary border-business-border-primary focus:border-business-accent-primary font-sans'
             }`}
           >
-            <option value="">{isTerminal ? formatTerminalText('All Categories') : 'All Categories'}</option>
-            <option value="ransomware">{isTerminal ? formatTerminalText('Ransomware') : 'Ransomware'}</option>
-            <option value="apt">{isTerminal ? formatTerminalText('APT') : 'APT'}</option>
-            <option value="vulnerability">{isTerminal ? formatTerminalText('Vulnerability') : 'Vulnerability'}</option>
-            <option value="phishing">{isTerminal ? formatTerminalText('Phishing') : 'Phishing'}</option>
-            <option value="malware">{isTerminal ? formatTerminalText('Malware') : 'Malware'}</option>
-            <option value="data_breach">{isTerminal ? formatTerminalText('Data Breach') : 'Data Breach'}</option>
-            <option value="ddos">{isTerminal ? formatTerminalText('DDoS') : 'DDoS'}</option>
-            <option value="supply_chain">{isTerminal ? formatTerminalText('Supply Chain') : 'Supply Chain'}</option>
-            <option value="insider_threat">{isTerminal ? formatTerminalText('Insider Threat') : 'Insider Threat'}</option>
-            <option value="other">{isTerminal ? formatTerminalText('Other') : 'Other'}</option>
+            <option value="">{formatText('All Categories')}</option>
+            <option value="ransomware">{formatText('Ransomware')}</option>
+            <option value="apt">{formatText('APT')}</option>
+            <option value="vulnerability">{formatText('Vulnerability')}</option>
+            <option value="phishing">{formatText('Phishing')}</option>
+            <option value="malware">{formatText('Malware')}</option>
+            <option value="data_breach">{formatText('Data Breach')}</option>
+            <option value="ddos">{formatText('DDoS')}</option>
+            <option value="supply_chain">{formatText('Supply Chain')}</option>
+            <option value="insider_threat">{formatText('Insider Threat')}</option>
+            <option value="other">{formatText('Other')}</option>
           </select>
         </div>
 
@@ -97,7 +96,7 @@ export default function SearchBar({
               ? 'text-terminal-green-dim font-mono'
               : 'text-business-text-muted font-sans'
           }`}>
-            {isTerminal ? `> ${formatTerminalText('Severity')}` : 'Severity'}
+            {formatText('Severity', { style: 'label' })}
           </label>
           <select
             value={filters.severity}
@@ -108,12 +107,12 @@ export default function SearchBar({
                 : 'bg-business-bg-tertiary text-business-text-primary border-business-border-primary focus:border-business-accent-primary font-sans'
             }`}
           >
-            <option value="">{isTerminal ? formatTerminalText('All Severities') : 'All Severities'}</option>
-            <option value="critical">{isTerminal ? formatTerminalText('Critical') : 'Critical'}</option>
-            <option value="high">{isTerminal ? formatTerminalText('High') : 'High'}</option>
-            <option value="medium">{isTerminal ? formatTerminalText('Medium') : 'Medium'}</option>
-            <option value="low">{isTerminal ? formatTerminalText('Low') : 'Low'}</option>
-            <option value="info">{isTerminal ? formatTerminalText('Info') : 'Info'}</option>
+            <option value="">{formatText('All Severities')}</option>
+            <option value="critical">{formatText('Critical')}</option>
+            <option value="high">{formatText('High')}</option>
+            <option value="medium">{formatText('Medium')}</option>
+            <option value="low">{formatText('Low')}</option>
+            <option value="info">{formatText('Info')}</option>
           </select>
         </div>
 
@@ -123,7 +122,7 @@ export default function SearchBar({
               ? 'text-terminal-green-dim font-mono'
               : 'text-business-text-muted font-sans'
           }`}>
-            {isTerminal ? `> ${formatTerminalText('Source')}` : 'Source'}
+            {formatText('Source', { style: 'label' })}
           </label>
           <select
             value={filters.source}
@@ -134,19 +133,19 @@ export default function SearchBar({
                 : 'bg-business-bg-tertiary text-business-text-primary border-business-border-primary focus:border-business-accent-primary font-sans'
             }`}
           >
-            <option value="">{isTerminal ? formatTerminalText('All Sources') : 'All Sources'}</option>
-            <option value="CISA Alerts">{isTerminal ? formatTerminalText('CISA Alerts') : 'CISA Alerts'}</option>
-            <option value="Krebs on Security">{isTerminal ? formatTerminalText('Krebs on Security') : 'Krebs on Security'}</option>
-            <option value="BleepingComputer">{isTerminal ? formatTerminalText('BleepingComputer') : 'BleepingComputer'}</option>
-            <option value="The Hacker News">{isTerminal ? formatTerminalText('The Hacker News') : 'The Hacker News'}</option>
-            <option value="SANS ISC">{isTerminal ? formatTerminalText('SANS ISC') : 'SANS ISC'}</option>
-            <option value="Schneier on Security">{isTerminal ? formatTerminalText('Schneier on Security') : 'Schneier on Security'}</option>
-            <option value="Dark Reading">{isTerminal ? formatTerminalText('Dark Reading') : 'Dark Reading'}</option>
-            <option value="Cisco Talos">{isTerminal ? formatTerminalText('Cisco Talos') : 'Cisco Talos'}</option>
-            <option value="Malwarebytes Labs">{isTerminal ? formatTerminalText('Malwarebytes Labs') : 'Malwarebytes Labs'}</option>
-            <option value="Threatpost">{isTerminal ? formatTerminalText('Threatpost') : 'Threatpost'}</option>
-            <option value="The Record">{isTerminal ? formatTerminalText('The Record') : 'The Record'}</option>
-            <option value="US-CERT Current Activity">{isTerminal ? formatTerminalText('US-CERT Current Activity') : 'US-CERT Current Activity'}</option>
+            <option value="">{formatText('All Sources')}</option>
+            <option value="CISA Alerts">{formatText('CISA Alerts')}</option>
+            <option value="Krebs on Security">{formatText('Krebs on Security')}</option>
+            <option value="BleepingComputer">{formatText('BleepingComputer')}</option>
+            <option value="The Hacker News">{formatText('The Hacker News')}</option>
+            <option value="SANS ISC">{formatText('SANS ISC')}</option>
+            <option value="Schneier on Security">{formatText('Schneier on Security')}</option>
+            <option value="Dark Reading">{formatText('Dark Reading')}</option>
+            <option value="Cisco Talos">{formatText('Cisco Talos')}</option>
+            <option value="Malwarebytes Labs">{formatText('Malwarebytes Labs')}</option>
+            <option value="Threatpost">{formatText('Threatpost')}</option>
+            <option value="The Record">{formatText('The Record')}</option>
+            <option value="US-CERT Current Activity">{formatText('US-CERT Current Activity')}</option>
           </select>
         </div>
       </div>
@@ -166,7 +165,7 @@ export default function SearchBar({
             }`}
           >
             <X className="w-4 h-4 mr-1" />
-            {isTerminal ? `[ ${formatTerminalText('Clear all filters')} ]` : 'Clear all filters'}
+            {formatText('Clear all filters', { style: 'button' })}
           </button>
         </div>
       )}

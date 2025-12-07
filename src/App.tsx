@@ -7,7 +7,6 @@ import ThreatDetail from './components/ThreatDetail';
 import SearchBar from './components/SearchBar';
 import ThemeToggle from './components/ThemeToggle';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { formatTerminalText } from './utils/formatting';
 
 // Route components
 function DashboardRoute() {
@@ -56,7 +55,7 @@ function ThreatDetailRoute() {
 }
 
 function AppContent() {
-  const { theme } = useTheme();
+  const { theme, formatText } = useTheme();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
@@ -89,7 +88,7 @@ function AppContent() {
                   ? 'text-terminal-green font-mono'
                   : 'text-business-text-primary font-sans'
               }`}>
-                {isTerminal ? `[ ${formatTerminalText('Threat Intel Dashboard')} ]` : 'Threat Intelligence Dashboard'}
+                {isTerminal ? '[ THREAT_INTEL_DASHBOARD ]' : 'Threat Intelligence Dashboard'}
               </h1>
             </Link>
 
@@ -109,7 +108,7 @@ function AppContent() {
                 }`}
               >
                 <TrendingUp className="w-4 h-4 inline mr-2" />
-                {isTerminal ? `[ ${formatTerminalText('Dashboard')} ]` : 'Dashboard'}
+                {formatText('Dashboard', { style: 'navigation' })}
               </Link>
               <Link
                 to="/threats"
@@ -126,7 +125,7 @@ function AppContent() {
                 }`}
               >
                 <Filter className="w-4 h-4 inline mr-2" />
-                {isTerminal ? `[ ${formatTerminalText('All Threats')} ]` : 'All Threats'}
+                {formatText('All Threats', { style: 'navigation' })}
               </Link>
               <ThemeToggle />
             </nav>
@@ -166,7 +165,7 @@ function AppContent() {
               : 'text-business-text-muted font-sans'
           }`}>
             {isTerminal
-              ? `> ${formatTerminalText('Powered by')}: ${formatTerminalText('Cloudflare Workers AI')} | ${formatTerminalText('Data source')}: ${formatTerminalText('Public threat feeds')}`
+              ? '> POWERED_BY: CLOUDFLARE_WORKERS_AI | DATA_SOURCE: PUBLIC_THREAT_FEEDS'
               : 'Powered by Cloudflare Workers AI • Data from public threat feeds'
             }
           </p>

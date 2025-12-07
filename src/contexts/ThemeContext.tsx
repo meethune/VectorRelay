@@ -2,9 +2,12 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 
 type Theme = 'business' | 'terminal';
 
+type TextStyle = 'heading' | 'label' | 'text' | 'button' | 'navigation';
+
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  formatText: (text: string, options?: { style?: TextStyle }) => string;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -36,8 +39,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme(prev => prev === 'business' ? 'terminal' : 'business');
   };
 
+  const formatText = (text: string, options?: { style?: TextStyle }): string => {
+    // Business theme returns text as-is
+    if (theme === 'business') return text;
+
+    // Terminal theme: uppercase and replace spaces with underscores
+    const formatted = text.toUpperCase().replace(/ /g, '_');
+
+    // Apply style-specific formatting
+    switch (options?.style) {
+      case 'heading':
+        return `[ ${formatted} ]`;
+      case 'label':
+        return `> ${formatted}`;
+      case 'button':
+        return `[ ${formatted} ]`;
+      case 'navigation':
+        return `[ ${formatted} ]`;
+      case 'text':
+      default:
+        return formatted;
+    }
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, formatText }}>
       {children}
     </ThemeContext.Provider>
   );
