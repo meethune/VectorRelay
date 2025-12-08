@@ -5,9 +5,19 @@ import {
   RSS_WITH_CDATA,
   RSS_WITH_MISSING_TITLE,
   RSS_WITH_EMPTY_TITLE,
+  RSS_WITH_EMPTY_TITLE_NO_CONTENT,
+  RSS_WITH_EMPTY_TITLE_INVALID_URL,
   VALID_ATOM_FEED,
   ATOM_WITH_MULTIPLE_LINKS,
+  ATOM_WITH_EMPTY_TITLE,
+  ATOM_WITH_EMPTY_TITLE_ONLY_SUMMARY,
+  ATOM_WITH_EMPTY_TITLE_NO_CONTENT_NO_SUMMARY,
+  ATOM_WITH_STRING_LINK,
+  ATOM_WITH_PUBLISHED_DATE,
+  ATOM_WITH_LINK_ARRAY_NO_REL,
+  ATOM_WITH_EMPTY_TITLE_INVALID_URL,
   RSS_SINGLE_ITEM,
+  RSS_WITHOUT_GUID,
   RSS_WITH_HTML_ENTITIES,
   RSS_WITH_INVALID_DATE,
   RSS_WITH_MALFORMED_LINK,
@@ -89,6 +99,28 @@ describe('RSS Parser', () => {
       expect(result[0].description).not.toContain('&amp;'); // Entity decoded
       expect(result[0].description).not.toContain('&lt;'); // Entity decoded
     });
+
+    it('should fallback to URL domain when title, content, and description are empty', async () => {
+      const result = await parseFeed(RSS_WITH_EMPTY_TITLE_NO_CONTENT, 'rss');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toBe('Article from securityblog.example.com');
+    });
+
+    it('should fallback to "Untitled Article" when URL is invalid and no content', async () => {
+      const result = await parseFeed(RSS_WITH_EMPTY_TITLE_INVALID_URL, 'rss');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toBe('Untitled Article');
+    });
+
+    it('should use link as guid when guid element is missing', async () => {
+      const result = await parseFeed(RSS_WITHOUT_GUID, 'rss');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].guid).toBe('https://example.com/no-guid-article');
+      expect(result[0].link).toBe('https://example.com/no-guid-article');
+    });
   });
 
   describe('parseFeed() - Atom feeds', () => {
@@ -110,6 +142,61 @@ describe('RSS Parser', () => {
       expect(result).toHaveLength(1);
       // Should pick the alternate link, not enclosure or related
       expect(result[0].link).toBe('https://example.com/phishing');
+    });
+
+    it('should fallback to content when title is empty in Atom feed', async () => {
+      const result = await parseFeed(ATOM_WITH_EMPTY_TITLE, 'atom');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toContain('This is the full content');
+      expect(result[0].title.length).toBeLessThanOrEqual(103); // 100 chars + '...'
+    });
+
+    it('should fallback to summary when title and content are empty in Atom feed', async () => {
+      const result = await parseFeed(ATOM_WITH_EMPTY_TITLE_ONLY_SUMMARY, 'atom');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toContain('This summary should be used');
+      expect(result[0].title.length).toBeLessThanOrEqual(103); // 100 chars + '...'
+    });
+
+    it('should fallback to URL domain when title, content, and summary are empty in Atom feed', async () => {
+      const result = await parseFeed(ATOM_WITH_EMPTY_TITLE_NO_CONTENT_NO_SUMMARY, 'atom');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toBe('Article from newssite.example.com');
+    });
+
+    it('should handle Atom link as string (not href attribute)', async () => {
+      const result = await parseFeed(ATOM_WITH_STRING_LINK, 'atom');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].link).toBe('https://example.com/string-link');
+    });
+
+    it('should use published date when updated is missing in Atom feed', async () => {
+      const result = await parseFeed(ATOM_WITH_PUBLISHED_DATE, 'atom');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].pubDate).toBeTruthy();
+      // Should have the published date as a string
+      expect(typeof result[0].pubDate).toBe('string');
+      expect(result[0].pubDate).toContain('2025-12-07');
+    });
+
+    it('should handle link array without rel attributes in Atom feed', async () => {
+      const result = await parseFeed(ATOM_WITH_LINK_ARRAY_NO_REL, 'atom');
+
+      expect(result).toHaveLength(1);
+      // Should use the first link when no rel="alternate"
+      expect(result[0].link).toBe('https://example.com/first-link');
+    });
+
+    it('should fallback to "Untitled Article" when URL is invalid in Atom feed', async () => {
+      const result = await parseFeed(ATOM_WITH_EMPTY_TITLE_INVALID_URL, 'atom');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toBe('Untitled Article');
     });
   });
 
