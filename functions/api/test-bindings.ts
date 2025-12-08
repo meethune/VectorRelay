@@ -1,12 +1,18 @@
 // Test endpoint to verify all bindings are working
 import type { Env } from '../types';
+import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   // Security: Disable test endpoint in production
   if (env.ENVIRONMENT === 'production') {
     return Response.json({
       error: 'Test endpoints are disabled in production'
     }, { status: 404 });
+  }
+
+  // Security: Require API key authentication even in development
+  if (!validateApiKey(request, env)) {
+    return unauthorizedResponse();
   }
 
   const results: Record<string, any> = {};
