@@ -151,4 +151,4 @@ export type ThreatCategory = typeof THREAT_CATEGORIES[number];
  * const invalid: ThreatSeverity = 'invalid'; // Type error
  * ```
  */
-export type ThreatSeverity = typeof THREAT_SEVERITIES[number];
+export type ThreatSeverity = (typeof THREAT_SEVERITIES)[number];
