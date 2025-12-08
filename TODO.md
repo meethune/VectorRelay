@@ -7,9 +7,10 @@ Opportunities to leverage additional Cloudflare free tier services to enhance Ve
 ## 🎯 Priority Enhancements
 
 ### Priority 1: Cloudflare Queues ⭐⭐⭐⭐⭐
-**Status**: Not Implemented
+**Status**: ❌ **Not Available on Free Tier** (Requires Workers Paid Plan)
 **Impact**: Critical - Solves biggest bottleneck
 **Effort**: Medium
+**Cost**: $5/month Workers Paid + usage-based queue fees
 
 **Current Limitation**: AI processing limited to 10 items per cron run due to 50 subrequest limit.
 
@@ -18,7 +19,7 @@ Opportunities to leverage additional Cloudflare free tier services to enhance Ve
 - Queue consumer processes AI analysis asynchronously
 - Process 100s of items instead of 10
 - Better failure isolation and retry logic
-- **Free Tier**: 1M operations/month
+- **Paid Plan**: 1M operations included, then $0.40 per million
 
 **Implementation**:
 ```typescript
@@ -58,25 +59,26 @@ async queue(batch: MessageBatch, env: Env) {
 
 ### Priority 2: Browser Rendering ⭐⭐⭐⭐
 **Status**: Not Implemented
-**Impact**: Critical - Massively expands threat coverage
+**Impact**: Medium - Limited by free tier quota
 **Effort**: High
 
 **Current Limitation**: Only RSS/Atom feeds supported (7 sources).
 
-**Enhancement**: Scrape 100+ additional threat intel sources
+**Enhancement**: Scrape additional threat intel sources
 - Parse Reddit (r/netsec, r/cybersecurity, r/threatintel)
 - Scrape Twitter/X security threads
 - Extract from vendor security blogs without RSS
 - Monitor GitHub security advisories
 - Track security researchers' blogs
-- **Free Tier**: 2M browser rendering seconds/month
+- **Free Tier**: **10 minutes/day** (600 seconds/day, 18,000 sec/month)
+- **Reality Check**: At ~5 sec/page, only ~120 pages/day or 3,600 pages/month
 
-**Potential Sources**:
-- Reddit: r/netsec, r/cybersecurity, r/blueteamsec
-- GitHub: Security advisories, trending security repos
-- Twitter/X: @vxunderground, @threatintel, @malwrhunterteam
-- Vendor blogs: CrowdStrike, Mandiant, Palo Alto Networks
-- CISA alerts, NIST CVEs
+**Potential Sources** (prioritize by value due to 10 min/day limit):
+- GitHub: Security advisories (5-10 sources, ~2 min/day)
+- Reddit: r/netsec top posts (1 source, ~1 min/day)
+- Key vendor blogs: 2-3 critical sources without RSS (~2 min/day)
+- **Remaining**: ~5 min/day for additional sources
+- **Cannot realistically scrape**: Twitter/X, 100+ sources (exceeds quota)
 
 **Implementation**:
 ```typescript
@@ -172,7 +174,7 @@ Access AI Gateway dashboard at: Cloudflare Dashboard → AI → AI Gateway → `
 
 ---
 
-### Priority 4: Workflows ⭐⭐⭐⭐
+### Priority 3: Workflows ⭐⭐⭐⭐
 **Status**: Not Implemented
 **Impact**: High - Enables sophisticated analysis
 **Effort**: Medium
@@ -185,7 +187,7 @@ Access AI Gateway dashboard at: Cloudflare Dashboard → AI → AI Gateway → `
 - Threat hunting campaigns over days/weeks
 - Scheduled weekly/monthly threat reports
 - Complex retry logic with exponential backoff
-- **Free Tier**: 400,000 step transitions/month
+- **Free Tier**: ✅ 100,000 requests/day (shared with Workers quota)
 
 **Use Cases**:
 1. **IOC Enrichment Pipeline**:
@@ -239,7 +241,7 @@ export class ThreatEnrichmentWorkflow extends WorkflowEntrypoint<Env> {
 
 ---
 
-### Priority 5: Durable Objects (WebSockets) ⭐⭐⭐
+### Priority 4: Durable Objects (WebSockets) ⭐⭐⭐
 **Status**: Not Implemented
 **Impact**: High - Real-time collaboration features
 **Effort**: High
@@ -252,7 +254,7 @@ export class ThreatEnrichmentWorkflow extends WorkflowEntrypoint<Env> {
 - Real-time IOC tracking
 - Live dashboard updates
 - Chat/commenting on threats
-- **Free Tier**: Unlimited DOs, pay only for active CPU time
+- **Free Tier**: ✅ 100,000 requests/day, 13,000 GB-s/day, 5GB storage (SQLite only)
 
 **Use Cases**:
 1. **Live Threat Feed**: Broadcast new threats to all connected users
@@ -315,7 +317,7 @@ export class ThreatFeedCoordinator extends DurableObject {
 
 ## 📦 Additional Enhancements
 
-### R2 Storage (Archive & Assets)
+### Priority 5: R2 Storage (Archive & Assets)
 **Status**: Not Implemented
 **Impact**: Medium
 **Effort**: Low
@@ -327,7 +329,7 @@ export class ThreatFeedCoordinator extends DurableObject {
 - Store full article HTML/PDFs for forensic analysis
 - Cache threat intel reports as PDFs
 - Store malware samples (if applicable)
-- **Free Tier**: 10GB storage, 1M Class A operations/month
+- **Free Tier**: ✅ 10GB storage, 1M Class A ops, 10M Class B ops/month
 
 **Implementation**:
 ```typescript
@@ -358,7 +360,7 @@ for (const threat of oldThreats.results) {
 
 ---
 
-### Email Routing (Alert System)
+### Priority 6: Email Routing (Alert System)
 **Status**: Not Implemented
 **Impact**: Medium
 **Effort**: Medium
@@ -370,7 +372,7 @@ for (const threat of oldThreats.results) {
 - Daily/weekly digest emails with threat summaries
 - IOC watchlist alerts (notify when specific IOCs appear)
 - Subscribe to specific threat categories
-- **Free Tier**: Unlimited email routing
+- **Free Tier**: ✅ Unlimited email routing (free service)
 
 **Use Cases**:
 - Critical threat alerts to SOC team
@@ -402,7 +404,7 @@ export default {
 
 ---
 
-### Hyperdrive (External DB Connections)
+### Priority 7: Hyperdrive (External DB Connections)
 **Status**: Not Implemented
 **Impact**: Medium
 **Effort**: Medium
@@ -414,7 +416,7 @@ export default {
 - Connect to VirusTotal/AlienVault APIs with connection pooling
 - Integrate with existing enterprise security databases
 - Access commercial threat intel feeds
-- **Free Tier**: Unlimited connections (external DB cost applies)
+- **Free Tier**: ✅ 100,000 database queries/day (external DB cost applies)
 
 **Use Cases**:
 - Query MITRE ATT&CK PostgreSQL dump
@@ -451,7 +453,7 @@ npx wrangler hyperdrive create mitre-attack \
 
 ---
 
-### Cloudflare Images
+### Priority 8: Cloudflare Images
 **Status**: Not Implemented
 **Impact**: Low
 **Effort**: Low
@@ -461,11 +463,11 @@ npx wrangler hyperdrive create mitre-attack \
 - CDN delivery for fast loading
 - Threat actor logos, malware family icons
 - Network diagram screenshots
-- **Free Tier**: 100,000 images served/month
+- **Free Tier**: ✅ 5,000 unique transformations/month (storage requires paid plan)
 
 ---
 
-### Zaraz (Privacy-Friendly Analytics)
+### Priority 9: Zaraz (Privacy-Friendly Analytics)
 **Status**: Not Implemented
 **Impact**: Low
 **Effort**: Low
@@ -475,7 +477,7 @@ npx wrangler hyperdrive create mitre-attack \
 - Monitor search patterns
 - Understand user engagement
 - A/B test UI changes
-- **Free Tier**: Unlimited events
+- **Free Tier**: ✅ Unlimited events (part of Cloudflare CDN)
 
 ---
 
@@ -483,70 +485,94 @@ npx wrangler hyperdrive create mitre-attack \
 
 | Service | Impact | Effort | Free Tier Value | Priority | Status |
 |---------|--------|--------|-----------------|----------|--------|
-| **Queues** | 🔥 Critical | Medium | High | 1 | ⏳ Not Started |
-| **Browser Rendering** | 🔥 Critical | High | Very High | 2 | ⏳ Not Started |
-| **~~AI Gateway~~** | ~~🔥 High~~ | ~~Low~~ | ~~High~~ | ~~3~~ | ✅ **Completed** |
-| **Workflows** | High | Medium | Medium | 4 | ⏳ Not Started |
-| **Durable Objects** | High | High | High | 5 | ⏳ Not Started |
-| **R2 Storage** | Medium | Low | Medium | 6 | ⏳ Not Started |
-| **Email Routing** | Medium | Medium | Low | 7 | ⏳ Not Started |
-| **Hyperdrive** | Medium | Medium | Medium | 8 | ⏳ Not Started |
-| **Images** | Low | Low | Low | 9 | ⏳ Not Started |
-| **Zaraz** | Low | Low | Low | 10 | ⏳ Not Started |
+| **~~Queues~~** | ~~🔥 Critical~~ | ~~Medium~~ | ~~N/A~~ | ~~N/A~~ | ❌ **Paid Plan Only ($5/mo)** |
+| **~~AI Gateway~~** | ~~🔥 High~~ | ~~Low~~ | ~~High~~ | ~~1~~ | ✅ **Completed (Dec 8)** |
+| **Browser Rendering** | Medium | High | Low | 2 | ⏳ Not Started |
+| **Workflows** | High | Medium | High | 3 | ⏳ Not Started |
+| **Durable Objects** | High | High | High | 4 | ⏳ Not Started |
+| **R2 Storage** | Medium | Low | High | 5 | ⏳ Not Started |
+| **Email Routing** | Medium | Medium | High | 6 | ⏳ Not Started |
+| **Hyperdrive** | Medium | Medium | Medium | 7 | ⏳ Not Started |
+| **Images** | Low | Low | Low | 8 | ⏳ Not Started |
+| **Zaraz** | Low | Low | Medium | 9 | ⏳ Not Started |
 
 ---
 
 ## 🚀 Recommended Implementation Order
 
-### Phase 1: Quick Wins ✅ 50% Complete
+### Phase 1: Free Tier Optimizations ✅ 100% Complete
 1. ✅ **AI Gateway** - **COMPLETED** (December 8, 2025) - 30-40% neuron savings achieved
-2. ⏳ **R2 Storage** - Offload old data, free up D1 quota
 
-### Phase 2: Core Infrastructure (2-4 weeks)
-3. ⏳ **Cloudflare Queues** - Unlock 10x processing capacity
-4. ⏳ **Browser Rendering** - Add 50+ new threat sources
+### Phase 2: Free Tier Enhancements (2-4 weeks)
+2. ⏳ **R2 Storage** - Offload old data, free up D1 quota (easier, high value)
+3. ⏳ **Workflows** - Multi-stage threat enrichment (high value)
+4. ⏳ **Email Routing** - Alert system (medium effort, high value)
 
 ### Phase 3: Advanced Features (4-8 weeks)
-5. ⏳ **Workflows** - Multi-stage threat enrichment
-6. ⏳ **Durable Objects** - Real-time collaboration
-7. ⏳ **Email Routing** - Alert system
+5. ⏳ **Durable Objects** - Real-time collaboration (complex but powerful)
+6. ⏳ **Browser Rendering** - Limited sources due to 10 min/day quota
+7. ⏳ **Hyperdrive** - Enterprise integrations (if needed)
 
 ### Phase 4: Polish (Ongoing)
-8. ⏳ **Hyperdrive** - Enterprise integrations (if needed)
-9. ⏳ **Images** - Visual enhancements
-10. ⏳ **Zaraz** - Analytics
+8. ⏳ **Images** - Visual enhancements
+9. ⏳ **Zaraz** - Analytics
+
+### Paid Plan Only (Excluded from Free Tier Roadmap)
+- ❌ **Cloudflare Queues** - Requires Workers Paid ($5/month) - solves subrequest bottleneck
 
 ---
 
-## 💡 Next Recommended: Cloudflare Queues
+## 💡 Next Recommended: R2 Storage or Workflows
 
 **AI Gateway: ✅ COMPLETED** - Now achieving 30-40% neuron savings through caching!
 
-The next highest ROI enhancement is **Cloudflare Queues**:
+**Note**: Cloudflare Queues (previously Priority 1) requires the Workers Paid plan ($5/month) and is not available on the free tier.
 
-**Implement Queues** (2-4 hours):
-1. Add queue bindings to wrangler.jsonc
-2. Modify feed ingestion to send to queue
-3. Create queue consumer handler
-4. Deploy and test
+The next highest ROI **free tier** enhancements are:
 
-**Expected Results**:
-- Process 50-100 threats per run (vs current 10)
-- ✅ Already achieving 30-40% neuron reduction via AI Gateway
-- Better failure handling and retry logic
-- No more subrequest limit errors
-- **Combined savings**: 10x processing capacity + 30-40% cost reduction
+### Option 1: R2 Storage (Recommended - Easy Win)
+**Why R2?**
+- Low effort, immediate value
+- D1 currently limited to 5GB
+- Archive old threats (>90 days) to free up D1 space
+- Store full article HTML for forensic analysis
+- **Free Tier**: ✅ 10GB storage, 1M Class A ops, 10M Class B ops/month
+
+**Expected Impact**:
+- Extends D1 lifespan indefinitely
+- Enables historical threat analysis
+- Preserves full article content
+
+### Option 2: Workflows (High Value)
+**Why Workflows?**
+- Enables sophisticated multi-step threat enrichment
+- IOC reputation checking, human-in-the-loop analysis
+- Scheduled weekly/monthly threat reports
+- **Free Tier**: ✅ 100k requests/day (shared with Workers)
+
+**Expected Impact**:
+- Richer threat intelligence
+- Automated enrichment pipelines
+- Better threat prioritization
+
+### ❌ Not Recommended: Browser Rendering
+**Why not?**
+- **Free tier severely limited**: Only 10 min/day (not 2M sec/month!)
+- At ~5 sec/page, only ~120 pages/day possible
+- Cannot realistically scrape 100+ sources as originally planned
+- Better to focus on high-value enhancements first
 
 ---
 
 ## 📝 Notes
 
-- All recommendations use Cloudflare free tier services
-- Prioritize based on your specific bottlenecks
+- All recommendations focus on Cloudflare **free tier** services only
+- ❌ Cloudflare Queues removed from roadmap (requires Workers Paid $5/month)
 - ✅ **AI Gateway completed** - 30-40% neuron savings achieved!
-- **Next priority**: Queues (10x processing capacity)
-- Queues + Browser Rendering = biggest remaining impact
-- Consider combining Workflows + Queues for complex pipelines
+- **Next priority**: R2 Storage (easy) or Workflows (high value)
+- ⚠️ **Browser Rendering downgraded**: Free tier only 10 min/day (not 2M sec/month)
+- Current bottleneck: 10 articles/run limit due to 50 subrequest cap
+- Alternative to Queues: Optimize AI processing or upgrade to Workers Paid
 
 ---
 
