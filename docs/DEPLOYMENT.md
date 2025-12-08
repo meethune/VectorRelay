@@ -304,7 +304,7 @@ git push origin main
 - ✅ Rate limiting protects against abuse
 - ✅ Security headers on all responses
 
-See [Security Implementation Guide](./SECURITY_IMPLEMENTATION.md) for details.
+See [Security Documentation](./SECURITY.md) for details.
 
 ---
 
@@ -312,7 +312,7 @@ See [Security Implementation Guide](./SECURITY_IMPLEMENTATION.md) for details.
 
 - [GitHub CI/CD Setup](./GITHUB_CICD_SETUP.md) - Configure automatic deployment
 - [Project Structure](./PROJECT_STRUCTURE.md) - Understand the codebase
-- [Security Implementation](./SECURITY_IMPLEMENTATION.md) - Security features explained
+- [Security Documentation](./SECURITY.md) - Security features and implementation
 - [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - [Workers Cron Triggers](https://developers.cloudflare.com/workers/configuration/cron-triggers/)
 

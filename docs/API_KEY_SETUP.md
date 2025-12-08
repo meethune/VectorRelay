@@ -220,4 +220,4 @@ curl -H "Authorization: Bearer YOUR_KEY_FROM_DEV_VARS" \
 
 ---
 
-**Questions?** Check [Deployment Guide](./DEPLOYMENT.md) or [Security Implementation](./SECURITY_IMPLEMENTATION.md)
+**Questions?** Check [Deployment Guide](./DEPLOYMENT.md) or [Security Documentation](./SECURITY.md)

@@ -17,7 +17,7 @@ This directory contains detailed documentation for the VectorRelay Threat Intell
 
 ### Security & Audits
 
-- **[Security Audit](./SECURITY_AUDIT.md)** - Comprehensive security vulnerability analysis and mitigation strategies
+- **[Security Documentation](./SECURITY.md)** - Comprehensive security analysis, features, and mitigation strategies
 - **[Pages to Workers Migration](./PAGES_TO_WORKERS_MIGRATION.md)** - Migration from Cloudflare Pages to Workers deployment
 
 ## 🔗 Main Documentation
@@ -33,5 +33,5 @@ For general project information, quick start guide, and API reference, see the m
 - Theme system & UI components? → [Theme Refactor Report](./THEME_REFACTOR_REPORT.md)
 - API authentication? → [API Key Setup](./API_KEY_SETUP.md)
 - Deployment? → [Deployment Guide](./DEPLOYMENT.md)
-- Security concerns? → [Security Audit](./SECURITY_AUDIT.md)
+- Security concerns? → [Security Documentation](./SECURITY.md)
 - Pages to Workers migration? → [Pages to Workers Migration](./PAGES_TO_WORKERS_MIGRATION.md)

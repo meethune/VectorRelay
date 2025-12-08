@@ -407,7 +407,7 @@ For detailed documentation on setup, deployment, security, and architecture, see
 - [Deployment Guide](./docs/DEPLOYMENT.md) - Step-by-step deployment instructions
 - [GitHub CI/CD Setup](./docs/GITHUB_CICD_SETUP.md) - Automatic deployment configuration
 - [Project Structure](./docs/PROJECT_STRUCTURE.md) - Codebase organization
-- [Security Audit](./docs/SECURITY_AUDIT_2025-12-06.md) - Security analysis and implementation status
+- [Security Documentation](./docs/SECURITY.md) - Comprehensive security analysis and implementation
 
 ## 📚 Learn More
 
