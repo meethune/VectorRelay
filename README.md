@@ -181,14 +181,16 @@ To change the ingestion frequency, edit `wrangler.jsonc`:
 - `GET /api/threat/:id` - Get threat details with IOCs
 - `GET /api/search?q=ransomware&mode=semantic` - Semantic search using embeddings
 
-### Management Endpoints (Development Only)
+### Debug Endpoints (Development Only)
 
-**⚠️ Note:** These endpoints are disabled in production for security. They only work in development or with API key authentication.
+**⚠️ Note:** These endpoints are disabled in production for security. They only work in development with API key authentication.
 
-- `GET /api/trigger-ingestion` - Manually trigger feed ingestion (dev only)
-- `GET /api/process-ai?limit=N` - Process N threats with AI analysis (dev only)
-- `GET /api/test-bindings` - Test all Cloudflare bindings (dev only)
-- `GET /api/debug-ingestion` - Debug feed fetching with detailed logs (dev only)
+- `GET /api/debug/trigger-ingestion` - Manually trigger feed ingestion
+- `GET /api/debug/process-ai?limit=N` - Process N threats with AI analysis
+- `GET /api/debug/test-bindings` - Test all Cloudflare bindings
+- `GET /api/debug/test-ai` - Test AI models
+- `GET /api/debug/ingestion` - Debug feed fetching with detailed logs
+- `POST /api/archive` - Manually trigger archival (dev only, requires API key)
 
 In production, the cron trigger handles ingestion automatically every 6 hours.
 
@@ -209,22 +211,25 @@ curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/threats?categ
 curl https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev/api/threat/1675oc031wl
 ```
 
-**Development-only endpoints (require API key in production):**
+**Development-only endpoints (require API key):**
 ```bash
-# Set API key header for development endpoints
+# Set API key header for debug endpoints
 export API_KEY="your-api-key-from-dashboard"
 
-# Manually trigger feed ingestion (dev only)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/trigger-ingestion
+# Manually trigger feed ingestion
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/trigger-ingestion
 
-# Process 10 threats with AI (dev only)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/process-ai?limit=10
+# Process 10 threats with AI
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/process-ai?limit=10
 
-# Test all bindings (dev only)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/test-bindings
+# Test all bindings
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/test-bindings
+
+# Manually trigger archival
+curl -X POST -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/archive
 ```
 
-**Note:** In production, management endpoints return 403 Forbidden. Cron triggers handle all data ingestion automatically.
+**Note:** In production, debug endpoints return 403 Forbidden. Cron triggers handle all data ingestion and archival automatically.
 
 ## 🎨 Customization
 
@@ -337,26 +342,26 @@ terminal: {
 **In Development (local testing):**
 1. Check if bindings are working:
    ```bash
-   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/test-bindings
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/test-bindings
    ```
    All should show `"status": "OK"`
 
 2. Manually trigger ingestion:
    ```bash
-   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/trigger-ingestion
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/trigger-ingestion
    ```
 
 3. Check debug logs:
    ```bash
-   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug-ingestion
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/ingestion
    ```
 
 4. Process AI analysis:
    ```bash
-   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/process-ai?limit=30
+   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/process-ai?limit=30
    ```
 
-**Note:** Management endpoints are disabled in production for security. Use `wrangler tail` to monitor the cron trigger instead.
+**Note:** Debug endpoints are disabled in production for security. Use `wrangler tail` to monitor the cron trigger instead.
 
 ### Issue: Analytics Engine error on deployment
 

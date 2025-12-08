@@ -19,12 +19,12 @@ Controls whether debug/test endpoints are accessible.
 - **Production** (`production`): Debug endpoints disabled for security
 - **Development** (`development`): All endpoints accessible
 
-**Debug Endpoints (dev only):**
-- `/api/trigger-ingestion` - Manually trigger feed ingestion
-- `/api/process-ai` - Manually process AI analysis
-- `/api/test-bindings` - Test Cloudflare bindings
-- `/api/test-ai` - Test AI models
-- `/api/debug-ingestion` - Debug feed fetching
+**Debug Endpoints (dev only, require API key):**
+- `/api/debug/trigger-ingestion` - Manually trigger feed ingestion
+- `/api/debug/process-ai` - Manually process AI analysis
+- `/api/debug/test-bindings` - Test Cloudflare bindings
+- `/api/debug/test-ai` - Test AI models
+- `/api/debug/ingestion` - Debug feed fetching
 - `/api/archive` (POST) - Manually trigger archival
 
 **Override in Dashboard:**

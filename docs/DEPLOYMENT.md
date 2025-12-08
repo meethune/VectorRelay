@@ -233,7 +233,7 @@ Processed Krebs on Security: 15 articles (3 new)
 Ingestion complete. New threats: 42
 ```
 
-**Note:** Management endpoints (`/api/trigger-ingestion`, `/api/process-ai`) are **disabled in production** for security. The cron trigger handles all data ingestion automatically.
+**Note:** Debug endpoints (`/api/debug/*`) are **disabled in production** for security. The cron trigger handles all data ingestion automatically.
 
 ---
 

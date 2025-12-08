@@ -2,17 +2,18 @@
  * Model Validation API Endpoint
  *
  * Runs validation tests on tri-model configuration
- * Only accessible in development environment
+ * Only accessible in development environment with API key
  *
  * Usage:
- *   curl http://localhost:8787/api/validate-models?test=classification
- *   curl http://localhost:8787/api/validate-models?test=ioc-extraction
- *   curl http://localhost:8787/api/validate-models?test=all
+ *   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/validate-models?test=classification
+ *   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/validate-models?test=ioc-extraction
+ *   curl -H "Authorization: Bearer YOUR_API_KEY" http://localhost:8787/api/debug/validate-models?test=all
  */
 
-import type { Env, Threat } from '../types';
-import { analyzeArticle } from '../utils/ai-processor';
-import { createErrorResponse, createJsonResponse } from '../utils/response-helper';
+import type { Env, Threat } from '../../types';
+import { analyzeArticle } from '../../utils/ai-processor';
+import { createErrorResponse, createJsonResponse } from '../../utils/response-helper';
+import { validateApiKey, unauthorizedResponse } from '../../utils/auth';
 
 interface GroundTruthTest {
   article: Threat;
@@ -83,9 +84,17 @@ const TEST_CASES: GroundTruthTest[] = [
 ];
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
-  // Only allow in development environment
-  if (env.ENVIRONMENT !== 'development') {
-    return createErrorResponse('Validation endpoint only available in development mode', 403);
+  // Security: Disable validation endpoint in production
+  if (env.ENVIRONMENT === 'production') {
+    return Response.json({
+      error: 'Endpoint disabled',
+      message: 'Model validation endpoint is disabled in production.'
+    }, { status: 403 });
+  }
+
+  // In development, require API key
+  if (!validateApiKey(request, env)) {
+    return unauthorizedResponse();
   }
 
   const url = new URL(request.url);
