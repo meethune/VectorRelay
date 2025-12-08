@@ -116,7 +116,7 @@ Output ONLY valid JSON in this exact format:
 {
   "tldr": "One sentence summary of the threat",
   "key_points": ["point 1", "point 2", "point 3"],
-  "category": "ransomware|apt|vulnerability|phishing|malware|data_breach|ddos|supply_chain|insider_threat|other",
+  "category": "ransomware|apt|vulnerability|phishing|malware|data_breach|ddos|supply_chain|insider_threat|cloud_security|web_security|zero_day|cryptojacking|iot_security|disinformation|policy|other",
   "severity": "critical|high|medium|low|info",
   "affected_sectors": ["sector1", "sector2"],
   "threat_actors": ["actor1", "actor2"],
@@ -131,19 +131,27 @@ Output ONLY valid JSON in this exact format:
 }
 
 CATEGORY CLASSIFICATION RULES (choose the PRIMARY threat type):
-- "phishing": Social engineering, credential theft, email scams, fake login pages, BEC attacks
-- "vulnerability": CVEs, exploits, RCE, XSS, SQL injection, zero-days, patch information, PoC code
-- "malware": Trojans, viruses, worms, backdoors, loaders, droppers, stealers, RATs
+- "zero_day": Zero-day vulnerabilities being actively exploited (CRITICAL - use this for 0-days)
 - "ransomware": Encryption-based extortion, file/system lockers, ransom demands
 - "apt": Nation-state attacks, targeted espionage campaigns, advanced persistent threats
+- "phishing": Social engineering, credential theft, email scams, fake login pages, BEC attacks
+- "malware": Trojans, viruses, worms, backdoors, loaders, droppers, stealers, RATs
 - "data_breach": Data leaks, database exposures, stolen credentials, breached records
+- "vulnerability": CVEs, exploits, patch information, PoC code (NOT zero-days - use "zero_day" for those)
+- "web_security": Web app vulnerabilities (XSS, SQLi, RCE, CSRF, path traversal, file upload)
+- "cloud_security": Cloud platform attacks (AWS, Azure, GCP, Kubernetes, container escapes)
+- "cryptojacking": Cryptocurrency mining malware, unauthorized crypto mining
+- "iot_security": IoT device attacks, embedded systems, smart home vulnerabilities
 - "ddos": Denial of service attacks, botnet attacks, amplification attacks
 - "supply_chain": Third-party compromises, software supply chain attacks, dependency hijacking
 - "insider_threat": Malicious insiders, credential abuse, privilege misuse
-- "other": ONLY for policy/legal news, security tool announcements, conference news, or truly unclassifiable content
+- "disinformation": Fake news campaigns, influence operations, propaganda, election interference
+- "policy": Legal/regulatory updates, compliance news, security standards (NOT threats)
+- "other": ONLY for security tool announcements, conference news, or truly unclassifiable content
 
 CLASSIFICATION EXAMPLES:
-✓ "WordPress RCE vulnerability actively exploited" → "vulnerability"
+✓ "Zero-day in Chrome actively exploited by APT" → "zero_day" (NOT vulnerability)
+✓ "WordPress RCE vulnerability with available patch" → "web_security"
 ✓ "Phishers abuse Cloudflare Pages for banking scams" → "phishing"
 ✓ "New Qakbot malware campaign targets healthcare" → "malware"
 ✓ "LockBit ransomware gang leaks victim data" → "ransomware"
@@ -151,9 +159,14 @@ CLASSIFICATION EXAMPLES:
 ✓ "23andMe data breach exposes 6.9M users" → "data_breach"
 ✓ "Mirai botnet launches 2.5 Tbps DDoS attack" → "ddos"
 ✓ "Supply chain attack via compromised NPM package" → "supply_chain"
-✓ "AI prompt injection attacks on ChatGPT" → "vulnerability"
-✓ "Russia bans Roblox app" → "other" (policy/censorship)
-✓ "New security conference announced in Dubai" → "other" (event)
+✓ "SQL injection flaw in enterprise CRM system" → "web_security"
+✓ "AWS S3 bucket misconfiguration exposes data" → "cloud_security"
+✓ "Cryptominer targets Kubernetes clusters" → "cryptojacking"
+✓ "Smart TV firmware contains backdoor" → "iot_security"
+✓ "Russian influence campaign targets US election" → "disinformation"
+✓ "EU passes new data privacy regulation" → "policy"
+✓ "New security conference announced in Dubai" → "other"
+✓ "AI prompt injection attacks on ChatGPT" → "web_security" (prompt injection is web vuln)
 
 SEVERITY GUIDELINES:
 - critical: Active widespread exploitation, 0-day being exploited, major data breach, ransomware outbreak
@@ -301,14 +314,23 @@ async function extractBasicInfo(
 Output ONLY valid JSON in this exact format:
 {
   "tldr": "One concise sentence summarizing the threat",
-  "category": "ransomware|apt|vulnerability|phishing|malware|data_breach|ddos|supply_chain|insider_threat|other",
+  "category": "ransomware|apt|vulnerability|phishing|malware|data_breach|ddos|supply_chain|insider_threat|cloud_security|web_security|zero_day|cryptojacking|iot_security|disinformation|policy|other",
   "severity": "critical|high|medium|low|info",
   "affected_sectors": ["sector1", "sector2"],
   "threat_actors": ["actor1", "actor2"]
 }
 
 Classification Guidelines:
-- category: Choose the PRIMARY threat type
+- category: Choose the PRIMARY threat type (17 categories available - use specific ones over generic)
+  * "zero_day": 0-day exploits being actively exploited (CRITICAL - highest priority)
+  * "web_security": XSS, SQLi, RCE, CSRF (web app vulns)
+  * "cloud_security": AWS/Azure/GCP attacks, Kubernetes exploits
+  * "vulnerability": Generic CVEs, patches (NOT 0-days or web-specific)
+  * "cryptojacking": Crypto mining malware
+  * "iot_security": IoT/embedded device attacks
+  * "disinformation": Influence operations, fake news
+  * "policy": Legal/regulatory updates (NOT threats)
+  * "other": Security tools, conferences, unclassifiable (use sparingly)
 - severity: critical (active exploitation, widespread impact), high (serious risk), medium (moderate concern), low (minor), info (informational)
 - affected_sectors: Industries explicitly mentioned as targeted (e.g., "healthcare", "finance", "energy")
 - threat_actors: Named groups or campaigns (e.g., "APT28", "Lazarus Group", "Conti")

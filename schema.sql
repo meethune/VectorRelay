@@ -72,6 +72,13 @@ INSERT OR IGNORE INTO categories (name, description, color, created_at) VALUES
   ('ddos', 'DDoS attacks', '#ec4899', unixepoch()),
   ('supply_chain', 'Supply chain attacks', '#06b6d4', unixepoch()),
   ('insider_threat', 'Insider threats', '#84cc16', unixepoch()),
+  ('cloud_security', 'Cloud infrastructure attacks (AWS, Azure, GCP, Kubernetes)', '#0ea5e9', unixepoch()),
+  ('web_security', 'Web application vulnerabilities (XSS, SQLi, RCE, CSRF)', '#f59e0b', unixepoch()),
+  ('zero_day', 'Zero-day vulnerabilities and exploits (critical priority)', '#dc2626', unixepoch()),
+  ('cryptojacking', 'Cryptocurrency mining malware and campaigns', '#a855f7', unixepoch()),
+  ('iot_security', 'IoT and embedded device security threats', '#14b8a6', unixepoch()),
+  ('disinformation', 'Disinformation campaigns and influence operations', '#ef4444', unixepoch()),
+  ('policy', 'Legal, regulatory, and policy security updates', '#64748b', unixepoch()),
   ('other', 'Uncategorized threats', '#6b7280', unixepoch());
 
 -- Weekly trend analysis (aggregated by AI)
