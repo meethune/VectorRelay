@@ -1,8 +1,20 @@
+#!/bin/sh
+
 # Run lint-staged (linting on staged files)
 npx lint-staged
 
-# Run all tests to ensure nothing broke
-npm test
+# Check if any code files are staged (not just docs/config)
+CODE_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx|sql|jsonc?)$' || true)
 
-# Verify build succeeds (as per CLAUDE.md instructions)
-npm run build
+# Only run tests and build if code files changed
+if [ -n "$CODE_FILES" ]; then
+  echo "Code files changed, running tests and build..."
+
+  # Run all tests to ensure nothing broke
+  npm test
+
+  # Verify build succeeds (as per CLAUDE.md instructions)
+  npm run build
+else
+  echo "Only documentation/config files changed, skipping tests and build."
+fi
