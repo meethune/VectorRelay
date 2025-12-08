@@ -339,8 +339,8 @@ async function processArticleWithAI(env: Env, threat: Threat, tracker?: NeuronTr
       console.log(`No AI analysis for ${threat.id}`);
       // Insert empty summary to mark as processed and avoid retrying
       await env.DB.prepare(
-        `INSERT INTO summaries (threat_id, tldr, key_points, category, severity, confidence_score, generated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO summaries (threat_id, tldr, key_points, category, severity, confidence_score, model_strategy, generated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
         .bind(
           threat.id,
@@ -349,6 +349,7 @@ async function processArticleWithAI(env: Env, threat: Threat, tracker?: NeuronTr
           'other',
           'info',
           0.0,
+          null, // No model strategy for failed analysis
           Math.floor(Date.now() / 1000)
         )
         .run();
@@ -360,8 +361,8 @@ async function processArticleWithAI(env: Env, threat: Threat, tracker?: NeuronTr
     // Store summary
     await env.DB.prepare(
       `INSERT INTO summaries
-       (threat_id, tldr, key_points, category, severity, affected_sectors, threat_actors, confidence_score, generated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (threat_id, tldr, key_points, category, severity, affected_sectors, threat_actors, confidence_score, model_strategy, generated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         threat.id,
@@ -372,6 +373,7 @@ async function processArticleWithAI(env: Env, threat: Threat, tracker?: NeuronTr
         JSON.stringify(analysis.affected_sectors || []),
         JSON.stringify(analysis.threat_actors || []),
         0.85, // Confidence score
+        analysis.model_strategy || null, // Track which AI strategy was used
         now
       )
       .run();

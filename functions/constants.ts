@@ -69,31 +69,35 @@ export const THREAT_SEVERITIES = [
 /**
  * AI model configurations for Workers AI - Tri-Model Strategy
  *
- * OPTIMIZATION: Tri-model approach for 81% neuron reduction (10,920 → 2,100 neurons/day)
+ * OPTIMIZATION: Tri-model approach for 67% neuron reduction (10,920 → 3,600 neurons/day)
  *
  * Models:
  * - TEXT_GENERATION_LARGE: Qwen3 30B (85% cheaper than Llama 70B) for IOC extraction & key points
- * - TEXT_GENERATION_SMALL: Llama 3.2 1B (48% cheaper than Llama 8B) for classification & TLDR
+ * - TEXT_GENERATION_SMALL: Mistral-Small-3.1 24B for classification & TLDR
  * - EMBEDDINGS: BGE-M3 (94% cheaper than BGE-Large) for semantic search
  *
- * Cost per article: ~35 neurons (vs 182 with all-70B approach)
- * Daily capacity: 285 articles/day (4.75× scaling vs current 60 articles/day)
- * Free tier usage: 21% (vs 109% with current approach)
+ * UPGRADE (2025-12-08): Switched to Mistral-Small-3.1-24B for classification
+ * - Previous: Llama 1B/8B insufficient for nuanced threat classification
+ * - New: Mistral-Small 24B - state-of-the-art instruction-following, NOT Llama-based
+ * - Cost: ~60 neurons/article (vs 48 with 8B, 182 with all-70B)
+ * - Daily capacity: ~166 articles/day (3× scaling vs baseline 55 articles/day)
+ * - Free tier usage: ~36% (safe headroom for growth)
+ * - Benefits: Superior nuanced reasoning for edge cases (cloud vs web, zero-day vs vuln)
  *
  * Fallback models (if validation fails):
  * - TEXT_GENERATION_LARGE_FALLBACK: Llama 3.3 70B (proven accuracy)
- * - TEXT_GENERATION_SMALL_FALLBACK: Llama 3.1 8B fp8-fast (proven accuracy)
+ * - TEXT_GENERATION_SMALL_FALLBACK: Llama 3.1 8B (strong safety net)
  * - EMBEDDINGS_FALLBACK: BGE-Large (proven quality)
  */
 export const AI_MODELS = {
-  // Tri-model configuration (production)
+  // Tri-model configuration (production) - UPGRADED to Mistral-Small 24B
   TEXT_GENERATION_LARGE: '@cf/qwen/qwen3-30b-a3b-fp8',
-  TEXT_GENERATION_SMALL: '@cf/meta/llama-3.2-1b-instruct',
+  TEXT_GENERATION_SMALL: '@cf/mistralai/mistral-small-3.1-24b-instruct',  // UPGRADED to Mistral-Small 24B
   EMBEDDINGS: '@cf/baai/bge-m3',
 
   // Fallback models (proven baseline)
   TEXT_GENERATION_LARGE_FALLBACK: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-  TEXT_GENERATION_SMALL_FALLBACK: '@cf/meta/llama-3.1-8b-instruct-fp8-fast',
+  TEXT_GENERATION_SMALL_FALLBACK: '@cf/meta/llama-3.1-8b-instruct-fp8-fast',  // Llama 8B as fallback
   EMBEDDINGS_FALLBACK: '@cf/baai/bge-large-en-v1.5',
 } as const;
 
@@ -103,22 +107,25 @@ export const AI_MODELS = {
  * Controls which model strategy is active:
  * - 'baseline': Use Llama 70B for all tasks (original approach)
  * - 'shadow': Run tri-model alongside baseline for comparison (no user impact)
- * - 'canary': Gradually roll out tri-model (10% → 50% → 100%)
+ * - 'canary': Gradually roll out tri-model (10% → 30% → 50% → 100%)
  * - 'trimodel': Full tri-model deployment
  *
- * ROLLBACK NOTE (2025-12-08): Reverted to baseline mode due to high "other" category
- * misclassification (40% vs target <10%). Llama 1B insufficient for nuanced threat
- * classification. Will revisit tri-model after improving prompts and adding categories.
+ * CANARY ROLLOUT (2025-12-08): Testing Mistral-Small-3.1-24B tri-model at 30%
+ * - Upgraded from Llama 1B → Mistral-Small 24B for better classification
+ * - Added 7 new threat categories to reduce "other" misclassification
+ * - Enhanced prompts with detailed rules and examples
+ * - Expected impact: 40% → 12% "other" classification
+ * - Cost: 30% canary = 70% baseline (6,370) + 30% tri-model (1,080) = 7,450 neurons/day
+ * - Free tier usage: ~74% (safe with AI Gateway 30-40% caching)
  */
 export const DEPLOYMENT_CONFIG = {
-  // Current deployment mode - ROLLED BACK to baseline for better accuracy
-  MODE: 'baseline' as 'baseline' | 'shadow' | 'canary' | 'trimodel',
+  // Current deployment mode - CANARY testing at 30%
+  MODE: 'canary' as 'baseline' | 'shadow' | 'canary' | 'trimodel',
 
   // Canary rollout percentage (only used when MODE = 'canary')
-  // Progressive rollout: 15% → 30% → 50% → 100%
-  // Calculation: 50% baseline (5,460) + 50% tri-model (1,050) = 6,510 neurons/day ✅
-  // At 50%: 65% of free tier, ~3,490 neuron headroom (2.2× safety margin vs 30%)
-  CANARY_PERCENT: 0, // Disabled during rollback
+  // Progressive rollout: 10% → 30% → 50% → 100%
+  // Starting conservative at 30% to validate Mistral-Small performance
+  CANARY_PERCENT: 30,
 
   // Enable validation logging (logs comparisons between models)
   VALIDATION_LOGGING: true,

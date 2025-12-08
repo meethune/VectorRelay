@@ -93,7 +93,7 @@ export default function Dashboard() {
   const categoryData = Object.entries(stats.category_breakdown).map(([name, value]) => ({
     name,
     value,
-    color: categoryColors[name] || '#6b7280',
+    color: categoryColors[name as keyof typeof categoryColors] || '#6b7280',
   }));
 
   const severityData = Object.entries(stats.severity_breakdown).map(([name, value]) => ({

@@ -37,6 +37,7 @@ export interface Summary {
   affected_sectors?: string[];
   threat_actors?: string[];
   confidence_score?: number;
+  model_strategy?: 'baseline' | 'trimodel'; // Tracks which AI strategy was used
   generated_at: number;
 }
 
@@ -86,6 +87,13 @@ export type ThreatCategory =
   | 'ddos'
   | 'supply_chain'
   | 'insider_threat'
+  | 'cloud_security'
+  | 'web_security'
+  | 'zero_day'
+  | 'cryptojacking'
+  | 'iot_security'
+  | 'disinformation'
+  | 'policy'
   | 'other';
 
 export type SeverityLevel = 'critical' | 'high' | 'medium' | 'low' | 'info';
@@ -108,6 +116,7 @@ export interface AIAnalysis {
     urls: string[];
     emails: string[];
   };
+  model_strategy?: 'baseline' | 'trimodel'; // Tracks which AI strategy was used
 }
 
 // RSS Feed Item

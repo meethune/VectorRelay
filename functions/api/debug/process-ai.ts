@@ -70,8 +70,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
         // Store summary
         await env.DB.prepare(
           `INSERT INTO summaries
-           (threat_id, tldr, key_points, category, severity, affected_sectors, threat_actors, confidence_score, generated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           (threat_id, tldr, key_points, category, severity, affected_sectors, threat_actors, confidence_score, model_strategy, generated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
           .bind(
             threat.id,
@@ -82,6 +82,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
             JSON.stringify(analysis.affected_sectors),
             JSON.stringify(analysis.threat_actors),
             0.85,
+            analysis.model_strategy || null, // Track which AI strategy was used
             now
           )
           .run();

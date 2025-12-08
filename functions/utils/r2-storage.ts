@@ -5,7 +5,7 @@
  * All operations check quota limits before executing to prevent billing overages.
  */
 
-import { Env, ThreatIntelligence, AIAnalysisResult, IOC } from '../types';
+import { Env, Threat, AIAnalysis, IOC } from '../types';
 import {
   checkR2Quota,
   updateR2Usage,
@@ -27,7 +27,7 @@ export interface ArchivedThreat {
   published_at: string;
   feed_source: string;
   raw_feed_data?: unknown;
-  ai_analysis?: AIAnalysisResult;
+  ai_analysis?: AIAnalysis;
   iocs?: IOC[];
   archived_at: string;
   metadata: {
@@ -57,8 +57,8 @@ export function generateR2Key(threatId: string, publishedAt: string): string {
  */
 export async function archiveThreat(
   env: Env,
-  threat: ThreatIntelligence & {
-    ai_analysis?: AIAnalysisResult;
+  threat: Threat & {
+    ai_analysis?: AIAnalysis;
     iocs?: IOC[];
   }
 ): Promise<{ success: boolean; r2Key?: string; error?: string }> {
@@ -77,13 +77,13 @@ export async function archiveThreat(
     title: threat.title,
     content: threat.content || '',
     url: threat.url,
-    published_at: threat.published_at,
-    feed_source: threat.feed_source,
+    published_at: new Date(threat.published_at * 1000).toISOString(),
+    feed_source: threat.source,
     ai_analysis: threat.ai_analysis,
     iocs: threat.iocs,
     archived_at: new Date().toISOString(),
     metadata: {
-      feed_source: threat.feed_source,
+      feed_source: threat.source,
       original_url: threat.url,
       size_bytes: 0,
       category: threat.ai_analysis?.category,
@@ -124,7 +124,7 @@ export async function archiveThreat(
   }
 
   // Generate R2 key
-  const r2Key = generateR2Key(threat.id, threat.published_at);
+  const r2Key = generateR2Key(threat.id, new Date(threat.published_at * 1000).toISOString());
 
   try {
     // Write to R2

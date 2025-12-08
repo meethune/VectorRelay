@@ -213,13 +213,16 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
       return null;
     }
 
+    // Tag with model strategy for tracking
+    analysis.model_strategy = 'baseline';
+
     return analysis;
   } catch (error) {
     logError('Error in baseline analysis', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,
-      contentLength: truncatedContent?.length || 0,
+      contentLength: article.content?.length || 0,
       errorType: error instanceof Error ? error.name : 'Unknown',
       errorMessage: error instanceof Error ? error.message : String(error),
       model: AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,
@@ -265,16 +268,19 @@ async function analyzeArticleTriModel(
       return null;
     }
 
-    return {
+    const mergedAnalysis: AIAnalysis = {
       ...basicAnalysis,
       ...detailedAnalysis,
-    };
+      model_strategy: 'trimodel', // Tag with tri-model strategy for tracking
+    } as AIAnalysis;
+
+    return mergedAnalysis;
   } catch (error) {
     logError('Error in tri-model analysis', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,
-      contentLength: truncatedContent?.length || 0,
+      contentLength: article.content?.length || 0,
       errorType: error instanceof Error ? error.name : 'Unknown',
       errorMessage: error instanceof Error ? error.message : String(error),
     });

@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS summaries (
   affected_sectors TEXT, -- JSON array
   threat_actors TEXT, -- JSON array
   confidence_score REAL,
+  model_strategy TEXT, -- 'baseline' | 'trimodel' - tracks which AI strategy was used
   generated_at INTEGER NOT NULL,
   FOREIGN KEY (threat_id) REFERENCES threats(id) ON DELETE CASCADE
 );
