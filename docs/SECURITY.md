@@ -114,7 +114,7 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 
 ### 4. Access Control ✅
 
-**Implementation:** Environment-based endpoint protection
+**Implementation:** Environment-based endpoint protection + API key authentication
 
 **Protected Endpoints:**
 ```typescript
@@ -125,6 +125,13 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 /api/test-ai            → HTTP 404 (disabled)
 /api/test-bindings      → HTTP 404 (disabled)
 /api/validate-models    → HTTP 403 (dev only)
+
+// Development (ENVIRONMENT=development) - Require API Key
+/api/debug-ingestion    → HTTP 401 (requires Authorization: Bearer <key>)
+/api/test-ai            → HTTP 401 (requires Authorization: Bearer <key>)
+/api/test-bindings      → HTTP 401 (requires Authorization: Bearer <key>)
+/api/trigger-ingestion  → HTTP 401 (requires Authorization: Bearer <key>)
+/api/process-ai         → HTTP 401 (requires Authorization: Bearer <key>)
 
 // Public Endpoints (No Auth Required)
 /api/stats              → HTTP 200 (read-only)
@@ -137,14 +144,21 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 **Environment Configuration:**
 - `wrangler.jsonc` sets `ENVIRONMENT: "production"`
 - Development: Set `ENVIRONMENT=development` in `.dev.vars`
+- Development: Set `API_SECRET=<your-key>` in `.dev.vars`
+
+**Security Enhancement (December 8, 2025):**
+- All debug and test endpoints now require API key authentication even in development
+- Prevents unauthorized access to sensitive debugging information
+- Blocks potential information disclosure and system enumeration
 
 **Files:**
 - `functions/api/trigger-ingestion.ts:10`
 - `functions/api/process-ai.ts:10`
-- `functions/api/debug-ingestion.ts:6`
-- `functions/api/test-ai.ts:6`
-- `functions/api/test-bindings.ts:6`
+- `functions/api/debug-ingestion.ts:6,14` - ✅ Auth added
+- `functions/api/test-ai.ts:6,14` - ✅ Auth added
+- `functions/api/test-bindings.ts:6,14` - ✅ Auth added
 - `functions/api/validate-models.ts:87`
+- `functions/utils/auth.ts` - Authentication utilities
 
 ---
 
@@ -183,7 +197,7 @@ page: Math.max(requested, 1)                  // minimum 1
 
 ### 6. SQL Injection Protection ✅
 
-**Implementation:** Parameterized queries via D1
+**Implementation:** Parameterized queries via D1 + Input validation
 
 **All queries use prepared statements:**
 ```typescript
@@ -193,6 +207,16 @@ await env.DB.prepare('SELECT * FROM threats WHERE id = ?').bind(threatId)
 // ❌ NEVER DONE - String concatenation
 await env.DB.prepare(`SELECT * FROM threats WHERE id = '${threatId}'`)
 ```
+
+**Defense-in-Depth Enhancement (December 8, 2025):**
+- Added validation for dynamic SQL placeholder construction
+- Hard caps on array sizes (50 for search, 100 for similarity)
+- Format validation: alphanumeric, 8-20 characters
+- Prevents SQL injection even if array sources are compromised
+
+**Locations Enhanced:**
+- `functions/api/search.ts:90-106` - Semantic search validation
+- `functions/utils/similarity.ts:310-345` - IOC batch fetching validation
 
 **Status:** All database queries audited and verified secure
 
@@ -261,15 +285,22 @@ await env.DB.prepare(`SELECT * FROM threats WHERE id = '${threatId}'`)
 │     Cloudflare Workers (Development)             │
 │     ENVIRONMENT=development                      │
 │                                                  │
-│  PUBLIC ENDPOINTS                                │
-│  ✅ All API endpoints                            │
+│  PUBLIC ENDPOINTS (No Auth Required)             │
+│  ✅ /api/stats                                   │
+│  ✅ /api/threats                                 │
+│  ✅ /api/threat/:id                              │
+│  ✅ /api/search                                  │
+│  ✅ /api/sources                                 │
 │                                                  │
-│  MANAGEMENT ENDPOINTS (Enabled for Testing)      │
-│  ✅ /api/trigger-ingestion                       │
-│  ✅ /api/process-ai                              │
-│  ✅ /api/validate-models                         │
-│  ✅ /api/debug-*                                 │
-│  ✅ /api/test-*                                  │
+│  MANAGEMENT ENDPOINTS (Require API Key) 🔑       │
+│  🔒 /api/trigger-ingestion                       │
+│  🔒 /api/process-ai                              │
+│  🔒 /api/validate-models                         │
+│  🔒 /api/debug-ingestion                         │
+│  🔒 /api/test-ai                                 │
+│  🔒 /api/test-bindings                           │
+│                                                  │
+│  Authentication: Authorization: Bearer <API_SECRET>
 └──────────────────────────────────────────────────┘
 ```
 
@@ -550,8 +581,11 @@ npx wrangler tail
 ### Access Control
 - [x] Management endpoints disabled in production
 - [x] Debug endpoints disabled in production
+- [x] Test endpoints require API key authentication (even in dev)
+- [x] Debug endpoints require API key authentication (even in dev)
 - [x] Cron triggers are internal only
 - [x] Environment-based protection (ENVIRONMENT=production)
+- [x] API key validation via Authorization header
 
 ### Rate Limiting
 - [x] Per-IP rate limiting
@@ -593,9 +627,11 @@ npx wrangler tail
 | No cache headers | ~~LOW~~ | ~~LOW~~ | ~~LOW~~ | ✅ **MITIGATED** | ~~🟢 Low~~ |
 | Public management endpoints | ~~HIGH~~ | ~~HIGH~~ | ~~HIGH~~ | ✅ **MITIGATED** | ~~🔴 Critical~~ |
 | Unbounded inputs | ~~CRITICAL~~ | ~~HIGH~~ | ~~HIGH~~ | ✅ **MITIGATED** | ~~🔴 Critical~~ |
+| Debug endpoints without auth | ~~HIGH~~ | ~~MEDIUM~~ | ~~HIGH~~ | ✅ **MITIGATED** (Dec 8) | ~~🔴 Critical~~ |
+| Test endpoints without auth | ~~MEDIUM~~ | ~~MEDIUM~~ | ~~MEDIUM~~ | ✅ **MITIGATED** (Dec 8) | ~~🟠 High~~ |
+| Dynamic SQL placeholders | ~~MEDIUM~~ | ~~LOW~~ | ~~MEDIUM~~ | ✅ **MITIGATED** (Dec 8) | ~~🟡 Medium~~ |
 | AI quota exhaustion | MEDIUM | MEDIUM | HIGH | ⏳ Monitoring | 🟡 Medium |
 | Unbounded search history | LOW | LOW | MEDIUM | ⏳ Future | 🟢 Low |
-| Basic ID validation | LOW | LOW | LOW | ⏳ Future | 🟢 Low |
 
 ---
 
@@ -613,13 +649,22 @@ ENVIRONMENT=development
 npm run dev
 ```
 
-**3. Test management endpoints:**
+**3. Test management endpoints (require API key):**
 ```bash
-# Trigger ingestion (enabled in dev)
-curl http://localhost:8787/api/trigger-ingestion
+# Set API key from .dev.vars
+export API_KEY="your-api-key-from-dev-vars"
 
-# Process AI (enabled in dev)
-curl http://localhost:8787/api/process-ai?limit=5
+# Trigger ingestion (requires auth even in dev)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/trigger-ingestion
+
+# Process AI (requires auth even in dev)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/process-ai?limit=5
+
+# Test bindings (requires auth even in dev)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/test-bindings
+
+# Debug ingestion (requires auth even in dev)
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug-ingestion
 ```
 
 **4. Test validation:**
@@ -646,10 +691,36 @@ curl "http://localhost:8787/api/search?q=$(python3 -c 'print("a"*501)')"
 
 ## Changelog
 
-### December 8, 2025
+### December 8, 2025 (Security Audit & Remediation)
+
+**Security Fixes Implemented:**
+
+1. **HIGH - Authentication Bypass in Debug Endpoint** (Commit: adca5c2)
+   - Added API key authentication to `/api/debug-ingestion`
+   - Prevents unauthorized access to debugging information
+   - Protects feed configuration and error stack traces
+   - File: `functions/api/debug-ingestion.ts`
+
+2. **MEDIUM - Authentication Bypass in Test Endpoints** (Commit: e67fd24)
+   - Added API key authentication to `/api/test-ai` and `/api/test-bindings`
+   - Prevents unauthorized system enumeration
+   - Protects AI model configuration and binding status
+   - Files: `functions/api/test-ai.ts`, `functions/api/test-bindings.ts`
+
+3. **MEDIUM - SQL Injection Defense-in-Depth** (Commit: 59bfa9f)
+   - Added validation for dynamic SQL placeholder construction
+   - Hard caps on array sizes (50 for search, 100 for similarity)
+   - Format validation: alphanumeric, 8-20 characters
+   - Files: `functions/api/search.ts`, `functions/utils/similarity.ts`
+
+**Documentation Updates:**
 - Consolidated all security documentation into single source
 - Added comprehensive endpoint security matrix
 - Documented testing procedures and verification checklist
+- Updated access control architecture diagrams
+- Enhanced risk assessment matrix with new mitigations
+
+**Security Status:** All vulnerabilities from December 8, 2025 audit remediated ✅
 
 ### December 6, 2025
 - Implemented rate limiting (Phase 1 & 2 complete)
