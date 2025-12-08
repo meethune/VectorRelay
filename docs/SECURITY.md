@@ -119,19 +119,19 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 **Protected Endpoints:**
 ```typescript
 // Production (ENVIRONMENT=production)
-/api/trigger-ingestion  → HTTP 403 (disabled)
-/api/process-ai         → HTTP 403 (disabled)
-/api/debug-ingestion    → HTTP 404 (disabled)
-/api/test-ai            → HTTP 404 (disabled)
-/api/test-bindings      → HTTP 404 (disabled)
-/api/validate-models    → HTTP 403 (dev only)
+/api/debug/trigger-ingestion  → HTTP 403 (disabled)
+/api/debug/process-ai         → HTTP 403 (disabled)
+/api/debug/ingestion          → HTTP 404 (disabled)
+/api/debug/test-ai            → HTTP 404 (disabled)
+/api/debug/test-bindings      → HTTP 404 (disabled)
+/api/debug/validate-models    → HTTP 403 (dev only)
 
 // Development (ENVIRONMENT=development) - Require API Key
-/api/debug-ingestion    → HTTP 401 (requires Authorization: Bearer <key>)
-/api/test-ai            → HTTP 401 (requires Authorization: Bearer <key>)
-/api/test-bindings      → HTTP 401 (requires Authorization: Bearer <key>)
-/api/trigger-ingestion  → HTTP 401 (requires Authorization: Bearer <key>)
-/api/process-ai         → HTTP 401 (requires Authorization: Bearer <key>)
+/api/debug/ingestion          → HTTP 401 (requires Authorization: Bearer <key>)
+/api/debug/test-ai            → HTTP 401 (requires Authorization: Bearer <key>)
+/api/debug/test-bindings      → HTTP 401 (requires Authorization: Bearer <key>)
+/api/debug/trigger-ingestion  → HTTP 401 (requires Authorization: Bearer <key>)
+/api/debug/process-ai         → HTTP 401 (requires Authorization: Bearer <key>)
 
 // Public Endpoints (No Auth Required)
 /api/stats              → HTTP 200 (read-only)
@@ -152,12 +152,12 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 - Blocks potential information disclosure and system enumeration
 
 **Files:**
-- `functions/api/trigger-ingestion.ts:10`
-- `functions/api/process-ai.ts:10`
-- `functions/api/debug-ingestion.ts:6,14` - ✅ Auth added
-- `functions/api/test-ai.ts:6,14` - ✅ Auth added
-- `functions/api/test-bindings.ts:6,14` - ✅ Auth added
-- `functions/api/validate-models.ts:87`
+- `functions/api/debug/trigger-ingestion.ts:10`
+- `functions/api/debug/process-ai.ts:10`
+- `functions/api/debug/ingestion.ts:6,14` - ✅ Auth added
+- `functions/api/debug/test-ai.ts:6,14` - ✅ Auth added
+- `functions/api/debug/test-bindings.ts:6,14` - ✅ Auth added
+- `functions/api/debug/validate-models.ts:87`
 - `functions/utils/auth.ts` - Authentication utilities
 
 ---
@@ -234,8 +234,8 @@ await env.DB.prepare(`SELECT * FROM threats WHERE id = '${threatId}'`)
 | `/api/threat/:id` | 100/10min | 10 min | Public | Threat ID format | ✅ |
 | `/api/search?mode=keyword` | 100/10min | 1 min | Private | Query length, Limit | ✅ |
 | `/api/search?mode=semantic` | 50/10min | 1 min | Private | Query length, Limit | ✅ |
-| `/api/trigger-ingestion` | N/A | N/A | N/A | Disabled (403) | ✅ |
-| `/api/process-ai` | N/A | N/A | N/A | Disabled (403) | ✅ |
+| `/api/debug/trigger-ingestion` | N/A | N/A | N/A | Disabled (403) | ✅ |
+| `/api/debug/process-ai` | N/A | N/A | N/A | Disabled (403) | ✅ |
 
 ### Rate Limit Rationale
 
@@ -266,10 +266,10 @@ await env.DB.prepare(`SELECT * FROM threats WHERE id = '${threatId}'`)
 │  ✅ GET /api/search                              │
 │                                                  │
 │  DISABLED ENDPOINTS (HTTP 403/404)               │
-│  ❌ /api/trigger-ingestion                       │
-│  ❌ /api/process-ai                              │
-│  ❌ /api/debug-ingestion                         │
-│  ❌ /api/test-*                                  │
+│  ❌ /api/debug/trigger-ingestion                 │
+│  ❌ /api/debug/process-ai                        │
+│  ❌ /api/debug/ingestion                         │
+│  ❌ /api/debug/test-*                            │
 │                                                  │
 │  INTERNAL ONLY (Not Exposed)                     │
 │  ✅ Cron Trigger (Every 6 hours)                 │
@@ -293,12 +293,12 @@ await env.DB.prepare(`SELECT * FROM threats WHERE id = '${threatId}'`)
 │  ✅ /api/sources                                 │
 │                                                  │
 │  MANAGEMENT ENDPOINTS (Require API Key) 🔑       │
-│  🔒 /api/trigger-ingestion                       │
-│  🔒 /api/process-ai                              │
-│  🔒 /api/validate-models                         │
-│  🔒 /api/debug-ingestion                         │
-│  🔒 /api/test-ai                                 │
-│  🔒 /api/test-bindings                           │
+│  🔒 /api/debug/trigger-ingestion                 │
+│  🔒 /api/debug/process-ai                        │
+│  🔒 /api/debug/validate-models                   │
+│  🔒 /api/debug/ingestion                         │
+│  🔒 /api/debug/test-ai                           │
+│  🔒 /api/debug/test-bindings                     │
 │                                                  │
 │  Authentication: Authorization: Bearer <API_SECRET>
 └──────────────────────────────────────────────────┘
@@ -455,7 +455,7 @@ curl "https://YOUR-WORKER.workers.dev/api/threat/'; DROP TABLE threats; --"
 **4. Management Endpoint Test**
 ```bash
 # Production
-curl https://YOUR-WORKER.workers.dev/api/trigger-ingestion
+curl https://YOUR-WORKER.workers.dev/api/debug/trigger-ingestion
 # Expected: {"error": "Endpoint disabled", ...}, status 403
 ```
 
@@ -655,16 +655,16 @@ npm run dev
 export API_KEY="your-api-key-from-dev-vars"
 
 # Trigger ingestion (requires auth even in dev)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/trigger-ingestion
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/trigger-ingestion
 
 # Process AI (requires auth even in dev)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/process-ai?limit=5
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/process-ai?limit=5
 
 # Test bindings (requires auth even in dev)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/test-bindings
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/test-bindings
 
 # Debug ingestion (requires auth even in dev)
-curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug-ingestion
+curl -H "Authorization: Bearer $API_KEY" http://localhost:8787/api/debug/ingestion
 ```
 
 **4. Test validation:**
@@ -696,16 +696,16 @@ curl "http://localhost:8787/api/search?q=$(python3 -c 'print("a"*501)')"
 **Security Fixes Implemented:**
 
 1. **HIGH - Authentication Bypass in Debug Endpoint** (Commit: adca5c2)
-   - Added API key authentication to `/api/debug-ingestion`
+   - Added API key authentication to `/api/debug/ingestion`
    - Prevents unauthorized access to debugging information
    - Protects feed configuration and error stack traces
-   - File: `functions/api/debug-ingestion.ts`
+   - File: `functions/api/debug/ingestion.ts`
 
 2. **MEDIUM - Authentication Bypass in Test Endpoints** (Commit: e67fd24)
-   - Added API key authentication to `/api/test-ai` and `/api/test-bindings`
+   - Added API key authentication to `/api/debug/test-ai` and `/api/debug/test-bindings`
    - Prevents unauthorized system enumeration
    - Protects AI model configuration and binding status
-   - Files: `functions/api/test-ai.ts`, `functions/api/test-bindings.ts`
+   - Files: `functions/api/debug/test-ai.ts`, `functions/api/debug/test-bindings.ts`
 
 3. **MEDIUM - SQL Injection Defense-in-Depth** (Commit: 59bfa9f)
    - Added validation for dynamic SQL placeholder construction
