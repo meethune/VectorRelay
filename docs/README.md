@@ -16,7 +16,12 @@ This directory contains detailed documentation for the VectorRelay Threat Intell
 ### Security & Audits
 
 - **[Security Documentation](./SECURITY.md)** - Comprehensive security analysis, features, and mitigation strategies
-- **[Pages to Workers Migration](./PAGES_TO_WORKERS_MIGRATION.md)** - Migration from Cloudflare Pages to Workers deployment
+
+### Optimization & Performance
+
+- **[Cloudflare Workers Optimization](./CLOUDFLARE_WORKERS_OPTIMIZATION.md)** - Free tier optimization strategies and implementation
+- **[Hybrid LLM Strategy](./HYBRID_LLM_STRATEGY.md)** - Task-based model selection and cost optimization
+- **[Tri-Model Deployment Guide](./TRI_MODEL_DEPLOYMENT_GUIDE.md)** - Advanced 81% neuron reduction strategy
 
 ## 🔗 Main Documentation
 

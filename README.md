@@ -228,7 +228,7 @@ The dashboard features two distinct visual modes that can be toggled seamlessly:
 - NumberTicker smooth number animations
 - Modern, professional aesthetic
 
-Theme preference is automatically saved to localStorage. For complete theme documentation and customization options, see [`docs/THEME_REFACTOR_REPORT.md`](./docs/THEME_REFACTOR_REPORT.md).
+Theme preference is automatically saved to localStorage. For complete theme documentation and implementation details, see the Dual-Theme System section in [`docs/PROJECT_STRUCTURE.md`](./docs/PROJECT_STRUCTURE.md#-dual-theme-system).
 
 ### Color Customization
 
