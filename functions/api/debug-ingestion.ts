@@ -1,12 +1,18 @@
 // Debug endpoint to see detailed ingestion progress
 import type { Env, FeedSource } from '../types';
+import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
-export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   // Security: Disable debug endpoint in production
   if (env.ENVIRONMENT === 'production') {
     return Response.json({
       error: 'Debug endpoints are disabled in production'
     }, { status: 404 });
+  }
+
+  // Security: Require API key authentication even in development
+  if (!validateApiKey(request, env)) {
+    return unauthorizedResponse();
   }
 
   const logs: string[] = [];
