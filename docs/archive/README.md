@@ -104,4 +104,26 @@ These were project milestone documents created during specific development phase
 
 ---
 
+## Validation & Testing Scripts (Archived December 8, 2025)
+
+The following testing scripts were used during tri-model AI optimization validation. The optimization is now complete and deployed at 50% canary rollout.
+
+### Archived Directory:
+
+13. **scripts/** (32 KB)
+    - `validate-trimodel.ts` - Tri-model validation testing script
+    - `test-data/ground-truth-template.json` - Ground truth test data template
+    - Purpose: Model accuracy validation during optimization development
+    - Status: Validation completed, tri-model deployed to production
+
+### Why Archived?
+
+These scripts were development tools for validating the tri-model AI optimization strategy. The optimization has been successfully deployed and is running in production with 50% canary rollout. The scripts are no longer needed for day-to-day operations but are preserved for historical reference.
+
+**For current optimization status**, refer to:
+- [`../CLOUDFLARE_WORKERS_OPTIMIZATION.md`](../CLOUDFLARE_WORKERS_OPTIMIZATION.md) - Current deployment status and metrics
+- [`../HYBRID_LLM_STRATEGY.md`](../HYBRID_LLM_STRATEGY.md) - Tri-model strategy details
+
+---
+
 **Note:** These archived documents are kept for historical reference only and may contain outdated information. Always refer to the current documentation in the parent directory.
