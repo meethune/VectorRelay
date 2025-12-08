@@ -71,8 +71,28 @@ export async function analyzeArticle(
   } catch (error) {
     logError('Error in analyzeArticle orchestration', error, {
       threatId: article.id,
+      title: article.title,
+      source: article.source,
+      contentLength: article.content?.length || 0,
       mode: DEPLOYMENT_CONFIG.MODE,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
+
+    // Track analysis failures in Analytics Engine
+    try {
+      if (env.ANALYTICS) {
+        env.ANALYTICS.writeDataPoint({
+          blobs: ['ai_analysis_failure', article.source, DEPLOYMENT_CONFIG.MODE],
+          doubles: [1],
+          indexes: [article.id],
+        });
+      }
+    } catch (analyticsError) {
+      // Ignore analytics errors to avoid cascading failures
+      console.error('Failed to log analytics for AI failure:', analyticsError);
+    }
+
     // Fallback to baseline on error
     return await analyzeArticleBaseline(env, article);
   }
@@ -110,7 +130,39 @@ Output ONLY valid JSON in this exact format:
   }
 }
 
-If no IOCs found, use empty arrays. Be conservative with severity ratings.`;
+CATEGORY CLASSIFICATION RULES (choose the PRIMARY threat type):
+- "phishing": Social engineering, credential theft, email scams, fake login pages, BEC attacks
+- "vulnerability": CVEs, exploits, RCE, XSS, SQL injection, zero-days, patch information, PoC code
+- "malware": Trojans, viruses, worms, backdoors, loaders, droppers, stealers, RATs
+- "ransomware": Encryption-based extortion, file/system lockers, ransom demands
+- "apt": Nation-state attacks, targeted espionage campaigns, advanced persistent threats
+- "data_breach": Data leaks, database exposures, stolen credentials, breached records
+- "ddos": Denial of service attacks, botnet attacks, amplification attacks
+- "supply_chain": Third-party compromises, software supply chain attacks, dependency hijacking
+- "insider_threat": Malicious insiders, credential abuse, privilege misuse
+- "other": ONLY for policy/legal news, security tool announcements, conference news, or truly unclassifiable content
+
+CLASSIFICATION EXAMPLES:
+✓ "WordPress RCE vulnerability actively exploited" → "vulnerability"
+✓ "Phishers abuse Cloudflare Pages for banking scams" → "phishing"
+✓ "New Qakbot malware campaign targets healthcare" → "malware"
+✓ "LockBit ransomware gang leaks victim data" → "ransomware"
+✓ "China-linked APT group targets telecom sector" → "apt"
+✓ "23andMe data breach exposes 6.9M users" → "data_breach"
+✓ "Mirai botnet launches 2.5 Tbps DDoS attack" → "ddos"
+✓ "Supply chain attack via compromised NPM package" → "supply_chain"
+✓ "AI prompt injection attacks on ChatGPT" → "vulnerability"
+✓ "Russia bans Roblox app" → "other" (policy/censorship)
+✓ "New security conference announced in Dubai" → "other" (event)
+
+SEVERITY GUIDELINES:
+- critical: Active widespread exploitation, 0-day being exploited, major data breach, ransomware outbreak
+- high: Serious vulnerabilities with PoC, targeted attacks, significant risk
+- medium: Moderate risk, patches available, limited exploitation
+- low: Minor issues, theoretical risks, low impact
+- info: Informational updates, awareness, no immediate threat
+
+If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of cases).`;
 
     const userPrompt = `Title: ${article.title}\n\nContent: ${truncatedContent}\n\nSource: ${article.source}`;
 
@@ -152,7 +204,27 @@ If no IOCs found, use empty arrays. Be conservative with severity ratings.`;
   } catch (error) {
     logError('Error in baseline analysis', error, {
       threatId: article.id,
+      title: article.title,
+      source: article.source,
+      contentLength: truncatedContent?.length || 0,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      model: AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,
     });
+
+    // Track baseline analysis failures
+    try {
+      if (env.ANALYTICS) {
+        env.ANALYTICS.writeDataPoint({
+          blobs: ['baseline_analysis_failure', article.source],
+          doubles: [1],
+          indexes: [article.id],
+        });
+      }
+    } catch (analyticsError) {
+      console.error('Failed to log analytics for baseline failure:', analyticsError);
+    }
+
     return null;
   }
 }
@@ -187,7 +259,26 @@ async function analyzeArticleTriModel(
   } catch (error) {
     logError('Error in tri-model analysis', error, {
       threatId: article.id,
+      title: article.title,
+      source: article.source,
+      contentLength: truncatedContent?.length || 0,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
+
+    // Track tri-model analysis failures
+    try {
+      if (env.ANALYTICS) {
+        env.ANALYTICS.writeDataPoint({
+          blobs: ['trimodel_analysis_failure', article.source],
+          doubles: [1],
+          indexes: [article.id],
+        });
+      }
+    } catch (analyticsError) {
+      console.error('Failed to log analytics for tri-model failure:', analyticsError);
+    }
+
     return null;
   }
 }
@@ -267,6 +358,11 @@ Content: ${content}`;
   } catch (error) {
     logError('Error extracting basic info (1B model)', error, {
       threatId: article.id,
+      title: article.title,
+      source: article.source,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      model: AI_MODELS.TEXT_GENERATION_SMALL,
     });
     return null;
   }
@@ -367,6 +463,11 @@ Content: ${content}`;
   } catch (error) {
     logError('Error extracting detailed info (30B model)', error, {
       threatId: article.id,
+      title: article.title,
+      source: article.source,
+      errorType: error instanceof Error ? error.name : 'Unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      model: AI_MODELS.TEXT_GENERATION_LARGE,
     });
     return null;
   }

@@ -89,16 +89,20 @@ export const AI_MODELS = {
  * - 'shadow': Run tri-model alongside baseline for comparison (no user impact)
  * - 'canary': Gradually roll out tri-model (10% → 50% → 100%)
  * - 'trimodel': Full tri-model deployment
+ *
+ * ROLLBACK NOTE (2025-12-08): Reverted to baseline mode due to high "other" category
+ * misclassification (40% vs target <10%). Llama 1B insufficient for nuanced threat
+ * classification. Will revisit tri-model after improving prompts and adding categories.
  */
 export const DEPLOYMENT_CONFIG = {
-  // Current deployment mode
-  MODE: 'canary' as 'baseline' | 'shadow' | 'canary' | 'trimodel',
+  // Current deployment mode - ROLLED BACK to baseline for better accuracy
+  MODE: 'baseline' as 'baseline' | 'shadow' | 'canary' | 'trimodel',
 
   // Canary rollout percentage (only used when MODE = 'canary')
   // Progressive rollout: 15% → 30% → 50% → 100%
   // Calculation: 50% baseline (5,460) + 50% tri-model (1,050) = 6,510 neurons/day ✅
   // At 50%: 65% of free tier, ~3,490 neuron headroom (2.2× safety margin vs 30%)
-  CANARY_PERCENT: 50,
+  CANARY_PERCENT: 0, // Disabled during rollback
 
   // Enable validation logging (logs comparisons between models)
   VALIDATION_LOGGING: true,
