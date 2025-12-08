@@ -41,15 +41,24 @@ function parseRSSData(channel: any): RSSItem[] {
       // Handle both CDATA and regular text content
       const getTextContent = (value: any): string => {
         if (!value) return '';
-        if (typeof value === 'string') return value;
-        if (typeof value === 'object') {
+
+        let text = '';
+        if (typeof value === 'string') {
+          text = value;
+        } else if (typeof value === 'object') {
           // Handle CDATA or nested text
-          return value['#text'] || value['__cdata'] || String(value);
+          text = value['#text'] || value['__cdata'] || String(value);
+        } else {
+          text = String(value);
         }
-        return String(value);
+
+        // Strip CDATA markers that weren't properly parsed
+        text = text.replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '');
+
+        return text.trim();
       };
 
-      const title = getTextContent(item.title);
+      let title = getTextContent(item.title);
       const link = getTextContent(item.link);
       const description = getTextContent(item.description);
       const contentEncoded = getTextContent(item['content:encoded']);
@@ -67,15 +76,39 @@ function parseRSSData(channel: any): RSSItem[] {
       }
       guid = guid || link;
 
-      if (!title || !link) {
+      // Clean text before validation
+      title = cleanText(title);
+      const cleanedLink = link.trim();
+      const cleanedDescription = cleanText(description);
+      const cleanedContent = cleanText(content);
+
+      // Validate AFTER cleaning - reject if link is missing or malformed
+      if (!cleanedLink || cleanedLink.includes('<![CDATA[')) {
         return null;
       }
 
+      // Fallback for missing titles: use first 100 chars of content or "Untitled Article"
+      if (!title || title.length === 0) {
+        if (cleanedContent && cleanedContent.length > 0) {
+          title = cleanedContent.substring(0, 100) + '...';
+        } else if (cleanedDescription && cleanedDescription.length > 0) {
+          title = cleanedDescription.substring(0, 100) + '...';
+        } else {
+          // Last resort: extract domain from URL
+          try {
+            const urlObj = new URL(cleanedLink);
+            title = `Article from ${urlObj.hostname}`;
+          } catch {
+            title = 'Untitled Article';
+          }
+        }
+      }
+
       return {
-        title: cleanText(title),
-        link: link.trim(),
-        description: cleanText(description),
-        content: cleanText(content),
+        title,
+        link: cleanedLink,
+        description: cleanedDescription,
+        content: cleanedContent,
         pubDate: pubDate.trim(),
         guid: guid.trim(),
       };
@@ -95,14 +128,23 @@ function parseAtomData(feed: any): RSSItem[] {
     .map((entry: any) => {
       const getTextContent = (value: any): string => {
         if (!value) return '';
-        if (typeof value === 'string') return value;
-        if (typeof value === 'object') {
-          return value['#text'] || value['__cdata'] || String(value);
+
+        let text = '';
+        if (typeof value === 'string') {
+          text = value;
+        } else if (typeof value === 'object') {
+          text = value['#text'] || value['__cdata'] || String(value);
+        } else {
+          text = String(value);
         }
-        return String(value);
+
+        // Strip CDATA markers that weren't properly parsed
+        text = text.replace(/<!\[CDATA\[/g, '').replace(/\]\]>/g, '');
+
+        return text.trim();
       };
 
-      const title = getTextContent(entry.title);
+      let title = getTextContent(entry.title);
 
       // Atom link can be an attribute: <link href="..." />
       let link = '';
@@ -123,15 +165,39 @@ function parseAtomData(feed: any): RSSItem[] {
       const published = getTextContent(entry.published || entry.updated);
       const id = getTextContent(entry.id) || link;
 
-      if (!title || !link) {
+      // Clean text before validation
+      title = cleanText(title);
+      const cleanedLink = link.trim();
+      const cleanedSummary = cleanText(summary);
+      const cleanedContent = cleanText(content);
+
+      // Validate AFTER cleaning - reject if link is missing or malformed
+      if (!cleanedLink || cleanedLink.includes('<![CDATA[')) {
         return null;
       }
 
+      // Fallback for missing titles: use first 100 chars of content or "Untitled Article"
+      if (!title || title.length === 0) {
+        if (cleanedContent && cleanedContent.length > 0) {
+          title = cleanedContent.substring(0, 100) + '...';
+        } else if (cleanedSummary && cleanedSummary.length > 0) {
+          title = cleanedSummary.substring(0, 100) + '...';
+        } else {
+          // Last resort: extract domain from URL
+          try {
+            const urlObj = new URL(cleanedLink);
+            title = `Article from ${urlObj.hostname}`;
+          } catch {
+            title = 'Untitled Article';
+          }
+        }
+      }
+
       return {
-        title: cleanText(title),
-        link: link.trim(),
-        description: cleanText(summary),
-        content: cleanText(content),
+        title,
+        link: cleanedLink,
+        description: cleanedSummary,
+        content: cleanedContent,
         pubDate: published.trim(),
         guid: id.trim(),
       };
