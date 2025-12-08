@@ -340,6 +340,8 @@ export class ThreatFeedCoordinator extends DurableObject {
 **Impact**: Medium
 **Effort**: Low
 
+**⚠️ IMPORTANT**: R2 requires active billing account and payment method, even for free tier. You WILL be charged for overages.
+
 **Current Limitation**: D1 limited to 5GB, storing full article content uses quota.
 
 **Enhancement**: Offload large data to R2
@@ -348,6 +350,8 @@ export class ThreatFeedCoordinator extends DurableObject {
 - Cache threat intel reports as PDFs
 - Store malware samples (if applicable)
 - **Free Tier**: ✅ 10GB storage, 1M Class A ops, 10M Class B ops/month
+- **Safety**: Hard limit at 80% of free tier (8GB, 800K ops) to prevent billing
+- **See**: `docs/R2_STORAGE.md` for complete billing requirements and quota protection
 
 **Implementation**:
 ```typescript
@@ -612,15 +616,21 @@ The next highest ROI **free tier** enhancements are:
 #### 1.1 R2 Storage Implementation ⭐⭐⭐⭐⭐
 **Next Recommended Task** - Low effort, high value
 
+**⚠️ BILLING REQUIREMENT**: R2 requires active billing account. See `docs/R2_STORAGE.md`
+
+- [ ] Enable R2 in Cloudflare Dashboard (requires payment method)
+- [ ] Set up billing alerts in Cloudflare Dashboard
+- [ ] Create quota tracking system (KV-based, 80% hard limit)
 - [ ] Create R2 bucket: `npx wrangler r2 bucket create threat-intel-archive`
 - [ ] Add R2 binding to `wrangler.jsonc`
-- [ ] Create archive worker to move threats older than 90 days from D1 to R2
+- [ ] Create archive worker with quota checks (move threats >90 days to R2)
 - [ ] Implement API endpoint `/api/archive` to retrieve archived threats
-- [ ] Store full article HTML/content in R2 instead of D1
+- [ ] Store full article HTML/content in R2 with size limits (max 200KB/threat)
 - [ ] Create monthly cleanup job for old archives
-- [ ] Add R2 usage metrics to dashboard
+- [ ] Add R2 usage metrics to dashboard with alert thresholds
 
 **Expected Impact**: Extends D1 lifespan indefinitely, frees up 80%+ database space
+**Safety**: Conservative 80% of free tier limit enforced to prevent billing
 
 #### 1.2 Security Enhancements ⭐⭐⭐⭐
 - [ ] Implement rate limiting using KV for API endpoints

@@ -11,7 +11,36 @@ import { NeuronTracker } from './utils/neuron-tracker';
 const MAX_AI_PROCESSING_PER_RUN = 10; // Optimized for tri-model: 10 * 3 = 30 AI calls + 12 feeds = 42 total
 
 export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
-  console.log('Starting scheduled feed ingestion...');
+  console.log('Starting scheduled task...');
+
+  // Check if this is the first day of the month (run monthly archival)
+  const today = new Date();
+  const isFirstOfMonth = today.getDate() === 1;
+
+  if (isFirstOfMonth) {
+    console.log('🗄️ First of month - running R2 archival...');
+    try {
+      const { archiveOldThreats } = await import('./utils/archiver');
+      const archiveStats = await archiveOldThreats(env);
+
+      console.log('✅ R2 archival complete:', {
+        archived: archiveStats.archived,
+        failed: archiveStats.failed,
+        skipped: archiveStats.skipped,
+        quotaExceeded: archiveStats.quotaExceeded,
+      });
+
+      // If archival failed due to quota, log warning but continue with feed ingestion
+      if (archiveStats.quotaExceeded) {
+        console.warn('⚠️ R2 archival skipped due to quota limits');
+      }
+    } catch (error) {
+      console.error('❌ R2 archival failed:', error);
+      // Don't fail the entire cron job, continue with feed ingestion
+    }
+  }
+
+  console.log('Starting feed ingestion...');
 
   // Track subrequests to monitor free tier usage (50 subrequest limit per request)
   let subrequestCount = 0;
@@ -95,10 +124,11 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
       indexes: [new Date().toISOString().split('T')[0]], // Date as index
     });
 
-    return new Response(
-      `Ingestion complete. New: ${totalNew}, AI processed: ${aiProcessed}, Subrequests: ${subrequestCount}/50`,
-      { status: 200 }
-    );
+    const responseMessage = isFirstOfMonth
+      ? `Monthly archival + ingestion complete. New: ${totalNew}, AI processed: ${aiProcessed}, Subrequests: ${subrequestCount}/50`
+      : `Ingestion complete. New: ${totalNew}, AI processed: ${aiProcessed}, Subrequests: ${subrequestCount}/50`;
+
+    return new Response(responseMessage, { status: 200 });
   } catch (error) {
     console.error('Scheduled ingestion error:', {
       error: error instanceof Error ? error.message : String(error),

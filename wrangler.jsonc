@@ -56,12 +56,24 @@
     }
   ],
 
+  // R2 Storage for threat archives
+  // ⚠️ IMPORTANT: R2 requires active billing account and payment method
+  // See docs/R2_STORAGE.md for billing requirements and quota protection
+  // Create bucket: npx wrangler r2 bucket create threat-intel-archive
+  "r2_buckets": [
+    {
+      "binding": "THREAT_ARCHIVE",
+      "bucket_name": "threat-intel-archive"
+    }
+  ],
+
   // Environment variables
   // Production: ENVIRONMENT=production (debug endpoints disabled)
   // Local dev: Create .dev.vars with ENVIRONMENT=development (debug endpoints enabled)
   "vars": {
     "ENVIRONMENT": "production",
-    "AI_GATEWAY_ID": "threat-intel-dashboard"
+    "AI_GATEWAY_ID": "threat-intel-dashboard",
+    "R2_ARCHIVE_ENABLED": "true"
   },
 
   // Observability for logging and monitoring

@@ -74,16 +74,24 @@ npx wrangler kv namespace create CACHE --preview
 # Go to Cloudflare Dashboard → Workers & Pages → Analytics Engine
 # Click "Enable Analytics Engine"
 
-# 7. Initialize database
+# 7. (Optional) Enable R2 Storage for archival
+# ⚠️ R2 REQUIRES BILLING ACCOUNT - See docs/R2_STORAGE.md
+# Go to Cloudflare Dashboard → R2 → Purchase R2 (free tier available)
+# Add payment method (required even for free tier)
+# Create bucket: npx wrangler r2 bucket create threat-intel-archive
+# Run migration: npx wrangler d1 execute threat-intel-db --remote --file=./migrations/0002_add_r2_archival.sql
+
+# 8. Initialize database
 npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
 
-# 8. Deploy to Cloudflare Workers
+# 9. Deploy to Cloudflare Workers
 npm run deploy
 
-# 9. Wait for automatic data ingestion
+# 10. Wait for automatic data ingestion
 # The cron trigger runs automatically every 6 hours
 # First run happens within 6 hours of deployment
 # Check the dashboard after a few hours to see data appear
+# Monthly archival runs automatically on the 1st of each month (if R2 enabled)
 ```
 
 **Automated updates:** Native Workers cron trigger runs every 6 hours to fetch and analyze new threats automatically. No manual intervention required!
@@ -271,17 +279,32 @@ terminal: {
 
 ## 📊 Free Tier Limits
 
-| Resource | Free Tier | Estimated Usage |
-|----------|-----------|-----------------|
-| Workers Requests | 100k/day | ~5k/day |
-| Workers AI | 10k neurons/day | ~3k neurons/day |
-| D1 Reads | 5M/day | ~50k/day |
-| D1 Writes | 100k/day | ~500/day |
-| D1 Storage | 5GB | ~100MB |
-| Vectorize | Free (beta) | ✅ |
-| KV Reads | 100k/day | ~5k/day |
+| Resource | Free Tier | Estimated Usage | Notes |
+|----------|-----------|-----------------|-------|
+| Workers Requests | 100k/day | ~5k/day | ✅ Well within limits |
+| Workers AI | 10k neurons/day | ~3k neurons/day | ✅ 30-40% savings via AI Gateway |
+| D1 Reads | 5M/day | ~50k/day | ✅ Well within limits |
+| D1 Writes | 100k/day | ~500/day | ✅ Well within limits |
+| D1 Storage | 5GB | ~100MB-1GB | ✅ R2 archival extends lifespan |
+| Vectorize | Free (beta) | ✅ | ✅ No limits during beta |
+| KV Reads | 100k/day | ~5k/day | ✅ Well within limits |
+| **R2 Storage** | **10GB** | **~2-5GB** | **⚠️ Requires billing account** |
+| **R2 Class A Ops** | **1M/month** | **~1k/month** | **⚠️ Charges for overages** |
+| **R2 Class B Ops** | **10M/month** | **~5k/month** | **⚠️ Charges for overages** |
 
 **Result:** Stays well within free tier limits! 🎉
+
+### ⚠️ Important: R2 Billing Requirements
+
+**R2 Storage requires an active billing account and payment method**, even for the free tier. While the free tier is generous (10GB storage, 1M writes, 10M reads per month), **you WILL be charged for overages**.
+
+**Safety measures implemented:**
+- Hard limit at 80% of free tier (8GB, 800K operations)
+- KV-based quota tracking prevents accidental overages
+- Monthly archival cron job (automatic on 1st of month)
+- Conservative 90-day archive threshold
+
+**See** [`docs/R2_STORAGE.md`](./docs/R2_STORAGE.md) for complete billing requirements, quota protection, and emergency procedures.
 
 ## 🐛 Troubleshooting
 

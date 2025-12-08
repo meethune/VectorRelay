@@ -8,10 +8,12 @@ export interface Env {
   VECTORIZE_INDEX: VectorizeIndex;
   CACHE: KVNamespace;
   ANALYTICS: AnalyticsEngineDataset;
+  THREAT_ARCHIVE: R2Bucket; // R2 bucket for archiving old threats
   ENVIRONMENT?: string;
   API_SECRET?: string; // Secret key for authenticating management endpoints
   ASSETS: Fetcher; // Added for Workers static assets support
   AI_GATEWAY_ID: string; // AI Gateway ID for routing Workers AI calls through gateway
+  R2_ARCHIVE_ENABLED?: string; // 'true' | 'false' - Enable/disable R2 archival
 }
 
 export interface Threat {

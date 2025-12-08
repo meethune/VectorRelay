@@ -85,6 +85,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, params, env })
       return wrapResponse(errorResponse, { cacheMaxAge: 60 });
     }
 
+    // Check if threat is archived in R2
+    if (threat.archived && threat.r2_key) {
+      try {
+        console.log(`[Threat ${threatId}] Retrieving archived content from R2: ${threat.r2_key}`);
+        const { retrieveArchivedThreat } = await import('../../utils/r2-storage');
+        const archivedData = await retrieveArchivedThreat(env, threat.r2_key as string);
+
+        if (archivedData) {
+          // Merge archived content with D1 metadata
+          threat.content = archivedData.content;
+          console.log(`[Threat ${threatId}] Retrieved ${archivedData.content?.length || 0} bytes from R2`);
+        } else {
+          console.warn(`[Threat ${threatId}] Failed to retrieve from R2, using D1 metadata only`);
+        }
+      } catch (r2Error) {
+        console.error(`[Threat ${threatId}] R2 retrieval error:`, r2Error);
+        // Continue with D1 data only
+      }
+    }
+
     // Get IOCs
     const iocsResult = await env.DB.prepare('SELECT * FROM iocs WHERE threat_id = ?').bind(threatId).all();
 
