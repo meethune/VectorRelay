@@ -491,3 +491,10 @@ MIT License - feel free to use for personal or commercial projects
 **Built with ❤️ using Cloudflare's developer platform**
 
 Need help? Check the [Cloudflare Discord](https://discord.gg/cloudflaredev) or [Community Forum](https://community.cloudflare.com/)
+
+## Pre-commit Hooks
+
+This project uses Husky + lint-staged for automated code quality checks:
+- **ESLint** runs on staged code files
+- **Tests + Build** only run when code files (.ts, .tsx, .js, .jsx, .sql, .json) are changed
+- **Docs-only commits** skip tests and build for faster commits
