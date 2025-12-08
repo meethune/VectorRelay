@@ -630,7 +630,7 @@ Total: 14 AI subrequests
    - Impact: 2-5x faster queries, 5-10% storage reduction, simpler architecture
 
 8. **✅ Multi-Signal Similarity Scoring**
-   - Files: `functions/utils/similarity.ts` (NEW), `functions/api/threat/[id].ts`, `MULTI_SIGNAL_SIMILARITY.md` (NEW)
+   - Files: `functions/utils/similarity.ts` (NEW), `functions/api/threat/[id].ts`
    - Changes:
      - Replaced embeddings-only similarity with 5-signal approach
      - Signals: Semantic (40%), Content overlap (25%), IOC overlap (20%), Temporal (10%), Source diversity (5%)
