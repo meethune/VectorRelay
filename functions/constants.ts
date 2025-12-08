@@ -18,6 +18,15 @@
  * - Filter dropdowns
  * - Validation
  * - Database queries
+ *
+ * Expanded (2025-12-08): Added 7 new categories to reduce "other" misclassification
+ * - cloud_security: Cloud infrastructure attacks (AWS, Azure, GCP)
+ * - web_security: Web application vulnerabilities (XSS, SQLi, RCE)
+ * - zero_day: Zero-day exploits (critical priority)
+ * - cryptojacking: Cryptocurrency mining malware
+ * - iot_security: IoT/embedded device threats
+ * - disinformation: Fake news, influence operations
+ * - policy: Legal, regulatory, and policy updates
  */
 export const THREAT_CATEGORIES = [
   'ransomware',
@@ -29,6 +38,13 @@ export const THREAT_CATEGORIES = [
   'ddos',
   'supply_chain',
   'insider_threat',
+  'cloud_security',
+  'web_security',
+  'zero_day',
+  'cryptojacking',
+  'iot_security',
+  'disinformation',
+  'policy',
   'other',
 ] as const;
 
