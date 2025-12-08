@@ -306,14 +306,52 @@ export async function fetchCandidateThreats(
 
   // Fetch IOCs for all candidates in a single query (performance optimization)
   const threatIds = threatsResult.results.map((t: any) => t.id);
-  const placeholders = threatIds.map(() => '?').join(',');
+
+  // Security: Validate threat IDs before dynamic SQL placeholder construction
+  // Even though these come from database results, enforce defense-in-depth
+  if (threatIds.length > 100) {
+    // Hard cap to prevent excessive placeholders
+    threatIds.splice(100);
+  }
+
+  // Security: Validate all IDs match expected format (alphanumeric, 8-20 chars)
+  const validIds = threatIds.filter(id =>
+    typeof id === 'string' &&
+    id.length >= 8 &&
+    id.length <= 20 &&
+    /^[a-z0-9]+$/i.test(id)
+  );
+
+  if (validIds.length === 0) {
+    // No valid IDs - return candidates without IOC data
+    return threatsResult.results.map((t: any) => ({
+      id: t.id,
+      title: t.title,
+      content: t.content,
+      tldr: t.tldr,
+      category: t.category,
+      severity: t.severity,
+      published_at: t.published_at,
+      source: t.source,
+      iocs: {
+        ips: [],
+        domains: [],
+        cves: [],
+        hashes: [],
+        urls: [],
+        emails: [],
+      },
+    }));
+  }
+
+  const placeholders = validIds.map(() => '?').join(',');
 
   const iocsResult = await env.DB.prepare(
     `SELECT threat_id, ioc_type, ioc_value
      FROM iocs
      WHERE threat_id IN (${placeholders})`
   )
-    .bind(...threatIds)
+    .bind(...validIds)
     .all();
 
   // Group IOCs by threat_id

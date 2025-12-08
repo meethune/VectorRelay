@@ -87,8 +87,26 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     let params: any[] = [];
 
     if (mode === 'semantic' && threatIds.length > 0) {
+      // Security: Validate threat IDs and enforce hard cap to prevent SQL injection via array manipulation
+      if (threatIds.length > 50) {
+        threatIds = threatIds.slice(0, 50); // Hard cap at 50 IDs
+      }
+
+      // Security: Validate all IDs match expected format (alphanumeric, 8-20 chars)
+      // This prevents SQL injection even if the source is compromised
+      const validIds = threatIds.filter(id =>
+        typeof id === 'string' &&
+        id.length >= 8 &&
+        id.length <= 20 &&
+        /^[a-z0-9]+$/i.test(id)
+      );
+
+      if (validIds.length === 0) {
+        return Response.json({ threats: [], count: 0, mode: 'semantic', cached: cacheHit });
+      }
+
       // Fetch threats by IDs from semantic search
-      const placeholders = threatIds.map(() => '?').join(',');
+      const placeholders = validIds.map(() => '?').join(',');
       sqlQuery = `
         SELECT
           t.*,
@@ -103,7 +121,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         WHERE t.id IN (${placeholders})
         ORDER BY t.published_at DESC
       `;
-      params = threatIds;
+      params = validIds;
     } else {
       // Keyword search
       const searchTerm = `%${query}%`;
