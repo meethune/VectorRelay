@@ -1,6 +1,6 @@
 // Test AI processing for a single threat
-import type { Env, Threat } from '../types';
-import { validateApiKey, unauthorizedResponse } from '../utils/auth';
+import type { Env, Threat } from '../../types';
+import { validateApiKey, unauthorizedResponse } from '../../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   // Security: Disable test endpoint in production

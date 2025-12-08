@@ -1,8 +1,8 @@
 // Process AI analysis for threats that don't have summaries yet
 // Requires authentication via API key
-import type { Env, Threat } from '../types';
-import { analyzeArticle, generateEmbedding } from '../utils/ai-processor';
-import { validateApiKey, unauthorizedResponse } from '../utils/auth';
+import type { Env, Threat } from '../../types';
+import { analyzeArticle, generateEmbedding } from '../../utils/ai-processor';
+import { validateApiKey, unauthorizedResponse } from '../../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   // Security: Disable management endpoints in production

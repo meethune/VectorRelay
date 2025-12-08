@@ -1,8 +1,8 @@
 // Manual trigger endpoint for feed ingestion
-// Access at: /api/trigger-ingestion
+// Access at: /api/debug/trigger-ingestion
 // Requires authentication via API key
-import type { Env } from '../types';
-import { validateApiKey, unauthorizedResponse } from '../utils/auth';
+import type { Env } from '../../types';
+import { validateApiKey, unauthorizedResponse } from '../../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   // Security: Disable management endpoints in production
@@ -27,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     console.log('Manual trigger: Starting feed ingestion...');
 
     // Import and run the scheduled function logic
-    const { onSchedule } = await import('../scheduled');
+    const { onSchedule } = await import('../../scheduled');
 
     // Call the scheduled function
     await onSchedule({ env });

@@ -1,6 +1,6 @@
 // Debug endpoint to see detailed ingestion progress
-import type { Env, FeedSource } from '../types';
-import { validateApiKey, unauthorizedResponse } from '../utils/auth';
+import type { Env, FeedSource } from '../../types';
+import { validateApiKey, unauthorizedResponse } from '../../utils/auth';
 
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   // Security: Disable debug endpoint in production
@@ -48,7 +48,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
           logs.push(`First 200 chars: ${xml.substring(0, 200)}...`);
 
           // Try to parse it
-          const { parseFeed } = await import('../utils/rss-parser');
+          const { parseFeed } = await import('../../utils/rss-parser');
           const items = await parseFeed(xml, testFeed.type);
           logs.push(`Parsed ${items.length} items from feed`);
 
