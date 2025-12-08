@@ -1,0 +1,8 @@
+# Run lint-staged (linting on staged files)
+npx lint-staged
+
+# Run all tests to ensure nothing broke
+npm test
+
+# Verify build succeeds (as per CLAUDE.md instructions)
+npm run build

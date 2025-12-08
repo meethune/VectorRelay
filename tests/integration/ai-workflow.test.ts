@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Env, Threat, AIAnalysis } from '../../functions/types';
+import { createMockEnv, mockThreat, mockAIAnalysis } from '../fixtures';
 
 // Mock AI processor
 vi.mock('../../functions/utils/ai-processor', () => ({
@@ -10,67 +10,13 @@ vi.mock('../../functions/utils/ai-processor', () => ({
 import { analyzeArticle, generateEmbedding } from '../../functions/utils/ai-processor';
 
 describe('Integration: AI Processing Workflow', () => {
-  function createMockEnv(): Env {
-    return {
-      DB: {
-        prepare: vi.fn().mockReturnThis(),
-        bind: vi.fn().mockReturnThis(),
-        run: vi.fn().mockResolvedValue({ success: true }),
-        first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      } as any,
-      AI: {} as any,
-      VECTORIZE_INDEX: {
-        insert: vi.fn().mockResolvedValue({}),
-      } as any,
-      CACHE: {} as any,
-      ANALYTICS: {} as any,
-      THREAT_ARCHIVE: {} as any,
-      ASSETS: {} as any,
-      AI_GATEWAY_ID: 'test-gateway-id',
-    } as any;
-  }
-
-  const mockThreat: Threat = {
-    id: 'threat-test-123',
-    source: 'Test Blog',
-    title: 'Critical APT Campaign Discovered',
-    url: 'https://example.com/apt-campaign',
-    content: 'Detailed analysis of a sophisticated APT campaign targeting financial institutions...',
-    published_at: 1704110400,
-    fetched_at: 1704110400,
-    raw_data: '{}',
-  };
-
-  const mockAnalysis: AIAnalysis = {
-    tldr: 'APT group targets financial sector with sophisticated malware',
-    key_points: [
-      'New APT campaign discovered',
-      'Targets financial institutions',
-      'Uses zero-day exploits',
-    ],
-    category: 'apt',
-    severity: 'critical',
-    affected_sectors: ['Finance', 'Banking'],
-    threat_actors: ['APT29', 'Cozy Bear'],
-    iocs: {
-      ips: ['192.168.1.100', '10.0.0.50'],
-      domains: ['malicious-site.com', 'evil-domain.net'],
-      cves: ['CVE-2024-1234'],
-      hashes: ['abc123def456'],
-      urls: ['https://evil.com/payload'],
-      emails: ['phishing@evil.com'],
-    },
-    model_strategy: 'tri-model',
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('AI Analysis Processing', () => {
     it('should complete full AI processing workflow', async () => {
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
       const env = createMockEnv();
@@ -91,12 +37,12 @@ describe('Integration: AI Processing Workflow', () => {
       );
       expect(env.DB.bind).toHaveBeenCalledWith(
         mockThreat.id,
-        mockAnalysis.tldr,
-        JSON.stringify(mockAnalysis.key_points),
-        mockAnalysis.category,
-        mockAnalysis.severity,
-        JSON.stringify(mockAnalysis.affected_sectors),
-        JSON.stringify(mockAnalysis.threat_actors),
+        mockAIAnalysis.tldr,
+        JSON.stringify(mockAIAnalysis.key_points),
+        mockAIAnalysis.category,
+        mockAIAnalysis.severity,
+        JSON.stringify(mockAIAnalysis.affected_sectors),
+        JSON.stringify(mockAIAnalysis.threat_actors),
         0.85, // confidence score
         'tri-model',
         expect.any(Number) // timestamp
@@ -116,8 +62,8 @@ describe('Integration: AI Processing Workflow', () => {
           values: expect.any(Array),
           metadata: {
             title: mockThreat.title,
-            category: mockAnalysis.category,
-            severity: mockAnalysis.severity,
+            category: mockAIAnalysis.category,
+            severity: mockAIAnalysis.severity,
             published_at: mockThreat.published_at,
           },
         },
@@ -125,7 +71,7 @@ describe('Integration: AI Processing Workflow', () => {
     });
 
     it('should store all IOC types correctly', async () => {
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
       const env = createMockEnv();
@@ -140,12 +86,12 @@ describe('Integration: AI Processing Workflow', () => {
       );
 
       const expectedIOCCount =
-        mockAnalysis.iocs.ips.length +
-        mockAnalysis.iocs.domains.length +
-        mockAnalysis.iocs.cves.length +
-        mockAnalysis.iocs.hashes.length +
-        mockAnalysis.iocs.urls.length +
-        mockAnalysis.iocs.emails.length;
+        mockAIAnalysis.iocs.ips.length +
+        mockAIAnalysis.iocs.domains.length +
+        mockAIAnalysis.iocs.cves.length +
+        mockAIAnalysis.iocs.hashes.length +
+        mockAIAnalysis.iocs.urls.length +
+        mockAIAnalysis.iocs.emails.length;
 
       expect(iocBindCalls.length).toBe(expectedIOCCount);
     });
@@ -176,7 +122,7 @@ describe('Integration: AI Processing Workflow', () => {
     });
 
     it('should skip duplicate IOCs silently', async () => {
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
       const env = createMockEnv();
@@ -192,7 +138,7 @@ describe('Integration: AI Processing Workflow', () => {
     });
 
     it('should generate embedding from threat content and analysis', async () => {
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
       const env = createMockEnv();
@@ -209,12 +155,12 @@ describe('Integration: AI Processing Workflow', () => {
 
       const embeddingText = (generateEmbedding as any).mock.calls[0][1];
       expect(embeddingText).toContain(mockThreat.title);
-      expect(embeddingText).toContain(mockAnalysis.tldr);
-      expect(embeddingText).toContain(mockAnalysis.key_points[0]);
+      expect(embeddingText).toContain(mockAIAnalysis.tldr);
+      expect(embeddingText).toContain(mockAIAnalysis.key_points[0]);
     });
 
     it('should handle embedding generation failure', async () => {
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(null);
 
       const env = createMockEnv();
@@ -235,7 +181,7 @@ describe('Integration: AI Processing Workflow', () => {
         { ...mockThreat, id: 'threat-3' },
       ];
 
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
       const env = createMockEnv();
@@ -270,9 +216,9 @@ describe('Integration: AI Processing Workflow', () => {
       ];
 
       (analyzeArticle as any)
-        .mockResolvedValueOnce(mockAnalysis)
+        .mockResolvedValueOnce(mockAIAnalysis)
         .mockRejectedValueOnce(new Error('AI service error'))
-        .mockResolvedValueOnce(mockAnalysis);
+        .mockResolvedValueOnce(mockAIAnalysis);
 
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
@@ -302,7 +248,7 @@ describe('Integration: AI Processing Workflow', () => {
 
   describe('Neuron Tracking', () => {
     it('should track neuron usage when tracker provided', async () => {
-      (analyzeArticle as any).mockResolvedValue(mockAnalysis);
+      (analyzeArticle as any).mockResolvedValue(mockAIAnalysis);
       (generateEmbedding as any).mockResolvedValue(new Array(768).fill(0.1));
 
       const env = createMockEnv();

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Env, FeedSource, Threat } from '../../functions/types';
+import type { FeedSource } from '../../functions/types';
+import { createMockEnv, mockFeedSource, mockRSSFeedXML } from '../fixtures';
 
 // Mock all external dependencies
 vi.mock('../../functions/utils/rss-parser', () => ({
@@ -11,38 +12,6 @@ vi.mock('../../functions/utils/rss-parser', () => ({
 import { parseFeed, parseDate, generateId } from '../../functions/utils/rss-parser';
 
 describe('Integration: Feed Ingestion Workflow', () => {
-  function createMockEnv(): Env {
-    return {
-      DB: {
-        prepare: vi.fn().mockReturnThis(),
-        bind: vi.fn().mockReturnThis(),
-        run: vi.fn().mockResolvedValue({ success: true }),
-        first: vi.fn().mockResolvedValue(null),
-        all: vi.fn().mockResolvedValue({ results: [] }),
-      } as any,
-      AI: {} as any,
-      VECTORIZE_INDEX: {} as any,
-      CACHE: {} as any,
-      ANALYTICS: {} as any,
-      THREAT_ARCHIVE: {} as any,
-      ASSETS: {} as any,
-      AI_GATEWAY_ID: 'test-gateway-id',
-    } as any;
-  }
-
-  const mockFeed: FeedSource = {
-    id: 1,
-    name: 'Test Security Blog',
-    url: 'https://example.com/feed.xml',
-    type: 'rss',
-    enabled: 1,
-    last_fetch: null,
-    last_success: null,
-    fetch_interval: 21600,
-    error_count: 0,
-    last_error: null,
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
@@ -85,10 +54,10 @@ describe('Integration: Feed Ingestion Workflow', () => {
       // Import processFeed dynamically to get fresh module
       const { processFeed } = await import('./helpers/ingestion-helpers');
 
-      const result = await processFeed(env, mockFeed);
+      const result = await processFeed(env, mockFeedSource);
 
       expect(global.fetch).toHaveBeenCalledWith(
-        mockFeed.url,
+        mockFeedSource.url,
         expect.objectContaining({
           headers: expect.objectContaining({
             'User-Agent': 'ThreatIntelDashboard/1.0',
@@ -123,7 +92,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
       (env.DB.first as any).mockResolvedValue({ id: 'existing-threat-id' });
 
       const { processFeed } = await import('./helpers/ingestion-helpers');
-      const result = await processFeed(env, mockFeed);
+      const result = await processFeed(env, mockFeedSource);
 
       expect(result.processed).toBe(0);
       expect(result.newThreats).toBe(0);
@@ -151,7 +120,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
       (env.DB.first as any).mockResolvedValue({ id: 'other-id' });
 
       const { processFeed } = await import('./helpers/ingestion-helpers');
-      const result = await processFeed(env, mockFeed);
+      const result = await processFeed(env, mockFeedSource);
 
       expect(env.DB.prepare).toHaveBeenCalledWith(
         'SELECT id FROM threats WHERE id = ? OR url = ?'
@@ -170,7 +139,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
       const env = createMockEnv();
       const { processFeed } = await import('./helpers/ingestion-helpers');
 
-      await processFeed(env, mockFeed);
+      await processFeed(env, mockFeedSource);
 
       expect(env.DB.prepare).toHaveBeenCalledWith(
         expect.stringContaining('UPDATE feed_sources')
@@ -190,7 +159,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
       const env = createMockEnv();
       const { processFeed } = await import('./helpers/ingestion-helpers');
 
-      const result = await processFeed(env, mockFeed);
+      const result = await processFeed(env, mockFeedSource);
 
       expect(result.processed).toBe(0);
       expect(result.newThreats).toBe(0);
@@ -205,7 +174,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
     it('should skip feeds within rate limit window', async () => {
       const recentFetch = Math.floor(Date.now() / 1000) - 3600; // 1 hour ago
       const feedWithRecentFetch: FeedSource = {
-        ...mockFeed,
+        ...mockFeedSource,
         last_fetch: recentFetch,
         fetch_interval: 21600, // 6 hours
       };
@@ -240,14 +209,14 @@ describe('Integration: Feed Ingestion Workflow', () => {
       const env = createMockEnv();
       const { processFeed } = await import('./helpers/ingestion-helpers');
 
-      const result = await processFeed(env, mockFeed);
+      const result = await processFeed(env, mockFeedSource);
 
       expect(result.processed).toBeLessThanOrEqual(50);
     });
 
     it('should skip non-RSS/Atom feed types', async () => {
       const jsonFeed: FeedSource = {
-        ...mockFeed,
+        ...mockFeedSource,
         type: 'json' as any,
       };
 
@@ -264,9 +233,9 @@ describe('Integration: Feed Ingestion Workflow', () => {
   describe('Parallel Feed Processing', () => {
     it('should process multiple feeds in parallel', async () => {
       const feeds: FeedSource[] = [
-        { ...mockFeed, id: 1, name: 'Feed 1', url: 'https://feed1.com/rss' },
-        { ...mockFeed, id: 2, name: 'Feed 2', url: 'https://feed2.com/rss' },
-        { ...mockFeed, id: 3, name: 'Feed 3', url: 'https://feed3.com/rss' },
+        { ...mockFeedSource, id: 1, name: 'Feed 1', url: 'https://feed1.com/rss' },
+        { ...mockFeedSource, id: 2, name: 'Feed 2', url: 'https://feed2.com/rss' },
+        { ...mockFeedSource, id: 3, name: 'Feed 3', url: 'https://feed3.com/rss' },
       ];
 
       (global.fetch as any).mockResolvedValue({
@@ -290,9 +259,9 @@ describe('Integration: Feed Ingestion Workflow', () => {
 
     it('should continue processing other feeds when one fails', async () => {
       const feeds: FeedSource[] = [
-        { ...mockFeed, id: 1, name: 'Feed 1', url: 'https://feed1.com/rss' },
-        { ...mockFeed, id: 2, name: 'Feed 2', url: 'https://feed2.com/rss' },
-        { ...mockFeed, id: 3, name: 'Feed 3', url: 'https://feed3.com/rss' },
+        { ...mockFeedSource, id: 1, name: 'Feed 1', url: 'https://feed1.com/rss' },
+        { ...mockFeedSource, id: 2, name: 'Feed 2', url: 'https://feed2.com/rss' },
+        { ...mockFeedSource, id: 3, name: 'Feed 3', url: 'https://feed3.com/rss' },
       ];
 
       (global.fetch as any)
@@ -336,7 +305,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
       const env = createMockEnv();
       const { processFeed } = await import('./helpers/ingestion-helpers');
 
-      await processFeed(env, mockFeed);
+      await processFeed(env, mockFeedSource);
 
       expect(env.DB.prepare).toHaveBeenCalledWith(
         expect.stringContaining('INSERT INTO threats')
@@ -378,7 +347,7 @@ describe('Integration: Feed Ingestion Workflow', () => {
       );
 
       const { processFeed } = await import('./helpers/ingestion-helpers');
-      const result = await processFeed(env, mockFeed);
+      const result = await processFeed(env, mockFeedSource);
 
       // Should not throw, should handle gracefully
       expect(result.processed).toBe(0);
