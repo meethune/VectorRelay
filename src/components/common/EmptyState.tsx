@@ -60,7 +60,7 @@ export function EmptyState({
   description,
   className = '',
 }: EmptyStateProps) {
-  const { theme, formatText } = useTheme();
+  const { theme } = useTheme();
   const isTerminal = theme === 'terminal';
 
   return (

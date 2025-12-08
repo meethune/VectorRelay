@@ -46,7 +46,7 @@ interface ThreatsResponse {
 }
 
 export default function ThreatList({ searchQuery, filters, onThreatClick }: ThreatListProps) {
-  const { theme, formatText } = useTheme();
+  const { theme } = useTheme();
   const isTerminal = theme === 'terminal';
   const [threats, setThreats] = useState<Threat[]>([]);
   const [loading, setLoading] = useState(true);

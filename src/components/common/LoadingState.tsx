@@ -40,7 +40,7 @@ interface LoadingStateProps {
  * Displays a themed loading state with an animated indicator
  */
 export function LoadingState({ message, className = '' }: LoadingStateProps) {
-  const { theme, formatText } = useTheme();
+  const { theme } = useTheme();
   const isTerminal = theme === 'terminal';
 
   // Default messages based on theme

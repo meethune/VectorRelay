@@ -23,6 +23,10 @@ interface FeedSource {
   enabled: number;
 }
 
+interface SourcesResponse {
+  sources: FeedSource[];
+}
+
 export default function SearchBar({
   searchQuery,
   onSearchChange,
@@ -47,10 +51,10 @@ export default function SearchBar({
             if (!response.ok) {
               throw new Error('Failed to fetch sources');
             }
-            return response.json();
+            return response.json() as Promise<SourcesResponse>;
           },
           { ttl: CacheTTL.ONE_HOUR, keyPrefix: 'threat-intel' }
-        );
+        ) as SourcesResponse;
 
         setSources(data.sources || []);
       } catch (error) {
