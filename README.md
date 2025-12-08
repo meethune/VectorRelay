@@ -76,6 +76,9 @@ npx wrangler kv namespace create CACHE --preview
 
 # 7. (Optional) Enable R2 Storage for archival
 # ⚠️ R2 REQUIRES BILLING ACCOUNT - See docs/R2_STORAGE.md
+# NOTE: R2 archival is ENABLED BY DEFAULT (R2_ARCHIVE_ENABLED=true in wrangler.jsonc)
+# To disable: Set R2_ARCHIVE_ENABLED=false in Cloudflare Dashboard or wrangler.jsonc
+#
 # Go to Cloudflare Dashboard → R2 → Purchase R2 (free tier available)
 # Add payment method (required even for free tier)
 # Create bucket: npx wrangler r2 bucket create threat-intel-archive
@@ -298,11 +301,26 @@ terminal: {
 
 **R2 Storage requires an active billing account and payment method**, even for the free tier. While the free tier is generous (10GB storage, 1M writes, 10M reads per month), **you WILL be charged for overages**.
 
+**⚙️ R2 Archival is ENABLED BY DEFAULT** (`R2_ARCHIVE_ENABLED=true` in `wrangler.jsonc`)
+
+**To disable R2 archival:**
+```bash
+# Option 1: Via Cloudflare Dashboard (no redeploy needed)
+# Workers & Pages → your-worker → Settings → Variables
+# Add: R2_ARCHIVE_ENABLED = false
+
+# Option 2: Edit wrangler.jsonc and redeploy
+"vars": {
+  "R2_ARCHIVE_ENABLED": "false"  // Change to false
+}
+```
+
 **Safety measures implemented:**
 - Hard limit at 80% of free tier (8GB, 800K operations)
 - KV-based quota tracking prevents accidental overages
 - Monthly archival cron job (automatic on 1st of month)
 - Conservative 90-day archive threshold
+- Can be disabled via environment variable
 
 **See** [`docs/R2_STORAGE.md`](./docs/R2_STORAGE.md) for complete billing requirements, quota protection, and emergency procedures.
 

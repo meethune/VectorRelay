@@ -205,15 +205,63 @@ threats/2025/02/xyz789ghi.json
 
 ---
 
+## 🔧 Enabling/Disabling R2 Archival
+
+### ⚙️ R2 Archival is ENABLED BY DEFAULT
+
+The application ships with `R2_ARCHIVE_ENABLED=true` in `wrangler.jsonc`. This means archival will start working automatically after you:
+1. Enable R2 in your Cloudflare account
+2. Create the R2 bucket
+3. Deploy the worker
+
+### How to Disable R2 Archival
+
+**Option 1: Via Cloudflare Dashboard (Recommended - No Redeploy)**
+```
+1. Go to Cloudflare Dashboard
+2. Workers & Pages → threat-intel-dashboard → Settings → Variables
+3. Click "Add variable"
+4. Name: R2_ARCHIVE_ENABLED
+5. Value: false
+6. Click "Save"
+```
+
+**Option 2: Edit wrangler.jsonc (Requires Redeploy)**
+```jsonc
+"vars": {
+  "ENVIRONMENT": "production",
+  "AI_GATEWAY_ID": "threat-intel-dashboard",
+  "R2_ARCHIVE_ENABLED": "false"  // ← Change to false
+}
+```
+Then redeploy: `npm run deploy`
+
+### When to Disable Archival
+
+Consider disabling R2 archival if:
+- ✅ Approaching 80% quota limit (safety threshold)
+- ✅ Testing without wanting to use R2 operations
+- ✅ Temporarily stopping archival to diagnose issues
+- ✅ Want to keep all data in D1 (not recommended long-term)
+
+### Re-enabling Archival
+
+Simply set `R2_ARCHIVE_ENABLED=true` in the dashboard or wrangler.jsonc.
+
+---
+
 ## 🚨 Emergency Procedures
 
 ### If Approaching Quota Limits
 
 1. **Stop New Archives**
    ```bash
-   # Update environment variable
-   npx wrangler secret put R2_ARCHIVE_ENABLED
-   # Enter: false
+   # Via Dashboard (immediate):
+   # Set R2_ARCHIVE_ENABLED = false
+
+   # Via CLI (requires redeploy):
+   # Edit wrangler.jsonc: "R2_ARCHIVE_ENABLED": "false"
+   npm run deploy
    ```
 
 2. **Delete Old Archives**
@@ -281,12 +329,13 @@ Before enabling R2 storage:
 - [ ] Set up billing alerts (Dashboard → Billing → Alerts)
 - [ ] Enable R2 in Cloudflare Dashboard
 - [ ] Create R2 bucket: `threat-intel-archive`
-- [ ] Implement quota tracking in KV
-- [ ] Add pre-flight quota checks to all R2 writes
-- [ ] Set up monthly usage monitoring
+- [ ] Run database migration: `migrations/0002_add_r2_archival.sql`
+- [ ] Deploy with default settings (R2_ARCHIVE_ENABLED=true is already set)
+- [ ] Verify quota tracking endpoint: `/api/archive`
 - [ ] Document emergency procedures for team
-- [ ] Test quota enforcement with dummy data
-- [ ] Deploy with R2_ARCHIVE_ENABLED=true
+- [ ] Monitor first archival run (1st of next month)
+
+**Note:** Quota tracking, pre-flight checks, and monthly monitoring are already implemented. R2 archival is **enabled by default** via `R2_ARCHIVE_ENABLED=true` in `wrangler.jsonc`.
 
 ---
 
