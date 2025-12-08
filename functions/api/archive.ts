@@ -9,7 +9,7 @@
 import type { Env } from '../types';
 import { getR2Stats } from '../utils/r2-storage';
 import { archiveOldThreats } from '../utils/archiver';
-import { isDevEnvironment, securityMiddleware, wrapResponse } from '../utils/security';
+import { securityMiddleware, wrapResponse } from '../utils/security';
 
 /**
  * GET /api/archive
@@ -81,12 +81,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
  * Manually trigger archival process (development/admin only)
  */
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
-  // Only allow in development or with API key
-  if (!isDevEnvironment(env)) {
+  // Security: Disable manual archival in production
+  // Archival happens automatically on 1st of month via cron job
+  if (env.ENVIRONMENT === 'production') {
     return Response.json(
       {
-        error: 'Archival can only be triggered manually in development mode',
-        message: 'Use R2_ARCHIVE_ENABLED=true and wait for monthly cron job in production',
+        error: 'Manual archival disabled in production',
+        message: 'Archival runs automatically on the 1st of each month via cron trigger',
       },
       { status: 403 }
     );
