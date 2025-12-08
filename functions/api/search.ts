@@ -3,6 +3,17 @@ import type { Env } from '../types';
 import { semanticSearch } from '../utils/ai-processor';
 import { securityMiddleware, wrapResponse, validateSearchQuery } from '../utils/security';
 
+// Simple hash function for cache keys
+function hashQuery(query: string): string {
+  let hash = 0;
+  for (let i = 0; i < query.length; i++) {
+    const char = query.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
   const query = url.searchParams.get('q');
@@ -41,14 +52,33 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   try {
     let threatIds: string[] = [];
+    let cacheHit = false;
 
     if (mode === 'semantic') {
-      // Semantic search using embeddings
-      const results = await semanticSearch(env, query, limit);
-      threatIds = results.map((r) => r.id);
+      // Check cache first to avoid AI inference on repeat queries
+      const cacheKey = `search:semantic:${hashQuery(query)}:limit:${limit}`;
+      const cached = await env.CACHE.get(cacheKey);
+
+      if (cached) {
+        // Cache hit - use cached results
+        const cachedResults = JSON.parse(cached);
+        threatIds = cachedResults.map((r: any) => r.id);
+        cacheHit = true;
+        console.log(`Cache hit for semantic search: "${query}" (${threatIds.length} results)`);
+      } else {
+        // Cache miss - perform semantic search using embeddings
+        const results = await semanticSearch(env, query, limit);
+        threatIds = results.map((r) => r.id);
+
+        // Cache the results for 5 minutes
+        await env.CACHE.put(cacheKey, JSON.stringify(results), {
+          expirationTtl: 300, // 5 minutes
+        });
+        console.log(`Cache miss for semantic search: "${query}" (${threatIds.length} results cached)`);
+      }
 
       if (threatIds.length === 0) {
-        return Response.json({ threats: [], count: 0, mode: 'semantic' });
+        return Response.json({ threats: [], count: 0, mode: 'semantic', cached: cacheHit });
       }
     }
 
@@ -117,6 +147,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       count: threats.length,
       mode,
       query,
+      cached: mode === 'semantic' ? cacheHit : undefined,
     });
 
     // Wrap response with security headers and cache

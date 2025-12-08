@@ -1,0 +1,142 @@
+[
+  {
+    "article": {
+      "id": "test-ransomware-1",
+      "title": "New Conti Ransomware Variant Exploits Log4Shell Vulnerability",
+      "content": "Security researchers have discovered a new variant of the Conti ransomware that actively exploits the Log4Shell vulnerability (CVE-2021-44228) to target healthcare organizations. The attackers are using IP address 203.0.113.5 as a command and control server, with the malicious domain evil-c2.com. The ransomware binary has the SHA256 hash abc123def456789012345678901234567890123456789012345678901234. Organizations are urged to patch immediately.",
+      "source": "BleepingComputer",
+      "url": "https://example.com/test-ransomware-1",
+      "published_at": 1701907200,
+      "fetched_at": 1701907200,
+      "raw_data": "{}"
+    },
+    "expectedAnalysis": {
+      "category": "ransomware",
+      "severity": "critical",
+      "tldr": "New Conti ransomware variant exploits Log4Shell to target healthcare via C2 infrastructure",
+      "affected_sectors": ["healthcare"],
+      "threat_actors": ["Conti"],
+      "iocs": {
+        "ips": ["203.0.113.5"],
+        "domains": ["evil-c2.com"],
+        "cves": ["CVE-2021-44228"],
+        "hashes": ["abc123def456789012345678901234567890123456789012345678901234"],
+        "urls": [],
+        "emails": []
+      },
+      "key_points_count": 3
+    }
+  },
+  {
+    "article": {
+      "id": "test-apt-1",
+      "title": "APT28 Targets European Government Agencies with Spearphishing Campaign",
+      "content": "The Russia-linked APT28 group has launched a sophisticated spearphishing campaign targeting European government agencies. The campaign uses malicious emails from attacker@malicious-domain.ru to deliver malware hosted at https://malicious-server.com/payload.exe. The malware communicates with C2 servers at 198.51.100.42 and backup-c2.net. No CVEs are being exploited - this is pure social engineering.",
+      "source": "The Hacker News",
+      "url": "https://example.com/test-apt-1",
+      "published_at": 1701993600,
+      "fetched_at": 1701993600,
+      "raw_data": "{}"
+    },
+    "expectedAnalysis": {
+      "category": "apt",
+      "severity": "high",
+      "tldr": "APT28 conducts spearphishing campaign against European government agencies using social engineering",
+      "affected_sectors": ["government"],
+      "threat_actors": ["APT28"],
+      "iocs": {
+        "ips": ["198.51.100.42"],
+        "domains": ["malicious-domain.ru", "backup-c2.net", "malicious-server.com"],
+        "cves": [],
+        "hashes": [],
+        "urls": ["https://malicious-server.com/payload.exe"],
+        "emails": ["attacker@malicious-domain.ru"]
+      },
+      "key_points_count": 3
+    }
+  },
+  {
+    "article": {
+      "id": "test-vulnerability-1",
+      "title": "Critical Zero-Day in Microsoft Exchange Server Disclosed",
+      "content": "Microsoft has disclosed a critical zero-day vulnerability CVE-2024-99999 in Exchange Server that allows remote code execution. The vulnerability affects Exchange Server 2019 and 2016. No active exploitation has been observed yet, and no IOCs are available. Organizations should apply the security update immediately. This is an informational advisory with no confirmed attacks.",
+      "source": "Microsoft Security Blog",
+      "url": "https://example.com/test-vulnerability-1",
+      "published_at": 1702080000,
+      "fetched_at": 1702080000,
+      "raw_data": "{}"
+    },
+    "expectedAnalysis": {
+      "category": "vulnerability",
+      "severity": "critical",
+      "tldr": "Critical zero-day CVE-2024-99999 in Microsoft Exchange Server requires immediate patching",
+      "affected_sectors": ["technology", "enterprise"],
+      "threat_actors": [],
+      "iocs": {
+        "ips": [],
+        "domains": [],
+        "cves": ["CVE-2024-99999"],
+        "hashes": [],
+        "urls": [],
+        "emails": []
+      },
+      "key_points_count": 3
+    }
+  },
+  {
+    "article": {
+      "id": "test-phishing-1",
+      "title": "Widespread Phishing Campaign Mimics Banking Notifications",
+      "content": "A large-scale phishing campaign is targeting banking customers with fake notifications from phishing-site.com. The emails claim to be from major banks and direct users to enter credentials. This is a medium severity threat affecting the financial sector. The campaign uses multiple phishing domains including fake-bank1.com and fake-bank2.com.",
+      "source": "PhishTank",
+      "url": "https://example.com/test-phishing-1",
+      "published_at": 1702166400,
+      "fetched_at": 1702166400,
+      "raw_data": "{}"
+    },
+    "expectedAnalysis": {
+      "category": "phishing",
+      "severity": "medium",
+      "tldr": "Large-scale phishing campaign targets banking customers with fake credential harvesting sites",
+      "affected_sectors": ["finance"],
+      "threat_actors": [],
+      "iocs": {
+        "ips": [],
+        "domains": ["phishing-site.com", "fake-bank1.com", "fake-bank2.com"],
+        "cves": [],
+        "hashes": [],
+        "urls": [],
+        "emails": []
+      },
+      "key_points_count": 3
+    }
+  },
+  {
+    "article": {
+      "id": "test-informational-1",
+      "title": "Security Best Practices for Cloud Infrastructure",
+      "content": "This article provides general guidance on securing cloud infrastructure. It covers topics like multi-factor authentication, encryption, and network segmentation. No specific threats, vulnerabilities, or IOCs are discussed. This is purely educational content for security teams.",
+      "source": "Cloud Security Alliance",
+      "url": "https://example.com/test-informational-1",
+      "published_at": 1702252800,
+      "fetched_at": 1702252800,
+      "raw_data": "{}"
+    },
+    "expectedAnalysis": {
+      "category": "other",
+      "severity": "info",
+      "tldr": "Educational article on cloud security best practices",
+      "affected_sectors": ["technology"],
+      "threat_actors": [],
+      "iocs": {
+        "ips": [],
+        "domains": [],
+        "cves": [],
+        "hashes": [],
+        "urls": [],
+        "emails": []
+      },
+      "key_points_count": 3
+    }
+  }
+]

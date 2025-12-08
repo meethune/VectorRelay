@@ -1,6 +1,39 @@
-// API: Get single threat details with IOCs
+// API: Get single threat details with IOCs and multi-signal similarity
 import type { Env } from '../../types';
 import { securityMiddleware, wrapResponse, validateThreatId } from '../../utils/security';
+import {
+  fetchCandidateThreats,
+  calculateMultiSignalSimilarity,
+  type ThreatForSimilarity,
+} from '../../utils/similarity';
+
+/**
+ * Helper function to group IOCs by type
+ */
+function groupIOCsByType(iocs: any[]): ThreatForSimilarity['iocs'] {
+  const grouped: ThreatForSimilarity['iocs'] = {
+    ips: [],
+    domains: [],
+    cves: [],
+    hashes: [],
+    urls: [],
+    emails: [],
+  };
+
+  for (const ioc of iocs) {
+    const type = ioc.ioc_type;
+    const value = ioc.ioc_value;
+
+    if (type === 'ip') grouped.ips!.push(value);
+    else if (type === 'domain') grouped.domains!.push(value);
+    else if (type === 'cve') grouped.cves!.push(value);
+    else if (type === 'hash') grouped.hashes!.push(value);
+    else if (type === 'url') grouped.urls!.push(value);
+    else if (type === 'email') grouped.emails!.push(value);
+  }
+
+  return grouped;
+}
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, params, env }) => {
   // Apply security middleware with stricter rate limit (AI processing expensive)
@@ -64,28 +97,66 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, params, env })
       iocs: iocsResult.results,
     };
 
-    // Find similar threats using vectorize
+    // Find similar threats using multi-signal scoring
     try {
-      const embeddingText = `${threat.title} ${threat.tldr}`;
-      const embedding = await env.AI.run('@cf/baai/bge-large-en-v1.5', {
-        text: embeddingText,
-      });
+      // Build source threat object for similarity calculation
+      const sourceThreat: ThreatForSimilarity = {
+        id: threat.id as string,
+        title: threat.title as string,
+        content: threat.content as string,
+        tldr: threat.tldr as string | undefined,
+        category: threat.category as string,
+        severity: threat.severity as string,
+        published_at: threat.published_at as number,
+        source: threat.source as string,
+        iocs: groupIOCsByType(iocsResult.results),
+      };
 
-      if (embedding && 'data' in embedding && Array.isArray(embedding.data)) {
-        const similar = await env.VECTORIZE_INDEX.query(embedding.data[0], {
-          topK: 6, // Get 6 to exclude self
-          returnMetadata: true,
+      // Step 1: Fetch candidate threats (same category, last 90 days)
+      // Uses optimized idx_summaries_category_generated index
+      const candidates = await fetchCandidateThreats(env, sourceThreat, 50);
+
+      if (candidates.length > 0) {
+        // Step 2: Get semantic similarity scores from Vectorize (signal 1)
+        const semanticScores = new Map<string, number>();
+
+        const embeddingText = `${threat.title} ${threat.tldr || ''}`;
+        const embedding = await env.AI.run('@cf/baai/bge-large-en-v1.5', {
+          text: embeddingText,
         });
 
-        // Filter out the current threat and limit to 5
-        threatData.similar_threats = similar.matches
-          .filter((m) => m.id !== threatId)
-          .slice(0, 5)
-          .map((m) => ({
-            id: m.id,
-            score: m.score,
-            ...m.metadata,
-          }));
+        if (embedding && 'data' in embedding && Array.isArray(embedding.data)) {
+          const vectorResults = await env.VECTORIZE_INDEX.query(embedding.data[0], {
+            topK: 50, // Query for all candidates
+            returnMetadata: true,
+          });
+
+          // Map Vectorize scores to candidate IDs
+          for (const match of vectorResults.matches) {
+            semanticScores.set(match.id, match.score);
+          }
+        }
+
+        // Step 3: Calculate multi-signal similarity (combines 5 signals)
+        const similarityScores = calculateMultiSignalSimilarity(
+          sourceThreat,
+          candidates,
+          semanticScores
+        );
+
+        // Step 4: Return top 5 with detailed scoring
+        threatData.similar_threats = similarityScores.slice(0, 5).map((score) => ({
+          id: score.threatId,
+          score: score.overallScore,
+          title: score.metadata.title,
+          category: score.metadata.category,
+          severity: score.metadata.severity,
+          published_at: score.metadata.published_at,
+          // Include breakdown for debugging/transparency
+          breakdown: score.breakdown,
+        }));
+      } else {
+        threatData.similar_threats = [];
       }
     } catch (error) {
       console.error('Error finding similar threats:', error);

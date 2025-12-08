@@ -3,14 +3,26 @@
 import type { Env, FeedSource, Threat } from './types';
 import { parseFeed, parseDate, generateId } from './utils/rss-parser';
 import { analyzeArticle, generateEmbedding } from './utils/ai-processor';
+import { NeuronTracker } from './utils/neuron-tracker';
 
 /// <reference types="@cloudflare/workers-types" />
 /// <reference types="@cloudflare/workers-types/experimental" />
 
-const MAX_AI_PROCESSING_PER_RUN = 15; // Stay well under 50 subrequest limit (15 * 2 = 30 AI calls + 12 feeds = 42 total)
+const MAX_AI_PROCESSING_PER_RUN = 10; // Optimized for tri-model: 10 * 3 = 30 AI calls + 12 feeds = 42 total
 
 export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
   console.log('Starting scheduled feed ingestion...');
+
+  // Track subrequests to monitor free tier usage (50 subrequest limit per request)
+  let subrequestCount = 0;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (...args) => {
+    subrequestCount++;
+    return originalFetch(...args);
+  };
+
+  // Track neuron usage to stay within free tier (10,000 neurons/day limit)
+  const neuronTracker = new NeuronTracker();
 
   try {
     // Get all enabled feed sources
@@ -43,18 +55,48 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
     console.log(`Feed ingestion complete. Processed: ${totalProcessed}, New: ${totalNew}`);
 
     // Now process pending AI analysis (separate step to control subrequest usage)
-    const aiProcessed = await processAIPendingThreats(env);
+    const aiProcessed = await processAIPendingThreats(env, neuronTracker);
     console.log(`AI processing complete. Processed: ${aiProcessed} threats`);
+
+    // Log subrequest usage for monitoring
+    const subrequestPercent = Math.round((subrequestCount / 50) * 100);
+    console.log(`📊 Subrequests used: ${subrequestCount}/50 (${subrequestPercent}%)`);
+
+    if (subrequestPercent > 90) {
+      console.warn(`⚠️ WARNING: High subrequest usage (${subrequestCount}/50). Close to limit!`);
+    }
+
+    // Log neuron usage summary from tracker
+    const neuronSummary = neuronTracker.getSummary();
+    const breakdown = neuronTracker.getBreakdown();
+
+    console.log(`🧠 Neuron usage this run: ${neuronSummary.neuronsUsed} neurons`);
+    console.log(`🧠 Daily total estimate (4 runs): ~${neuronSummary.neuronsUsed * 4} neurons/day (${Math.round((neuronSummary.neuronsUsed * 4) / 100)}% of 10,000 limit)`);
+    console.log(`🧠 Status: ${neuronSummary.status} (${neuronSummary.percentUsed}% of daily limit used)`);
+
+    if (breakdown.length > 0) {
+      console.log(`🧠 Model breakdown:`);
+      for (const model of breakdown) {
+        console.log(`   - ${model.model}: ${model.neurons} neurons (${model.calls} calls, ~${model.avgPerCall}/call)`);
+      }
+    }
+
+    // Warning if approaching limit
+    if (neuronSummary.status === 'WARNING') {
+      console.warn(`⚠️ WARNING: Neuron usage at ${neuronSummary.percentUsed}% of daily limit!`);
+    } else if (neuronSummary.status === 'CRITICAL') {
+      console.error(`🚨 CRITICAL: Neuron usage at ${neuronSummary.percentUsed}% of daily limit! Risk of exceeding free tier.`);
+    }
 
     // Write analytics
     env.ANALYTICS.writeDataPoint({
       blobs: ['feed_ingestion'],
-      doubles: [totalNew, totalProcessed, aiProcessed],
+      doubles: [totalNew, totalProcessed, aiProcessed, subrequestCount],
       indexes: [new Date().toISOString().split('T')[0]], // Date as index
     });
 
     return new Response(
-      `Ingestion complete. New: ${totalNew}, AI processed: ${aiProcessed}`,
+      `Ingestion complete. New: ${totalNew}, AI processed: ${aiProcessed}, Subrequests: ${subrequestCount}/50`,
       { status: 200 }
     );
   } catch (error) {
@@ -77,12 +119,10 @@ async function processFeed(
   try {
     console.log(`Fetching feed: ${feed.name}`);
 
-    // Check rate limiting cache
-    const cacheKey = `feed:${feed.id}:last_fetch`;
-    const lastFetch = await env.CACHE.get(cacheKey);
+    // Check rate limiting using D1 last_fetch column (no KV needed!)
     const now = Math.floor(Date.now() / 1000);
 
-    if (lastFetch && now - parseInt(lastFetch) < (feed.fetch_interval || 21600)) {
+    if (feed.last_fetch && now - feed.last_fetch < (feed.fetch_interval || 21600)) {
       console.log(`Skipping ${feed.name} - too soon since last fetch`);
       return { processed, newThreats };
     }
@@ -176,7 +216,7 @@ async function processFeed(
       }
     }
 
-    // Update feed metadata
+    // Update feed metadata (D1 is our single source of truth - no KV needed!)
     await env.DB.prepare(
       `UPDATE feed_sources
        SET last_fetch = ?, last_success = ?, error_count = 0, last_error = NULL
@@ -184,11 +224,6 @@ async function processFeed(
     )
       .bind(now, now, feed.id)
       .run();
-
-    // Update cache
-    await env.CACHE.put(cacheKey, now.toString(), {
-      expirationTtl: feed.fetch_interval || 21600,
-    });
 
     console.log(`Processed ${feed.name} successfully`);
     return { processed, newThreats };
@@ -216,7 +251,7 @@ async function processFeed(
 
 // Process threats that don't have AI analysis yet
 // This runs AFTER feed ingestion to control subrequest limits
-async function processAIPendingThreats(env: Env): Promise<number> {
+async function processAIPendingThreats(env: Env, tracker?: NeuronTracker): Promise<number> {
   let processed = 0;
 
   try {
@@ -243,7 +278,7 @@ async function processAIPendingThreats(env: Env): Promise<number> {
     // Process each threat with AI
     for (const threat of pendingThreats.results) {
       try {
-        await processArticleWithAI(env, threat);
+        await processArticleWithAI(env, threat, tracker);
         processed++;
       } catch (error) {
         console.error('Error processing threat with AI:', {
@@ -266,10 +301,10 @@ async function processAIPendingThreats(env: Env): Promise<number> {
 }
 
 // Process article with AI analysis
-async function processArticleWithAI(env: Env, threat: Threat): Promise<void> {
+async function processArticleWithAI(env: Env, threat: Threat, tracker?: NeuronTracker): Promise<void> {
   try {
     // Generate AI analysis
-    const analysis = await analyzeArticle(env, threat);
+    const analysis = await analyzeArticle(env, threat, tracker);
     if (!analysis) {
       console.log(`No AI analysis for ${threat.id}`);
       // Insert empty summary to mark as processed and avoid retrying
@@ -340,7 +375,7 @@ async function processArticleWithAI(env: Env, threat: Threat): Promise<void> {
 
     // Generate and store embedding for semantic search
     const embeddingText = `${threat.title} ${analysis.tldr} ${analysis.key_points.join(' ')}`;
-    const embedding = await generateEmbedding(env, embeddingText);
+    const embedding = await generateEmbedding(env, embeddingText, tracker);
 
     if (embedding) {
       await env.VECTORIZE_INDEX.insert([

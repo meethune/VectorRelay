@@ -166,9 +166,22 @@ function cleanText(text: string): string {
 
 export function parseDate(dateString: string): number {
   try {
+    // Handle empty or whitespace-only strings
+    if (!dateString || !dateString.trim()) {
+      return Math.floor(Date.now() / 1000);
+    }
+
     const date = new Date(dateString);
+
+    // Check if date is valid (getTime() returns NaN for invalid dates)
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date string: "${dateString}", using current time`);
+      return Math.floor(Date.now() / 1000);
+    }
+
     return Math.floor(date.getTime() / 1000);
-  } catch {
+  } catch (error) {
+    console.warn(`Error parsing date: "${dateString}"`, error);
     return Math.floor(Date.now() / 1000);
   }
 }
