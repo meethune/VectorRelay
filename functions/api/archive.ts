@@ -10,6 +10,7 @@ import type { Env } from '../types';
 import { getR2Stats } from '../utils/r2-storage';
 import { archiveOldThreats } from '../utils/archiver';
 import { securityMiddleware, wrapResponse } from '../utils/security';
+import { validateApiKey, unauthorizedResponse } from '../utils/auth';
 
 /**
  * GET /api/archive
@@ -91,6 +92,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       },
       { status: 403 }
     );
+  }
+
+  // In development, require API key
+  if (!validateApiKey(request, env)) {
+    return unauthorizedResponse();
   }
 
   try {
