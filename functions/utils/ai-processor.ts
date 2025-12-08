@@ -118,14 +118,22 @@ If no IOCs found, use empty arrays. Be conservative with severity ratings.`;
     const inputTokens = estimateTokens(BASELINE_PROMPT + userPrompt);
     const maxOutputTokens = 1024;
 
-    const response = await env.AI.run(AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK, {
-      messages: [
-        { role: 'system', content: BASELINE_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.1,
-      max_tokens: maxOutputTokens,
-    });
+    const response = await env.AI.run(
+      AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,
+      {
+        messages: [
+          { role: 'system', content: BASELINE_PROMPT },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.1,
+        max_tokens: maxOutputTokens,
+      },
+      {
+        gateway: {
+          id: env.AI_GATEWAY_ID,
+        },
+      }
+    );
 
     // Track neuron usage (llama-70b model)
     if (tracker) {
@@ -223,17 +231,25 @@ Content: ${content}`;
     const inputTokens = estimateTokens(systemPrompt + prompt);
     const maxOutputTokens = 512;
 
-    const response = await env.AI.run(AI_MODELS.TEXT_GENERATION_SMALL, {
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
+    const response = await env.AI.run(
+      AI_MODELS.TEXT_GENERATION_SMALL,
+      {
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.1, // Low temperature for consistent classification
+        max_tokens: maxOutputTokens,
+      },
+      {
+        gateway: {
+          id: env.AI_GATEWAY_ID,
         },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.1, // Low temperature for consistent classification
-      max_tokens: maxOutputTokens,
-    });
+      }
+    );
 
     // Track neuron usage (llama-1b model)
     if (tracker) {
@@ -315,17 +331,25 @@ Content: ${content}`;
     const inputTokens = estimateTokens(systemPrompt + prompt);
     const maxOutputTokens = 1024;
 
-    const response = await env.AI.run(AI_MODELS.TEXT_GENERATION_LARGE, {
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
+    const response = await env.AI.run(
+      AI_MODELS.TEXT_GENERATION_LARGE,
+      {
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt,
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.1, // Low temperature for precise extraction
+        max_tokens: maxOutputTokens,
+      },
+      {
+        gateway: {
+          id: env.AI_GATEWAY_ID,
         },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.1, // Low temperature for precise extraction
-      max_tokens: maxOutputTokens,
-    });
+      }
+    );
 
     // Track neuron usage (qwen-30b model)
     if (tracker) {
@@ -406,9 +430,17 @@ export async function generateEmbedding(
     // Estimate token usage
     const inputTokens = estimateTokens(truncatedText);
 
-    const response = await env.AI.run(embeddingModel, {
-      text: truncatedText,
-    });
+    const response = await env.AI.run(
+      embeddingModel,
+      {
+        text: truncatedText,
+      },
+      {
+        gateway: {
+          id: env.AI_GATEWAY_ID,
+        },
+      }
+    );
 
     // Track neuron usage for embeddings
     if (tracker) {
@@ -462,17 +494,25 @@ Provide a concise analysis (3-5 paragraphs).`;
       ? AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK
       : AI_MODELS.TEXT_GENERATION_LARGE;
 
-    const response = await env.AI.run(trendModel, {
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a senior cybersecurity analyst. Provide strategic threat intelligence analysis.',
+    const response = await env.AI.run(
+      trendModel,
+      {
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a senior cybersecurity analyst. Provide strategic threat intelligence analysis.',
+          },
+          { role: 'user', content: trendPrompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 1024,
+      },
+      {
+        gateway: {
+          id: env.AI_GATEWAY_ID,
         },
-        { role: 'user', content: trendPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 1024,
-    });
+      }
+    );
 
     return parseAITextResponse(response, 'Unable to generate trend analysis.');
   } catch (error) {

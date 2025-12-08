@@ -7,6 +7,7 @@ A real-time threat intelligence aggregation and analysis platform powered by Clo
 ## ✨ Features
 
 - **🤖 AI-Powered Analysis**: Automatic summarization and categorization using Llama 3.3 (70B)
+- **🚀 AI Gateway Integration**: Built-in caching, observability, and rate limiting for AI requests
 - **🔍 Semantic Search**: Find related threats using vector embeddings (1024-dim)
 - **📊 Trend Detection**: Weekly AI-generated threat trend analysis
 - **🎯 IOC Extraction**: Automatic extraction of IPs, domains, CVEs, hashes
@@ -22,7 +23,8 @@ Frontend (React + Vite)
     ↓
 Cloudflare Workers (with Static Assets)
     ↓
-├─ Workers AI (Llama 3.3 + BGE Embeddings)
+├─ AI Gateway (Caching, Observability, Rate Limiting)
+│   └─ Workers AI (Llama 3.3 + BGE Embeddings)
 ├─ D1 Database (SQLite)
 ├─ Vectorize (1024-dim Vector Search)
 ├─ KV (Caching & Rate Limiting)
@@ -63,17 +65,22 @@ npx wrangler kv namespace create CACHE --preview
 
 # 4. Update wrangler.jsonc with the IDs
 
-# 5. Enable Analytics Engine (one-time, do this BEFORE first deploy)
+# 5. Create AI Gateway (one-time setup for caching & observability)
+# Go to Cloudflare Dashboard → AI → AI Gateway
+# Click "Create Gateway" → Name it "threat-intel-dashboard" → Copy the ID
+# This enables AI response caching and provides real-time observability
+
+# 6. Enable Analytics Engine (one-time, do this BEFORE first deploy)
 # Go to Cloudflare Dashboard → Workers & Pages → Analytics Engine
 # Click "Enable Analytics Engine"
 
-# 6. Initialize database
+# 7. Initialize database
 npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
 
-# 7. Deploy to Cloudflare Workers
+# 8. Deploy to Cloudflare Workers
 npm run deploy
 
-# 8. Wait for automatic data ingestion
+# 9. Wait for automatic data ingestion
 # The cron trigger runs automatically every 6 hours
 # First run happens within 6 hours of deployment
 # Check the dashboard after a few hours to see data appear

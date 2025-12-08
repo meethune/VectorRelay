@@ -11,6 +11,7 @@ export interface Env {
   ENVIRONMENT?: string;
   API_SECRET?: string; // Secret key for authenticating management endpoints
   ASSETS: Fetcher; // Added for Workers static assets support
+  AI_GATEWAY_ID: string; // AI Gateway ID for routing Workers AI calls through gateway
 }
 
 export interface Threat {

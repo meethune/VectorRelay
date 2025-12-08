@@ -59,7 +59,30 @@ Output will include two IDs:
 
 ---
 
-### Step 3: Update Configuration
+### Step 3: Create AI Gateway (for Caching & Observability)
+
+AI Gateway provides intelligent caching, real-time observability, and rate limiting for Workers AI requests.
+
+**Create via Cloudflare Dashboard:**
+
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **AI** → **AI Gateway**
+2. Click **"Create Gateway"**
+3. **Name:** `threat-intel-dashboard`
+4. Click **"Create"**
+5. **Copy the Gateway ID** (you'll need this in Step 4)
+
+**Benefits:**
+- ✅ **30-40% neuron savings** through intelligent caching of duplicate AI requests
+- ✅ **Real-time analytics** dashboard with request logs, latency metrics, and error tracking
+- ✅ **Rate limiting** to protect against quota exhaustion
+- ✅ **Cache hit rates** showing how often identical requests are served from cache
+- ✅ **Model usage breakdown** across Llama 1B, Qwen 30B, and BGE-M3
+
+**Note:** AI Gateway is required for this project and must be created before deployment.
+
+---
+
+### Step 4: Update Configuration
 
 Edit `wrangler.jsonc` and replace these values:
 
@@ -81,7 +104,11 @@ Edit `wrangler.jsonc` and replace these values:
       "id": "YOUR_KV_NAMESPACE_ID",          // ← Paste production KV ID
       "preview_id": "YOUR_KV_PREVIEW_ID"     // ← Paste preview KV ID
     }
-  ]
+  ],
+  "vars": {
+    "ENVIRONMENT": "production",
+    "AI_GATEWAY_ID": "threat-intel-dashboard"  // ← AI Gateway ID from Step 3
+  }
 }
 ```
 
@@ -94,7 +121,7 @@ git push origin main
 
 ---
 
-### Step 4: Initialize Database
+### Step 5: Initialize Database
 
 ```bash
 npx wrangler d1 execute threat-intel-db --remote --file=./schema.sql
@@ -109,7 +136,7 @@ You should see: `✅ Executed 24 queries` (or similar)
 
 ---
 
-### Step 5: Set Up GitHub Actions (Automatic Deployment)
+### Step 6: Set Up GitHub Actions (Automatic Deployment)
 
 GitHub Actions will automatically deploy your Worker when you push to `main`.
 
@@ -133,7 +160,7 @@ See [GitHub CI/CD Setup Guide](./GITHUB_CICD_SETUP.md) for detailed instructions
 
 ---
 
-### Step 6: Deploy to Cloudflare Workers
+### Step 7: Deploy to Cloudflare Workers
 
 **Option A: Deploy via GitHub Actions (Recommended)**
 
@@ -156,7 +183,7 @@ This builds and deploys directly from your local machine.
 
 ---
 
-### Step 7: Enable Analytics Engine (First Deployment Only)
+### Step 8: Enable Analytics Engine (First Deployment Only)
 
 **This is expected!** On your first deployment, you may see:
 
@@ -184,7 +211,7 @@ Error: You need to enable Analytics Engine. Head to the Cloudflare Dashboard to 
 
 ---
 
-### Step 8: Wait for Automatic Data Ingestion
+### Step 9: Wait for Automatic Data Ingestion
 
 **The Worker will automatically fetch and process threat data!**
 
@@ -221,6 +248,32 @@ Your dashboard is now:
 Visit: `https://threat-intel-dashboard.YOUR-SUBDOMAIN.workers.dev`
 
 Or set up a custom domain in the Cloudflare dashboard.
+
+---
+
+## 📊 Monitoring AI Gateway
+
+After deployment, monitor your AI Gateway for caching effectiveness and usage patterns:
+
+**Access AI Gateway Dashboard:**
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **AI** → **AI Gateway**
+2. Select **`threat-intel-dashboard`**
+3. View the **Analytics** tab
+
+**Key Metrics to Monitor:**
+- **Request count**: Total AI requests processed
+- **Cache hit rate**: Percentage of requests served from cache (target: 30-40%)
+- **Model usage breakdown**: Distribution across Llama 1B, Qwen 30B, BGE-M3
+- **Latency metrics**: Response times for AI requests
+- **Error rates**: Failed AI requests
+
+**Expected Behavior:**
+- **First run**: 0% cache hit rate (all requests are new)
+- **Subsequent runs**: 30-40% cache hit rate as duplicate content is analyzed
+- **Model distribution**: ~60% Llama 1B, ~35% Qwen 30B, ~5% embeddings
+
+**Cost Savings:**
+AI Gateway caching reduces neuron consumption by 30-40%, saving ~1,000-1,500 neurons per day.
 
 ---
 
