@@ -614,7 +614,7 @@ npx wrangler tail
 - [x] Rate limit tracking
 - [x] Security incident logging (429, 403, 404)
 - [x] Cron execution logs
-- [ ] Quota usage tracking dashboard (future)
+- [x] AI quota usage tracking (NeuronTracker with Cloudflare dashboard)
 
 ---
 
