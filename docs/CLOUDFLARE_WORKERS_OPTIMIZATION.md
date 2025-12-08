@@ -1231,7 +1231,7 @@ The hybrid LLM strategy (detailed in `HYBRID_LLM_STRATEGY.md`) offers the best b
 ## References
 
 - [Hybrid LLM Strategy](./HYBRID_LLM_STRATEGY.md) - Task-based model selection and tri-model optimization
-- [Cron Bug Fixes](./CRON_BUG_FIXES.md) - Production fixes already implemented
+- [Security Documentation](./SECURITY.md) - Comprehensive security features and implementation
 - [Cloudflare Workers Limits](https://developers.cloudflare.com/workers/platform/limits/)
 - [Workers AI Pricing](https://developers.cloudflare.com/workers-ai/platform/pricing/)
 - [Workers Free Tier Pricing](https://www.freetiers.com/directory/cloudflare-workers)

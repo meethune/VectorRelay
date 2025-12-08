@@ -371,8 +371,6 @@ The codebase follows DRY (Don't Repeat Yourself) principles to minimize code dup
 - Consistent error logging and validation
 - Single source of truth for all shared logic
 
-For full details, see: `docs/DRY_REFACTORING_FINAL_REPORT.md`
-
 ## 🎨 Dual-Theme System
 
 The dashboard features a sophisticated dual-theme system with two distinct visual modes:
@@ -443,8 +441,6 @@ Threat severity colors mapped in `src/constants/theme.ts`:
 - Medium: Amber (#f59e0b)
 - Low: Green (#22c55e)
 - Info: Blue (#3b82f6)
-
-For complete theme documentation, see: `docs/THEME_REFACTOR_REPORT.md`
 
 ## 🚀 Performance Optimizations
 
