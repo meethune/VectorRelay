@@ -7,7 +7,7 @@
  * Usage:
  * ```typescript
  * const tracker = new NeuronTracker();
- * const neurons = tracker.track('llama-1b', 1000, 200);
+ * const neurons = tracker.track('mistral-24b', 1000, 200);
  * const summary = tracker.getSummary();
  * if (summary.status !== 'OK') {
  *   console.warn(`Neuron usage: ${summary.percentUsed}%`);
@@ -32,7 +32,11 @@ export interface NeuronUsage {
  * Format: neurons per 1M tokens (input/output)
  */
 const NEURON_COSTS = {
-  // Llama 3.2 1B (small model - classification, TLDR)
+  // Mistral-Small-3.1 24B (current production - classification, TLDR)
+  'mistral-24b-input': 31876,
+  'mistral-24b-output': 50488,
+
+  // Llama 3.2 1B (DEPRECATED - no longer used)
   'llama-1b-input': 2457,
   'llama-1b-output': 18252,
 
@@ -62,7 +66,7 @@ export class NeuronTracker {
   /**
    * Track neuron usage for an AI model inference
    *
-   * @param model - Model identifier (e.g., 'llama-1b', 'qwen-30b', 'bge-m3')
+   * @param model - Model identifier (e.g., 'mistral-24b', 'qwen-30b', 'bge-m3')
    * @param inputTokens - Number of input tokens
    * @param outputTokens - Number of output tokens (0 for embedding models)
    * @returns Neurons consumed by this inference

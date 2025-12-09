@@ -246,8 +246,8 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
 }
 
 /**
- * Tri-model approach: Parallel execution of 1B (classification) + 30B (IOCs)
- * 81% neuron reduction vs baseline
+ * Tri-model approach: Parallel execution of 24B (classification) + 30B (IOCs)
+ * Upgraded to Mistral-Small-24B for superior classification accuracy
  */
 async function analyzeArticleTriModel(
   env: Env,
@@ -259,11 +259,11 @@ async function analyzeArticleTriModel(
 
     // PARALLEL EXECUTION: Run both models simultaneously
     const [basicAnalysis, detailedAnalysis] = await Promise.all([
-      extractBasicInfo(env, article, truncatedContent, tracker),    // 1B: ~11 neurons
-      extractDetailedInfo(env, article, truncatedContent, tracker), // 30B: ~23 neurons
+      extractBasicInfo(env, article, truncatedContent, tracker),    // 24B: ~121 neurons
+      extractDetailedInfo(env, article, truncatedContent, tracker), // 30B: ~33 neurons
     ]);
 
-    // Merge results (total: ~34 neurons + 0.5 for embeddings = 35 neurons)
+    // Merge results (total: ~154 neurons + 0.5 for embeddings = 155 neurons)
     if (!basicAnalysis || !detailedAnalysis) {
       return null;
     }
@@ -303,9 +303,9 @@ async function analyzeArticleTriModel(
 }
 
 /**
- * Basic Info Extraction using Llama 3.2 1B
+ * Basic Info Extraction using Mistral-Small-3.1 24B
  * Handles: classification, severity, TLDR, basic entity extraction
- * Cost: ~11 neurons per article
+ * Cost: ~121 neurons per article
  */
 async function extractBasicInfo(
   env: Env,
@@ -370,10 +370,10 @@ Content: ${content}`;
       }
     );
 
-    // Track neuron usage (llama-1b model)
+    // Track neuron usage (Mistral-Small-24B model)
     if (tracker) {
-      const neurons = tracker.track('llama-1b', inputTokens, maxOutputTokens);
-      console.log(`[Tri-Model 1B] Neurons used: ~${Math.round(neurons)} (classification)`);
+      const neurons = tracker.track('mistral-24b', inputTokens, maxOutputTokens);
+      console.log(`[Tri-Model 24B] Neurons used: ~${Math.round(neurons)} (classification)`);
     }
 
     const analysis = parseAIResponse<Partial<AIAnalysis>>(response);
@@ -384,7 +384,7 @@ Content: ${content}`;
 
     return analysis;
   } catch (error) {
-    logError('Error extracting basic info (1B model)', error, {
+    logError('Error extracting basic info (Mistral-24B model)', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,
