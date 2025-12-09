@@ -282,8 +282,19 @@ terminal: {
 - All AI processing happens on Cloudflare's edge (data doesn't leave CF network)
 - No external API keys required for basic functionality
 - RSS feeds are fetched server-side (no client-side requests)
-- Rate limiting via KV cache prevents feed abuse
-- Security headers and CORS automatically handled by Workers middleware
+- Rate limiting via KV cache prevents abuse (per-IP, per-endpoint)
+- IP blocking for malicious traffic (temporary and permanent)
+- CORS protection with origin allowlist (configurable via `ALLOWED_ORIGINS` env var)
+- Security headers (CSP, HSTS, X-Frame-Options, etc.) on all responses
+- Input validation and SQL injection protection via parameterized queries
+
+**Production CORS Setup:**
+```bash
+# Set in Cloudflare Dashboard → Workers → Settings → Variables
+ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+```
+
+See [`docs/SECURITY.md`](./docs/SECURITY.md) for complete security documentation.
 
 ## 📊 Free Tier Limits
 

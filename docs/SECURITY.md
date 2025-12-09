@@ -11,14 +11,16 @@
 VectorRelay has achieved a **hardened security posture** through comprehensive security measures:
 
 - ✅ **Rate Limiting:** Per-IP, per-endpoint protection using KV
+- ✅ **CORS Protection:** Origin allowlist with production env var support
+- ✅ **IP Blocking:** Temporary and permanent IP blocking for abuse prevention
 - ✅ **Security Headers:** OWASP-recommended headers on all responses
 - ✅ **Access Control:** Management endpoints disabled in production
 - ✅ **Input Validation:** Comprehensive validation and sanitization
 - ✅ **SQL Injection:** Protected via parameterized queries
 - ✅ **HTTP Caching:** Smart caching with appropriate TTLs
-- ✅ **Reduced Attack Surface:** 4 public endpoints vs 6 previously
+- ✅ **Reduced Attack Surface:** 5 public endpoints, all authenticated debug endpoints
 
-**Current Security Posture:** Production Ready ✅
+**Current Security Posture:** Production Ready ✅ (75% of Phase 1.2 complete)
 
 ---
 
@@ -58,13 +60,95 @@ VectorRelay has achieved a **hardened security posture** through comprehensive s
 /api/sources:              200 requests / 10 min
 ```
 
+**Known Limitation:**
+- Race condition possible with concurrent requests (Phase 3 Durable Objects fix planned)
+- Acceptable for current threat model (low-impact API abuse)
+- Mitigation: IP blocking for detected abuse patterns
+
 **Files:**
 - `functions/utils/security.ts` - Rate limiting implementation
 - All API endpoints - Applied via `securityMiddleware()`
 
 ---
 
-### 2. Security Headers ✅
+### 2. CORS Protection ✅
+
+**Implementation:** Origin allowlist with 3-tier priority system
+
+**Features:**
+- Production origins configurable via `ALLOWED_ORIGINS` environment variable
+- Default localhost ports for development (no configuration needed)
+- Explicit override option for testing
+- 403 Forbidden for non-allowlisted origins
+- `Access-Control-Allow-Credentials: true` for authenticated requests
+
+**Configuration:**
+```bash
+# Production (via Cloudflare Dashboard → Workers → Settings → Variables)
+ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+
+# Development (automatic - no configuration needed)
+# Defaults: http://localhost:5173, http://localhost:8788, http://localhost:3000
+```
+
+**Priority System:**
+1. **Explicit override** (for tests): `validateOrigin(origin, undefined, ['https://test.com'])`
+2. **Environment variable** (for production): Reads `env.ALLOWED_ORIGINS` comma-separated list
+3. **Defaults** (for development): localhost:5173, localhost:8788, localhost:3000
+
+**Protection Against:**
+- ✅ CSRF attacks from untrusted origins
+- ✅ Data exfiltration via cross-origin requests
+- ✅ Unauthorized API access from malicious sites
+
+**Files:**
+- `functions/utils/security.ts::validateOrigin()` - Origin validation with 3-tier priority
+- `functions/types.ts` - ALLOWED_ORIGINS environment variable
+- All 5 public API endpoints - CORS validation integrated
+
+**Documentation:**
+- `docs/CONFIGURATION.md` - Production setup instructions
+- `SECURITY_IMPROVEMENTS.md` - Implementation details
+
+---
+
+### 3. IP Blocking ✅
+
+**Implementation:** KV-based blocking with temporary and permanent options
+
+**Features:**
+- Check if IP is blocked before rate limiting (highest priority)
+- Temporary blocking with TTL (e.g., 1 hour for rate limit abuse)
+- Permanent blocking for malicious activity
+- Automatic unblocking via TTL expiration
+- Manual unblocking via `unblockIP()`
+
+**Usage:**
+```typescript
+// Block IP for 1 hour
+await blockIP(env, '203.0.113.1', 3600, 'rate_limit_abuse');
+
+// Permanent block (requires manual removal)
+await blockIP(env, '203.0.113.1', 0, 'malicious_activity');
+
+// Check in middleware (called before rate limiting)
+if (await isIPBlocked(env, ip)) {
+  return blockedIPResponse('Your IP has been blocked for abuse');
+}
+```
+
+**Protection Against:**
+- ✅ Repeat abuse after rate limit resets
+- ✅ Malicious traffic patterns
+- ✅ DDoS attempts from specific IPs
+
+**Files:**
+- `functions/utils/security.ts::blockIP()`, `isIPBlocked()`, `unblockIP()`
+- `functions/utils/security.ts::securityMiddleware()` - IP check before rate limiting
+
+---
+
+### 4. Security Headers ✅
 
 **Implementation:** OWASP-recommended security headers
 
@@ -89,7 +173,7 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 
 ---
 
-### 3. HTTP Caching ✅
+### 5. HTTP Caching ✅
 
 **Implementation:** Smart caching with privacy controls
 
@@ -112,7 +196,7 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 
 ---
 
-### 4. Access Control ✅
+### 6. Access Control ✅
 
 **Implementation:** Environment-based endpoint protection + API key authentication
 
@@ -162,7 +246,7 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 
 ---
 
-### 5. Input Validation ✅
+### 7. Input Validation ✅
 
 **Implementation:** Comprehensive validation and sanitization
 
@@ -195,7 +279,7 @@ page: Math.max(requested, 1)                  // minimum 1
 
 ---
 
-### 6. SQL Injection Protection ✅
+### 8. SQL Injection Protection ✅
 
 **Implementation:** Parameterized queries via D1 + Input validation
 
@@ -587,6 +671,13 @@ npx wrangler tail
 - [x] Environment-based protection (ENVIRONMENT=production)
 - [x] API key validation via Authorization header
 
+### CORS Protection
+- [x] Origin allowlist with production env var support (ALLOWED_ORIGINS)
+- [x] 3-tier priority system (explicit > env var > defaults)
+- [x] 403 Forbidden for non-allowlisted origins
+- [x] Credentials support for authenticated requests
+- [x] Integrated into all 5 public API endpoints
+
 ### Rate Limiting
 - [x] Per-IP rate limiting
 - [x] Different limits per endpoint
@@ -690,6 +781,27 @@ curl "http://localhost:8787/api/search?q=$(python3 -c 'print("a"*501)')"
 ---
 
 ## Changelog
+
+### December 9, 2025 (CORS Security Enhancement)
+
+**Security Features Implemented:**
+
+1. **MEDIUM - Production CORS Configuration** (Commit: fc57703)
+   - Added `ALLOWED_ORIGINS` environment variable support
+   - Implemented 3-tier priority system for origin validation
+   - Integrated CORS validation into all 5 public API endpoints
+   - Protected against CSRF and data exfiltration attacks
+   - Files: `functions/utils/security.ts`, `functions/types.ts`, all API endpoints
+
+**Documentation Updates:**
+- Added comprehensive CORS section to `docs/CONFIGURATION.md`
+- Updated `SECURITY_IMPROVEMENTS.md` with full implementation details
+- Marked CORS as "FULLY IMPLEMENTED" in security roadmap
+- Added production setup examples and security warnings
+
+**Security Status:** Phase 1.2 Security Enhancements 75% complete (5/7 tasks) ✅
+
+---
 
 ### December 8, 2025 (Security Audit & Remediation)
 
