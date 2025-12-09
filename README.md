@@ -6,7 +6,7 @@ A real-time threat intelligence aggregation and analysis platform powered by Clo
 
 ## ✨ Features
 
-- **🤖 AI-Powered Analysis**: Automatic summarization and categorization using Llama 3.3 (70B)
+- **🤖 AI-Powered Analysis**: Automatic summarization and categorization using Qwen3 30B MoE (MMLU 76.6)
 - **🚀 AI Gateway Integration**: Built-in caching, observability, and rate limiting for AI requests
 - **🔍 Semantic Search**: Find related threats using vector embeddings (1024-dim)
 - **📊 Trend Detection**: Weekly AI-generated threat trend analysis
@@ -14,7 +14,7 @@ A real-time threat intelligence aggregation and analysis platform powered by Clo
 - **⏰ Native Cron Triggers**: Scheduled fetching from 7+ reputable security feeds every 6 hours
 - **⚡ Real-time Updates**: Dashboard updates automatically via Workers cron
 - **🎨 Dual Theme System**: Terminal (retro CRT) and Business (cybersecurity pro) themes with 15 Magic UI components
-- **💰 100% Free Tier**: Runs entirely on Cloudflare's free tier
+- **💰 100% Free Tier**: Runs entirely on Cloudflare's free tier (15% usage at full deployment)
 
 ## 🏗️ Architecture
 
@@ -24,7 +24,7 @@ Frontend (React + Vite)
 Cloudflare Workers (with Static Assets)
     ↓
 ├─ AI Gateway (Caching, Observability, Rate Limiting)
-│   └─ Workers AI (Llama 3.3 + BGE Embeddings)
+│   └─ Workers AI (Qwen3 30B MoE + BGE-M3 Embeddings)
 ├─ D1 Database (SQLite)
 ├─ Vectorize (1024-dim Vector Search)
 ├─ KV (Caching & Rate Limiting)

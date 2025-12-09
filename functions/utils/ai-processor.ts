@@ -246,8 +246,8 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
 }
 
 /**
- * Tri-model approach: Parallel execution of 24B (classification) + 30B (IOCs)
- * Upgraded to Mistral-Small-24B for superior classification accuracy
+ * Tri-model approach: Parallel execution of 30B FP8 (classification) + 30B FP8 (IOCs)
+ * Upgraded to Qwen3 30B A3B FP8 for superior classification (MMLU 76.6)
  */
 async function analyzeArticleTriModel(
   env: Env,
@@ -259,11 +259,11 @@ async function analyzeArticleTriModel(
 
     // PARALLEL EXECUTION: Run both models simultaneously
     const [basicAnalysis, detailedAnalysis] = await Promise.all([
-      extractBasicInfo(env, article, truncatedContent, tracker),    // 24B: ~121 neurons
-      extractDetailedInfo(env, article, truncatedContent, tracker), // 30B: ~33 neurons
+      extractBasicInfo(env, article, truncatedContent, tracker),    // 30B MoE: ~17 neurons
+      extractDetailedInfo(env, article, truncatedContent, tracker), // 30B MoE: ~33 neurons
     ]);
 
-    // Merge results (total: ~154 neurons + 0.5 for embeddings = 155 neurons)
+    // Merge results (total: ~17 + ~33 + 0.5 for embeddings = 50.5 neurons)
     if (!basicAnalysis || !detailedAnalysis) {
       return null;
     }
@@ -303,9 +303,10 @@ async function analyzeArticleTriModel(
 }
 
 /**
- * Basic Info Extraction using Mistral-Small-3.1 24B
+ * Basic Info Extraction using Qwen3 30B A3B FP8
  * Handles: classification, severity, TLDR, basic entity extraction
- * Cost: ~121 neurons per article
+ * Architecture: Mixture-of-Experts (30.5B total, 3.3B active)
+ * Cost: ~17 neurons per article (7.1x cheaper than Mistral 24B)
  */
 async function extractBasicInfo(
   env: Env,
@@ -370,10 +371,10 @@ Content: ${content}`;
       }
     );
 
-    // Track neuron usage (Mistral-Small-24B model)
+    // Track neuron usage (Qwen3 30B A3B FP8 model)
     if (tracker) {
-      const neurons = tracker.track('mistral-24b', inputTokens, maxOutputTokens);
-      console.log(`[Tri-Model 24B] Neurons used: ~${Math.round(neurons)} (classification)`);
+      const neurons = tracker.track('qwen-30b-fp8', inputTokens, maxOutputTokens);
+      console.log(`[Tri-Model 30B MoE] Neurons used: ~${Math.round(neurons)} (classification)`);
     }
 
     const analysis = parseAIResponse<Partial<AIAnalysis>>(response);
@@ -384,7 +385,7 @@ Content: ${content}`;
 
     return analysis;
   } catch (error) {
-    logError('Error extracting basic info (Mistral-24B model)', error, {
+    logError('Error extracting basic info (Qwen3 30B A3B FP8 model)', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,
@@ -397,9 +398,10 @@ Content: ${content}`;
 }
 
 /**
- * Detailed Info Extraction using Qwen3 30B
+ * Detailed Info Extraction using Qwen3 30B A3B FP8
  * Handles: IOC extraction, strategic key points
- * Cost: ~23 neurons per article
+ * Architecture: Mixture-of-Experts (30.5B total, 3.3B active)
+ * Cost: ~33 neurons per article
  */
 async function extractDetailedInfo(
   env: Env,
@@ -475,10 +477,10 @@ Content: ${content}`;
       }
     );
 
-    // Track neuron usage (qwen-30b model)
+    // Track neuron usage (Qwen3 30B A3B FP8 model)
     if (tracker) {
-      const neurons = tracker.track('qwen-30b', inputTokens, maxOutputTokens);
-      console.log(`[Tri-Model 30B] Neurons used: ~${Math.round(neurons)} (IOC extraction)`);
+      const neurons = tracker.track('qwen-30b-fp8', inputTokens, maxOutputTokens);
+      console.log(`[Tri-Model 30B MoE] Neurons used: ~${Math.round(neurons)} (IOC extraction)`);
     }
 
     const analysis = parseAIResponse<Partial<AIAnalysis>>(response);
@@ -489,7 +491,7 @@ Content: ${content}`;
 
     return analysis;
   } catch (error) {
-    logError('Error extracting detailed info (30B model)', error, {
+    logError('Error extracting detailed info (Qwen3 30B A3B FP8 model)', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,

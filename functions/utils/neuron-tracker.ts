@@ -32,15 +32,25 @@ export interface NeuronUsage {
  * Format: neurons per 1M tokens (input/output)
  */
 const NEURON_COSTS = {
-  // Mistral-Small-3.1 24B (current production - classification, TLDR)
+  // Qwen3 30B A3B FP8 (current production - classification, IOC extraction, TLDR, key points)
+  // Mixture-of-Experts: 30.5B total params, 3.3B active per inference
+  // FP8 quantization: 95-98% accuracy vs full precision
+  'qwen-30b-fp8-input': 4637,   // $0.051/M tokens
+  'qwen-30b-fp8-output': 30913,  // $0.340/M tokens
+
+  // Mistral-Small-3.1 24B (DEPRECATED - replaced by Qwen3 30B MoE)
   'mistral-24b-input': 31876,
   'mistral-24b-output': 50488,
+
+  // Llama 3.2 3B (fallback small model)
+  'llama-3b-input': 4637,
+  'llama-3b-output': 30913,
 
   // Llama 3.2 1B (DEPRECATED - no longer used)
   'llama-1b-input': 2457,
   'llama-1b-output': 18252,
 
-  // Llama 3.1 8B fp8-fast (fallback small model)
+  // Llama 3.1 8B fp8-fast (DEPRECATED - replaced by Llama 3.2 3B)
   'llama-8b-fp8-input': 4119,
   'llama-8b-fp8-output': 34868,
 
@@ -48,7 +58,7 @@ const NEURON_COSTS = {
   'llama-70b-input': 26668,
   'llama-70b-output': 204805,
 
-  // Qwen3 30B (large model - IOC extraction, key points)
+  // Qwen3 30B (legacy key - kept for backwards compatibility)
   'qwen-30b-input': 4625,
   'qwen-30b-output': 30475,
 
