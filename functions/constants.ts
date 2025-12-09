@@ -109,28 +109,27 @@ export const AI_MODELS = {
  * Deployment strategy configuration
  *
  * Controls which model strategy is active:
- * - 'baseline': Qwen 30B unified call (apples-to-apples comparison)
+ * - 'baseline': Llama 70B unified call (REVERTED - proven reliable)
  * - 'shadow': Run tri-model alongside baseline for comparison (no user impact)
  * - 'canary': Gradually roll out tri-model (10% → 30% → 50% → 100%)
  * - 'trimodel': Full tri-model deployment
  *
- * CANARY ROLLOUT (2025-12-08): Testing Qwen3 30B split vs unified at 30%
- * - Baseline: Qwen 30B unified call (~26 neurons/article)
- * - Tri-model: Qwen 30B split calls (~50 neurons/article)
- * - Same model (Qwen3 30B MoE), different strategies
- * - Empirical test: Does splitting improve quality or just waste neurons?
- * - Cost: 30% canary = 70% baseline (546) + 30% tri-model (455) = 1,001 neurons/day
- * - Free tier usage: ~10% (90% headroom - massively under quota!)
- * - Can measure: classification accuracy, IOC extraction quality, JSON reliability
+ * ROLLBACK (2025-12-09): Disabled canary due to Qwen 30B JSON failures
+ * - Issue: Qwen 30B producing invalid/incomplete JSON (100% failure rate)
+ * - Impact: All 10 articles in last cron run failed AI analysis
+ * - Fallback: Articles defaulting to category="other", severity="info"
+ * - Fix: Reverted baseline to Llama 70B (proven reliable JSON formatting)
+ * - Status: Canary disabled, back to baseline mode
+ * - Cost: 30 articles/run × 182 neurons = 5,460 neurons/day (55% of free tier)
+ * - Next steps: Investigate Qwen 30B JSON formatting, improve prompts, re-test
  */
 export const DEPLOYMENT_CONFIG = {
-  // Current deployment mode - CANARY testing at 30%
-  MODE: 'canary' as 'baseline' | 'shadow' | 'canary' | 'trimodel',
+  // Current deployment mode - BASELINE (canary disabled due to Qwen 30B issues)
+  MODE: 'baseline' as 'baseline' | 'shadow' | 'canary' | 'trimodel',
 
   // Canary rollout percentage (only used when MODE = 'canary')
-  // Progressive rollout: 10% → 30% → 50% → 100%
-  // Testing Qwen3 30B MoE performance at 30%
-  CANARY_PERCENT: 30,
+  // DISABLED until Qwen 30B JSON reliability issues are resolved
+  CANARY_PERCENT: 0,
 
   // Enable validation logging (logs comparisons between models)
   VALIDATION_LOGGING: true,

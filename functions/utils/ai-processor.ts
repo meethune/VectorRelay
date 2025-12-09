@@ -99,13 +99,13 @@ export async function analyzeArticle(
 }
 
 /**
- * Baseline approach: Single Qwen 30B unified call for all tasks
- * Used for apples-to-apples comparison with tri-model split approach
+ * Baseline approach: Single Llama 70B model for all tasks
+ * REVERTED from Qwen 30B due to JSON validation failures
  *
- * This allows empirical testing:
- * - Baseline: Qwen 30B unified (~26 neurons/article)
- * - Tri-model: Qwen 30B split (~50 neurons/article)
- * Same model, different strategies - which produces better quality?
+ * Qwen 30B was producing invalid/incomplete JSON responses causing
+ * 100% failure rate and defaulting all articles to "other" category.
+ *
+ * Llama 70B proven reliable with proper JSON formatting.
  */
 async function analyzeArticleBaseline(
   env: Env,
@@ -189,7 +189,7 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
     const maxOutputTokens = 1024;
 
     const response = await env.AI.run(
-      AI_MODELS.TEXT_GENERATION_SMALL,  // Use same Qwen 30B for apples-to-apples comparison
+      AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,  // REVERTED: Llama 70B (proven reliable)
       {
         messages: [
           { role: 'system', content: BASELINE_PROMPT },
@@ -205,11 +205,11 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
       }
     );
 
-    // Track neuron usage (Qwen 30B unified model)
+    // Track neuron usage (Llama 70B model)
     if (tracker) {
       // Use conservative estimate: assume full output token usage
-      const neurons = tracker.track('qwen-30b-fp8', inputTokens, maxOutputTokens);
-      console.log(`[Baseline Unified] Neurons used: ~${Math.round(neurons)} (Qwen 30B single call)`);
+      const neurons = tracker.track('llama-70b', inputTokens, maxOutputTokens);
+      console.log(`[Baseline 70B] Neurons used: ~${Math.round(neurons)} (Llama 70B proven reliable)`);
     }
 
     const analysis = parseAIResponse<AIAnalysis>(response);
@@ -223,14 +223,14 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
 
     return analysis;
   } catch (error) {
-    logError('Error in baseline analysis (Qwen 30B unified)', error, {
+    logError('Error in baseline analysis (Llama 70B)', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,
       contentLength: article.content?.length || 0,
       errorType: error instanceof Error ? error.name : 'Unknown',
       errorMessage: error instanceof Error ? error.message : String(error),
-      model: AI_MODELS.TEXT_GENERATION_SMALL,
+      model: AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,
     });
 
     // Track baseline analysis failures
