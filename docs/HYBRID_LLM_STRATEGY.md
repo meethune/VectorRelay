@@ -1,8 +1,114 @@
 # Hybrid LLM Strategy: Task-Based Model Selection
 
 **Date:** December 7, 2025
-**Status:** Recommended
+**Updated:** December 9, 2025 (Qwen 30B Reversion)
+**Status:** Baseline (Llama 70B)
 **Strategy:** Use different LLM models for different tasks based on accuracy requirements
+
+---
+
+## 🔴 Current Status (December 9, 2025)
+
+**REVERTED TO BASELINE: Llama 3.3 70B Instruct FP8-Fast**
+
+### Summary
+
+The application has been **reverted to using Llama 3.3 70B exclusively** (baseline mode) due to critical JSON formatting failures with Qwen 30B A3B FP8. The tri-model optimization strategy remains documented for future implementation once reliability issues are resolved.
+
+### What Happened
+
+**Qwen 30B JSON Failures (December 9, 2025):**
+- **Issue:** Qwen 30B producing invalid/incomplete JSON responses (100% failure rate during testing)
+- **Impact:** All 10 articles in last cron run failed AI analysis
+- **Symptom:** Articles defaulting to category="other", severity="info" (fallback values)
+- **Root Cause:** Model struggled with strict JSON schema adherence, particularly for structured IOC extraction
+
+**Example Failure Pattern:**
+```typescript
+// Expected JSON:
+{
+  "category": "ransomware",
+  "severity": "critical",
+  "iocs": {
+    "ips": ["1.2.3.4"],
+    "domains": ["evil.com"]
+  }
+}
+
+// Qwen 30B Output (invalid):
+{
+  "category": "ransomware",
+  "severity": "critical",
+  "iocs": {
+    "ips": ["1.2.3.4"
+    // Incomplete/truncated JSON
+}
+```
+
+### Current Configuration
+
+**Active Models:**
+- **Classification & IOC Extraction:** Llama 3.3 70B Instruct FP8-Fast (`@cf/meta/llama-3.3-70b-instruct-fp8-fast`)
+- **Embeddings:** BGE-M3 (`@cf/baai/bge-m3`) - Still active, no issues
+- **Deployment Mode:** `baseline` (unified 70B calls)
+- **Canary Percentage:** 0% (disabled)
+
+**Performance Metrics (Current Baseline):**
+- **Neurons per article:** ~182 neurons (80 input + 102 output)
+- **Daily usage:** 30 articles/run × 4 runs = 10,920 neurons/day
+- **Free tier usage:** 109% (exceeds limit by 9%)
+- **Monthly cost:** ~$0.30/month (minimal overage)
+- **Reliability:** 100% JSON formatting success ✅
+
+### What's Working
+
+✅ **Llama 70B remains proven and reliable:**
+- Consistent JSON formatting
+- High IOC extraction accuracy (88%)
+- Excellent instruction following
+- Handles edge cases gracefully
+
+✅ **BGE-M3 embeddings performing well:**
+- 94% cost reduction vs BGE-Large
+- No quality degradation observed
+- Semantic search working correctly
+
+### Next Steps
+
+**Short-term (Immediate):**
+1. ✅ Revert to baseline Llama 70B (COMPLETED)
+2. ✅ Update documentation (IN PROGRESS)
+3. Monitor neuron usage (currently 109% of free tier)
+4. Verify all articles processing correctly
+
+**Medium-term (Investigation):**
+1. Analyze Qwen 30B prompt engineering requirements
+2. Test with temperature=0.0 (strictest mode)
+3. Investigate Qwen 30B JSON mode capabilities
+4. Compare with Llama 3.1 8B as alternative small model
+5. Consider Mistral models as alternatives
+
+**Long-term (Optimization):**
+1. Re-test Qwen 30B with improved prompts
+2. Validate accuracy on ground truth dataset
+3. Implement shadow testing (dual execution)
+4. Gradual canary rollout (10% → 30% → 50% → 100%)
+5. Only after 100% validation success
+
+### Lessons Learned
+
+**Model Selection Criteria:**
+1. **Reliability > Cost:** JSON formatting reliability is non-negotiable
+2. **Validate thoroughly:** Shadow testing should run for minimum 1 week
+3. **Gradual rollout:** Start with 10% canary, not 30%
+4. **Monitoring:** Automated alerts for JSON parsing failures
+5. **Fallback ready:** Always have instant rollback capability
+
+**Testing Requirements:**
+- Minimum 100 sample articles before canary
+- 95% JSON success rate threshold
+- Automated regression testing
+- Real-time monitoring dashboards
 
 ---
 

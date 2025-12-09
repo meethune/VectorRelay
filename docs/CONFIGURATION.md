@@ -217,13 +217,14 @@ npx wrangler vectorize create threat-embeddings --dimensions=1024 --metric=cosin
 }
 ```
 
-**Models Used:**
-- `@cf/meta/llama-3.3-70b-instruct-fp8-fast` - Threat analysis
-- `@cf/qwen/qwen2.5-coder-32b-instruct` - IOC extraction
-- `@cf/baai/bge-large-en-v1.5` - Semantic embeddings
+**Models Used (Current - Baseline):**
+- `@cf/meta/llama-3.3-70b-instruct-fp8-fast` - Threat analysis & IOC extraction (unified)
+- `@cf/baai/bge-m3` - Semantic embeddings (94% cheaper than BGE-Large)
 
 **Free Tier:** 10,000 neurons/day
-**Current Usage:** ~3,000 neurons/day (30% of limit)
+**Current Usage:** ~10,920 neurons/day (109% of limit - $0.30/month overage)
+
+**Note:** Application reverted to baseline Llama 70B on December 9, 2025 due to Qwen 30B JSON formatting failures. See [HYBRID_LLM_STRATEGY.md](./HYBRID_LLM_STRATEGY.md) for details.
 
 ---
 

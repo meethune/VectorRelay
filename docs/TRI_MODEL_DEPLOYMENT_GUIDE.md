@@ -1,8 +1,36 @@
 # Tri-Model Deployment Guide
 
-**Status:** Ready for Shadow Testing
+**Status:** ⚠️ POSTPONED - Qwen 30B JSON Failures (December 9, 2025)
 **Date:** December 7, 2025
+**Updated:** December 9, 2025
 **Expected Impact:** 81% neuron reduction, $0.30/month savings, 4.75× scaling capacity
+
+---
+
+## 🔴 IMPORTANT UPDATE (December 9, 2025)
+
+**Tri-model deployment has been POSTPONED due to critical JSON formatting failures with Qwen 30B.**
+
+**Current Status:**
+- Application reverted to baseline mode (Llama 3.3 70B only)
+- Qwen 30B exhibited 100% JSON parsing failure rate during testing
+- All tri-model testing and deployment is on hold pending investigation
+
+**Issues Found:**
+- Qwen 30B unable to produce valid JSON consistently
+- Incomplete/truncated JSON responses
+- Articles defaulting to category="other", severity="info"
+
+**Next Steps:**
+1. Investigate Qwen 30B prompt engineering requirements
+2. Test alternative models (Llama 3.1 8B, Mistral variants)
+3. Implement more robust JSON validation
+4. Re-run validation testing with fixes
+5. Resume deployment phases only after 95%+ JSON success rate
+
+See [HYBRID_LLM_STRATEGY.md](./HYBRID_LLM_STRATEGY.md#-current-status-december-9-2025) for detailed failure analysis.
+
+**This guide remains available for reference but should NOT be followed until the above issues are resolved.**
 
 ---
 
