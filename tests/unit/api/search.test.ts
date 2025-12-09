@@ -18,8 +18,9 @@ vi.mock('../../../functions/utils/security', () => ({
     }
     return { valid: true };
   }),
+  sanitizeSearchQuery: vi.fn((query: string) => query), // Pass-through for tests
   validateOrigin: vi.fn((origin: string | null) => origin),
-  handleCORSPreflight: vi.fn((origin: string) => new Response(null, { status: 204 })),
+  handleCORSPreflight: vi.fn((_origin: string) => new Response(null, { status: 204 })),
 }));
 
 import { semanticSearch } from '../../../functions/utils/ai-processor';

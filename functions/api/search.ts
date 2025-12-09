@@ -7,6 +7,7 @@ import {
   validateSearchQuery,
   validateOrigin,
   handleCORSPreflight,
+  sanitizeSearchQuery,
 } from '../utils/security';
 
 // Simple hash function for cache keys
@@ -59,7 +60,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const requestedLimit = parseInt(url.searchParams.get('limit') || '20');
   const limit = Math.min(Math.max(requestedLimit, 1), 50); // Min 1, Max 50
 
-  // Security: Validate query using utility
+  // Security: Validate and sanitize query
   if (!query) {
     const errorResponse = Response.json({ error: 'Query parameter "q" is required' }, { status: 400 });
     return wrapResponse(errorResponse, {
@@ -77,13 +78,16 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     });
   }
 
+  // Enhanced sanitization to prevent injection attacks
+  const sanitizedQuery = sanitizeSearchQuery(query);
+
   try {
     let threatIds: string[] = [];
     let cacheHit = false;
 
     if (mode === 'semantic') {
       // Check cache first to avoid AI inference on repeat queries
-      const cacheKey = `search:semantic:${hashQuery(query)}:limit:${limit}`;
+      const cacheKey = `search:semantic:${hashQuery(sanitizedQuery)}:limit:${limit}`;
       const cached = await env.CACHE.get(cacheKey);
 
       if (cached) {
@@ -91,17 +95,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         const cachedResults = JSON.parse(cached);
         threatIds = cachedResults.map((r: any) => r.id);
         cacheHit = true;
-        console.log(`Cache hit for semantic search: "${query}" (${threatIds.length} results)`);
+        console.log(`Cache hit for semantic search: "${sanitizedQuery}" (${threatIds.length} results)`);
       } else {
         // Cache miss - perform semantic search using embeddings
-        const results = await semanticSearch(env, query, limit);
+        const results = await semanticSearch(env, sanitizedQuery, limit);
         threatIds = results.map((r) => r.id);
 
         // Cache the results for 5 minutes
         await env.CACHE.put(cacheKey, JSON.stringify(results), {
           expirationTtl: 300, // 5 minutes
         });
-        console.log(`Cache miss for semantic search: "${query}" (${threatIds.length} results cached)`);
+        console.log(`Cache miss for semantic search: "${sanitizedQuery}" (${threatIds.length} results cached)`);
       }
 
       if (threatIds.length === 0) {
@@ -150,8 +154,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       `;
       params = validIds;
     } else {
-      // Keyword search
-      const searchTerm = `%${query}%`;
+      // Keyword search - use sanitized query
+      const searchTerm = `%${sanitizedQuery}%`;
       sqlQuery = `
         SELECT
           t.*,
@@ -181,9 +185,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     }));
 
     // Log search for analytics (async, don't block response)
+    // Use sanitized query for logging
     const now = Math.floor(Date.now() / 1000);
     env.DB.prepare('INSERT INTO search_history (query, result_count, searched_at) VALUES (?, ?, ?)')
-      .bind(query, threats.length, now)
+      .bind(sanitizedQuery, threats.length, now)
       .run()
       .catch(err => console.error('Failed to log search:', err));
 

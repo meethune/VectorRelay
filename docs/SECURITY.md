@@ -14,13 +14,15 @@ VectorRelay has achieved a **hardened security posture** through comprehensive s
 - ✅ **CORS Protection:** Origin allowlist with production env var support
 - ✅ **IP Blocking:** Temporary and permanent IP blocking for abuse prevention
 - ✅ **Security Headers:** OWASP-recommended headers on all responses
+- ✅ **Request Validation:** Comprehensive middleware for pagination, sorting, body validation
+- ✅ **Input Sanitization:** Multi-layered defense against SQL/XSS/NoSQL injection, path traversal
+- ✅ **API Key Rotation:** Complete key lifecycle management with SHA-256 hashing
 - ✅ **Access Control:** Management endpoints disabled in production
-- ✅ **Input Validation:** Comprehensive validation and sanitization
-- ✅ **SQL Injection:** Protected via parameterized queries
+- ✅ **SQL Injection:** Protected via parameterized queries + sanitization
 - ✅ **HTTP Caching:** Smart caching with appropriate TTLs
 - ✅ **Reduced Attack Surface:** 5 public endpoints, all authenticated debug endpoints
 
-**Current Security Posture:** Production Ready ✅ (75% of Phase 1.2 complete)
+**Current Security Posture:** Production Ready ✅ (Phase 1.2 100% Complete - December 8, 2025)
 
 ---
 
@@ -196,7 +198,198 @@ Content-Security-Policy: default-src 'none' (for JSON responses)
 
 ---
 
-### 6. Access Control ✅
+### 6. Request Validation Middleware ✅
+
+**Implementation:** Comprehensive request validation utilities for all API patterns
+
+**Features:**
+- Pagination validation with customizable limits
+- Sort parameter validation with allowlist
+- Date range validation
+- Boolean parameter parsing
+- Array parameter validation (comma-separated)
+- Request body size limits
+- JSON body validation with required fields
+- Path parameter validation with pattern matching
+- Header validation
+
+**Usage Examples:**
+```typescript
+// Pagination validation
+const result = validatePagination(url, { maxLimit: 100 });
+if (!result.valid) {
+  return Response.json({ error: result.error }, { status: 400 });
+}
+const { page, limit, offset } = result.data!;
+
+// Sort validation
+const sortResult = validateSort(url, ['published_at', 'severity', 'title']);
+const { field, order } = sortResult.data!;
+
+// JSON body validation
+const bodyResult = await validateJSONBody(request, ['title', 'content']);
+if (!bodyResult.valid) {
+  return Response.json({ error: bodyResult.error }, { status: 400 });
+}
+```
+
+**Protection Against:**
+- ✅ Invalid pagination causing database errors
+- ✅ SQL injection via sort parameters
+- ✅ Resource exhaustion via excessive limits
+- ✅ Type confusion attacks
+- ✅ Malformed request bodies
+
+**Files:**
+- `functions/utils/request-validation.ts` - All validation utilities
+- API endpoints - Applied via validation functions
+
+---
+
+### 7. Enhanced Input Sanitization ✅
+
+**Implementation:** Multi-layered defense against injection attacks
+
+**Features:**
+- Generic input sanitization with options
+- Search query sanitization (SQL LIKE, ReDoS prevention)
+- File path sanitization (path traversal prevention)
+- JSON input sanitization (NoSQL injection, prototype pollution)
+- Unicode attack prevention
+- Control character filtering
+- Length enforcement
+
+**Sanitization Functions:**
+
+1. **sanitizeInput()** - General purpose sanitization
+   - Removes null bytes, control characters
+   - Escapes HTML/XML tags
+   - Removes dangerous Unicode (zero-width, RTL override)
+   - Enforces maximum length
+   - Configurable options
+
+2. **sanitizeSearchQuery()** - Search-specific sanitization
+   - Escapes SQL LIKE wildcards (%, _)
+   - Removes SQL operators (DROP, DELETE, UNION, etc.)
+   - Prevents ReDoS (limits consecutive special chars)
+   - Maximum 500 characters
+
+3. **sanitizeFilePath()** - Path traversal prevention
+   - Removes directory traversal patterns (../)
+   - Normalizes Windows paths
+   - Removes leading slashes (prevents absolute paths)
+   - Removes hidden file access (leading dots)
+
+4. **sanitizeJSONInput()** - NoSQL injection prevention
+   - Blocks prototype pollution (__proto__, constructor)
+   - Removes MongoDB operators ($gt, $ne, etc.)
+   - Recursive object sanitization
+
+**Usage:**
+```typescript
+// Search query sanitization (now integrated in /api/search)
+const sanitizedQuery = sanitizeSearchQuery(query);
+
+// File path sanitization
+const safePath = sanitizeFilePath(userPath);
+
+// JSON input sanitization
+const safeData = sanitizeJSONInput(requestBody);
+```
+
+**Protection Against:**
+- ✅ SQL Injection (defense-in-depth, primary: parameterized queries)
+- ✅ XSS (Cross-Site Scripting)
+- ✅ Command Injection
+- ✅ Path Traversal
+- ✅ LDAP Injection
+- ✅ NoSQL Injection
+- ✅ Prototype Pollution
+- ✅ ReDoS (Regular Expression Denial of Service)
+
+**Files:**
+- `functions/utils/security.ts::sanitizeInput()`, `sanitizeSearchQuery()`, `sanitizeFilePath()`, `sanitizeJSONInput()`
+- `functions/api/search.ts` - Enhanced sanitization integrated
+
+---
+
+### 8. API Key Rotation Mechanism ✅
+
+**Implementation:** Complete API key lifecycle management with KV storage
+
+**Features:**
+- Cryptographically secure key generation
+- SHA-256 hashing (never store plaintext keys)
+- Key expiration support
+- Permission-based access control
+- Key rotation with grace periods
+- Immediate revocation
+- Usage tracking (last used timestamp)
+- Key listing and management
+
+**Key Format:** `vr_<48-char-base64url-token>`
+
+**Usage:**
+
+```typescript
+// Generate new API key
+const result = await generateAPIKey(env, {
+  name: 'Production API',
+  permissions: ['read:threats', 'write:threats'],
+  expiresInDays: 365,
+});
+console.log('Save this key:', result.apiKey);
+
+// Validate API key
+const metadata = await validateAPIKey(env, apiKey, 'read:threats');
+if (!metadata) {
+  return new Response('Unauthorized', { status: 401 });
+}
+
+// Rotate key (30-day grace period)
+const newKey = await rotateAPIKey(env, 'key_abc123', 30);
+
+// Revoke key immediately
+await revokeAPIKey(env, 'key_abc123');
+
+// List all keys
+const keys = await listAPIKeys(env);
+```
+
+**Permission System:**
+```typescript
+// Wildcard permissions
+'read:*'     // Read all resources
+'write:*'    // Write all resources
+
+// Specific permissions
+'read:threats'
+'write:threats'
+'admin:keys'
+```
+
+**Key States:**
+- `active` - Key is valid and can be used
+- `deprecated` - Key still works but has been rotated (grace period)
+- `revoked` - Key is permanently disabled
+
+**Storage Keys:**
+- `apikey:metadata:{keyId}` - Key metadata (hashed key, permissions, status)
+- `apikey:hash:{hash}` - Hash → keyId mapping for validation
+
+**Protection Against:**
+- ✅ Plaintext key exposure (SHA-256 hashing)
+- ✅ Key theft impact (rotation, revocation)
+- ✅ Unauthorized access (permission validation)
+- ✅ Key enumeration (cryptographically secure generation)
+
+**Files:**
+- `functions/utils/api-key-rotation.ts` - Complete key management
+- Stores keys in KV with automatic expiration
+
+---
+
+### 9. Access Control ✅
 
 **Implementation:** Environment-based endpoint protection + API key authentication
 

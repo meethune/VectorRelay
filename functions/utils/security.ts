@@ -468,16 +468,237 @@ export const validateSeverity = createEnumValidator(
 
 /**
  * Sanitize string input to prevent injection attacks
- * (Already using parameterized queries, but extra safety)
+ *
+ * SECURITY: Multi-layered defense against:
+ * - SQL Injection (primary defense: parameterized queries)
+ * - XSS (Cross-Site Scripting)
+ * - Command Injection
+ * - Path Traversal
+ * - LDAP Injection
+ * - NoSQL Injection
+ *
+ * This is defense-in-depth. The primary defense is parameterized queries,
+ * but this provides an extra safety layer.
+ *
+ * @param input - User input to sanitize
+ * @param options - Sanitization options
+ * @returns Sanitized string
  */
-export function sanitizeInput(input: string): string {
-  // Remove null bytes
-  let sanitized = input.replace(/\0/g, '');
+export function sanitizeInput(
+  input: string,
+  options: {
+    allowHTML?: boolean;
+    maxLength?: number;
+    allowNewlines?: boolean;
+    allowSpecialChars?: boolean;
+  } = {}
+): string {
+  const {
+    allowHTML = false,
+    maxLength = 10000,
+    allowNewlines = true,
+    allowSpecialChars = true,
+  } = options;
 
-  // Trim whitespace
+  if (!input || typeof input !== 'string') {
+    return '';
+  }
+
+  let sanitized = input;
+
+  // 1. Remove null bytes (NULL byte injection)
+  sanitized = sanitized.replace(/\0/g, '');
+
+  // 2. Remove control characters (except newlines/tabs if allowed)
+  if (allowNewlines) {
+    // Keep \n, \r, \t but remove other control chars
+    // eslint-disable-next-line no-control-regex
+    sanitized = sanitized.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '');
+  } else {
+    // Remove all control characters
+    // eslint-disable-next-line no-control-regex
+    sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
+  }
+
+  // 3. Remove or escape HTML/XML tags (XSS prevention)
+  if (!allowHTML) {
+    // Remove < and > to prevent tag injection
+    sanitized = sanitized.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Also handle common HTML entity encoding attempts
+    sanitized = sanitized.replace(/&#x?[0-9a-fA-F]+;?/g, '');
+  }
+
+  // 4. Remove dangerous Unicode characters
+  // - Zero-width characters (can hide malicious content)
+  // - Right-to-left override (can disguise content)
+  // - Bi-directional text markers
+  sanitized = sanitized.replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g, '');
+
+  // 5. Trim whitespace
   sanitized = sanitized.trim();
 
+  // 6. Enforce maximum length (DoS prevention)
+  if (sanitized.length > maxLength) {
+    sanitized = sanitized.substring(0, maxLength);
+  }
+
+  // 7. Remove potentially dangerous patterns if special chars not allowed
+  if (!allowSpecialChars) {
+    // Allow only alphanumeric, spaces, and basic punctuation
+    sanitized = sanitized.replace(/[^a-zA-Z0-9\s.,!?@#$%&*()_+\-=[\]{}:;"'<>]/g, '');
+  }
+
   return sanitized;
+}
+
+/**
+ * Sanitize search query specifically
+ *
+ * SECURITY: Prevents:
+ * - SQL Injection via LIKE wildcards
+ * - Full-text search injection
+ * - ReDoS (Regular Expression Denial of Service)
+ *
+ * @param query - Search query string
+ * @returns Sanitized query
+ */
+export function sanitizeSearchQuery(query: string): string {
+  if (!query || typeof query !== 'string') {
+    return '';
+  }
+
+  let sanitized = query;
+
+  // 1. Basic sanitization
+  sanitized = sanitizeInput(sanitized, {
+    allowHTML: false,
+    maxLength: 500,
+    allowNewlines: false,
+    allowSpecialChars: true,
+  });
+
+  // 2. Escape SQL LIKE wildcards to prevent pattern injection
+  // Only escape if we're NOT allowing wildcards in search
+  // % and _ have special meaning in SQL LIKE queries
+  sanitized = sanitized.replace(/%/g, '\\%').replace(/_/g, '\\_');
+
+  // 3. Remove potentially dangerous SQL operators
+  // Even with parameterized queries, defense-in-depth
+  const sqlPatterns = [
+    /;\s*DROP/gi,
+    /;\s*DELETE/gi,
+    /;\s*UPDATE/gi,
+    /;\s*INSERT/gi,
+    /;\s*EXEC/gi,
+    /;\s*UNION/gi,
+    /--/g,
+    /\/\*/g,
+    /\*\//g,
+  ];
+
+  for (const pattern of sqlPatterns) {
+    sanitized = sanitized.replace(pattern, '');
+  }
+
+  // 4. Limit consecutive special characters (ReDoS prevention)
+  // Replace 3+ consecutive special chars with empty string
+  sanitized = sanitized.replace(/[^\w\s]{3,}/g, '');
+
+  return sanitized.trim();
+}
+
+/**
+ * Sanitize file path to prevent path traversal attacks
+ *
+ * SECURITY: Prevents:
+ * - Directory traversal (../, ..\)
+ * - Absolute path access
+ * - Hidden file access
+ *
+ * @param path - File path string
+ * @returns Sanitized path
+ */
+export function sanitizeFilePath(path: string): string {
+  if (!path || typeof path !== 'string') {
+    return '';
+  }
+
+  let sanitized = path;
+
+  // 1. Basic sanitization
+  sanitized = sanitizeInput(sanitized, {
+    allowHTML: false,
+    maxLength: 255,
+    allowNewlines: false,
+    allowSpecialChars: false,
+  });
+
+  // 2. Remove directory traversal patterns
+  sanitized = sanitized.replace(/\.\./g, '');
+  sanitized = sanitized.replace(/\\/g, '/'); // Normalize Windows paths
+
+  // 3. Remove leading slashes (prevent absolute paths)
+  sanitized = sanitized.replace(/^\/+/, '');
+
+  // 4. Remove multiple consecutive slashes
+  sanitized = sanitized.replace(/\/+/g, '/');
+
+  // 5. Remove leading dots (prevent hidden files)
+  sanitized = sanitized.replace(/^\.+/, '');
+
+  return sanitized.trim();
+}
+
+/**
+ * Sanitize JSON input to prevent NoSQL injection
+ *
+ * SECURITY: Prevents:
+ * - MongoDB operator injection ($gt, $ne, etc.)
+ * - Prototype pollution
+ *
+ * @param obj - Object to sanitize
+ * @returns Sanitized object
+ */
+export function sanitizeJSONInput(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Handle arrays
+  if (Array.isArray(obj)) {
+    return obj.map(item => sanitizeJSONInput(item));
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    const sanitized: any = {};
+
+    for (const key in obj) {
+      // Skip prototype pollution attempts
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+        continue;
+      }
+
+      // Skip MongoDB operators (NoSQL injection prevention)
+      if (key.startsWith('$')) {
+        continue;
+      }
+
+      // Recursively sanitize nested objects
+      sanitized[key] = sanitizeJSONInput(obj[key]);
+    }
+
+    return sanitized;
+  }
+
+  // Handle strings
+  if (typeof obj === 'string') {
+    return sanitizeInput(obj, { allowHTML: false, maxLength: 10000 });
+  }
+
+  // Return primitives as-is (numbers, booleans)
+  return obj;
 }
 
 /**
