@@ -13,6 +13,8 @@ vi.mock('../../../functions/utils/archiver', () => ({
 vi.mock('../../../functions/utils/security', () => ({
   securityMiddleware: vi.fn(),
   wrapResponse: vi.fn((response: Response) => response),
+  validateOrigin: vi.fn((origin: string | null) => origin),
+  handleCORSPreflight: vi.fn((origin: string) => new Response(null, { status: 204 })),
 }));
 
 vi.mock('../../../functions/utils/auth', () => ({

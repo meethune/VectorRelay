@@ -5,6 +5,8 @@ import type { Env, DashboardStats } from '../../../functions/types';
 vi.mock('../../../functions/utils/security', () => ({
   securityMiddleware: vi.fn(),
   wrapResponse: vi.fn((response: Response) => response),
+  validateOrigin: vi.fn((origin: string | null) => origin),
+  handleCORSPreflight: vi.fn((origin: string) => new Response(null, { status: 204 })),
 }));
 
 import { securityMiddleware, wrapResponse } from '../../../functions/utils/security';

@@ -1,8 +1,31 @@
 // API: Get threats with filtering and pagination
 import type { Env, ThreatWithSummary } from '../types';
-import { securityMiddleware, wrapResponse, validateCategory, validateSeverity } from '../utils/security';
+import {
+  securityMiddleware,
+  wrapResponse,
+  validateCategory,
+  validateSeverity,
+  validateOrigin,
+  handleCORSPreflight,
+} from '../utils/security';
+
+// Handle CORS preflight requests
+export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
+  if (!validatedOrigin) {
+    return new Response('Origin not allowed', { status: 403 });
+  }
+
+  return handleCORSPreflight(validatedOrigin);
+};
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Validate CORS origin
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
   // Apply security middleware
   const securityCheck = await securityMiddleware(request, env, 'threats', {
     rateLimit: { limit: 200, window: 600 }, // 200 requests per 10 minutes
@@ -30,12 +53,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // Security: Validate enum values
   if (category && !validateCategory(category)) {
     const errorResponse = Response.json({ error: 'Invalid category value' }, { status: 400 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 
   if (severity && !validateSeverity(severity)) {
     const errorResponse = Response.json({ error: 'Invalid severity value' }, { status: 400 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 
   const offset = (page - 1) * limit;
@@ -119,7 +148,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       },
     });
 
-    // Wrap response with security headers and cache
+    // Wrap response with security headers, CORS, and cache
     return wrapResponse(response, {
       rateLimit: {
         limit: 200,
@@ -128,6 +157,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       },
       cacheMaxAge: 300,
       cachePrivacy: 'public',
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
     });
   } catch (error) {
     console.error('Error fetching threats:', {
@@ -140,6 +170,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       stack: error instanceof Error ? error.stack : undefined,
     });
     const errorResponse = Response.json({ error: 'Failed to fetch threats' }, { status: 500 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 };

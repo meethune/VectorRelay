@@ -1,8 +1,29 @@
 // API: Dashboard statistics
 import type { Env, DashboardStats } from '../types';
-import { securityMiddleware, wrapResponse } from '../utils/security';
+import {
+  securityMiddleware,
+  wrapResponse,
+  validateOrigin,
+  handleCORSPreflight,
+} from '../utils/security';
+
+// Handle CORS preflight requests
+export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
+  if (!validatedOrigin) {
+    return new Response('Origin not allowed', { status: 403 });
+  }
+
+  return handleCORSPreflight(validatedOrigin);
+};
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Validate CORS origin
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
   // Apply security middleware
   const securityCheck = await securityMiddleware(request, env, 'stats', {
     rateLimit: { limit: 200, window: 600 }, // 200 requests per 10 minutes
@@ -114,7 +135,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
     const response = Response.json(stats);
 
-    // Wrap response with security headers and cache
+    // Wrap response with security headers, CORS, and cache
     return wrapResponse(response, {
       rateLimit: {
         limit: 200,
@@ -123,12 +144,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       },
       cacheMaxAge: 300,
       cachePrivacy: 'public',
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
     });
   } catch (error) {
     console.error('Error fetching stats:', error);
     const errorResponse = Response.json({ error: 'Failed to fetch statistics' }, { status: 500 });
     return wrapResponse(errorResponse, {
       cacheMaxAge: 0, // Don't cache errors
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
     });
   }
 };

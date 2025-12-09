@@ -1,7 +1,12 @@
 // API endpoint to fetch feed sources from the database
 import type { PagesFunction } from '@cloudflare/workers-types';
 import type { Env } from '../types';
-import { securityMiddleware, wrapResponse } from '../utils/security';
+import {
+  securityMiddleware,
+  wrapResponse,
+  validateOrigin,
+  handleCORSPreflight,
+} from '../utils/security';
 
 interface FeedSource {
   id: number;
@@ -11,7 +16,23 @@ interface FeedSource {
   enabled: number;
 }
 
+// Handle CORS preflight requests
+export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
+  if (!validatedOrigin) {
+    return new Response('Origin not allowed', { status: 403 });
+  }
+
+  return handleCORSPreflight(validatedOrigin);
+};
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Validate CORS origin
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
   // Apply rate limiting and security checks
   const securityCheck = await securityMiddleware(request, env, 'sources', {
     rateLimit: { limit: 200, window: 600 }, // 200 requests per 10 minutes (same as /api/threats and /api/stats)
@@ -45,7 +66,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       }
     );
 
-    // Apply security headers, rate limit headers, and cache headers
+    // Apply security headers, CORS, rate limit headers, and cache headers
     return wrapResponse(response, {
       rateLimit: {
         limit: 200,
@@ -54,6 +75,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       },
       cacheMaxAge: 300, // 5 minutes
       cachePrivacy: 'public',
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
     });
   } catch (error) {
     console.error('Error fetching sources:', error);
@@ -69,6 +91,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     );
 
     // Apply security headers to error response
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 };

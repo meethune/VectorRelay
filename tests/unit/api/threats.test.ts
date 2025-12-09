@@ -11,6 +11,8 @@ vi.mock('../../../functions/utils/security', () => ({
   validateSeverity: vi.fn((severity: string) =>
     ['critical', 'high', 'medium', 'low', 'info'].includes(severity)
   ),
+  validateOrigin: vi.fn((origin: string | null) => origin),
+  handleCORSPreflight: vi.fn((origin: string) => new Response(null, { status: 204 })),
 }));
 
 import { securityMiddleware, wrapResponse, validateCategory, validateSeverity } from '../../../functions/utils/security';

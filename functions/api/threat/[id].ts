@@ -1,6 +1,12 @@
 // API: Get single threat details with IOCs and multi-signal similarity
 import type { Env } from '../../types';
-import { securityMiddleware, wrapResponse, validateThreatId } from '../../utils/security';
+import {
+  securityMiddleware,
+  wrapResponse,
+  validateThreatId,
+  validateOrigin,
+  handleCORSPreflight,
+} from '../../utils/security';
 import {
   fetchCandidateThreats,
   calculateMultiSignalSimilarity,
@@ -35,7 +41,23 @@ function groupIOCsByType(iocs: any[]): ThreatForSimilarity['iocs'] {
   return grouped;
 }
 
+// Handle CORS preflight requests
+export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
+  if (!validatedOrigin) {
+    return new Response('Origin not allowed', { status: 403 });
+  }
+
+  return handleCORSPreflight(validatedOrigin);
+};
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, params, env }) => {
+  // Validate CORS origin
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
   // Apply security middleware with stricter rate limit (AI processing expensive)
   const securityCheck = await securityMiddleware(request, env, 'threat-detail', {
     rateLimit: { limit: 100, window: 600 }, // 100 requests per 10 minutes (stricter due to AI)
@@ -51,13 +73,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, params, env })
 
   if (!threatId) {
     const errorResponse = Response.json({ error: 'Threat ID is required' }, { status: 400 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 
   // Security: Validate threat ID format
   if (!validateThreatId(threatId)) {
     const errorResponse = Response.json({ error: 'Invalid threat ID format' }, { status: 400 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 
   try{
@@ -82,7 +110,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, params, env })
     if (!threat) {
       const errorResponse = Response.json({ error: 'Threat not found' }, { status: 404 });
       // Cache 404s for 1 minute to prevent repeated lookups for non-existent threats
-      return wrapResponse(errorResponse, { cacheMaxAge: 60 });
+      return wrapResponse(errorResponse, {
+        cacheMaxAge: 60,
+        cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+      });
     }
 
     // Check if threat is archived in R2
@@ -185,7 +216,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, params, env })
 
     const response = Response.json(threatData);
 
-    // Wrap response with security headers and cache
+    // Wrap response with security headers, CORS, and cache
     return wrapResponse(response, {
       rateLimit: {
         limit: 100,
@@ -194,10 +225,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, params, env })
       },
       cacheMaxAge: 600, // Cache for 10 minutes
       cachePrivacy: 'public',
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
     });
   } catch (error) {
     console.error('Error fetching threat:', error);
     const errorResponse = Response.json({ error: 'Failed to fetch threat details' }, { status: 500 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 };

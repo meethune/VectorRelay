@@ -1,7 +1,13 @@
 // API: Search threats (keyword + semantic)
 import type { Env } from '../types';
 import { semanticSearch } from '../utils/ai-processor';
-import { securityMiddleware, wrapResponse, validateSearchQuery } from '../utils/security';
+import {
+  securityMiddleware,
+  wrapResponse,
+  validateSearchQuery,
+  validateOrigin,
+  handleCORSPreflight,
+} from '../utils/security';
 
 // Simple hash function for cache keys
 function hashQuery(query: string): string {
@@ -14,7 +20,22 @@ function hashQuery(query: string): string {
   return Math.abs(hash).toString(36);
 }
 
+// Handle CORS preflight requests
+export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
+
+  if (!validatedOrigin) {
+    return new Response('Origin not allowed', { status: 403 });
+  }
+
+  return handleCORSPreflight(validatedOrigin);
+};
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+  // Validate CORS origin
+  const requestOrigin = request.headers.get('Origin');
+  const validatedOrigin = validateOrigin(requestOrigin);
   const url = new URL(request.url);
   const query = url.searchParams.get('q');
   const mode = url.searchParams.get('mode') || 'keyword'; // keyword or semantic
@@ -41,13 +62,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   // Security: Validate query using utility
   if (!query) {
     const errorResponse = Response.json({ error: 'Query parameter "q" is required' }, { status: 400 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 
   const validation = validateSearchQuery(query);
   if (!validation.valid) {
     const errorResponse = Response.json({ error: validation.error }, { status: 400 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 
   try {
@@ -168,7 +195,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       cached: mode === 'semantic' ? cacheHit : undefined,
     });
 
-    // Wrap response with security headers and cache
+    // Wrap response with security headers, CORS, and cache
     return wrapResponse(response, {
       rateLimit: {
         limit: rateLimit.limit,
@@ -177,6 +204,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       },
       cacheMaxAge: 60, // Cache for 1 minute
       cachePrivacy: 'private',
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
     });
   } catch (error) {
     console.error('Error searching threats:', {
@@ -186,6 +214,9 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       stack: error instanceof Error ? error.stack : undefined,
     });
     const errorResponse = Response.json({ error: 'Search failed' }, { status: 500 });
-    return wrapResponse(errorResponse, { cacheMaxAge: 0 });
+    return wrapResponse(errorResponse, {
+      cacheMaxAge: 0,
+      cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
+    });
   }
 };
