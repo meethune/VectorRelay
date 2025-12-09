@@ -99,8 +99,13 @@ export async function analyzeArticle(
 }
 
 /**
- * Baseline approach: Single Llama 70B model for all tasks
- * This is the original proven implementation
+ * Baseline approach: Single Qwen 30B unified call for all tasks
+ * Used for apples-to-apples comparison with tri-model split approach
+ *
+ * This allows empirical testing:
+ * - Baseline: Qwen 30B unified (~26 neurons/article)
+ * - Tri-model: Qwen 30B split (~50 neurons/article)
+ * Same model, different strategies - which produces better quality?
  */
 async function analyzeArticleBaseline(
   env: Env,
@@ -184,7 +189,7 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
     const maxOutputTokens = 1024;
 
     const response = await env.AI.run(
-      AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,
+      AI_MODELS.TEXT_GENERATION_SMALL,  // Use same Qwen 30B for apples-to-apples comparison
       {
         messages: [
           { role: 'system', content: BASELINE_PROMPT },
@@ -200,11 +205,11 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
       }
     );
 
-    // Track neuron usage (llama-70b model)
+    // Track neuron usage (Qwen 30B unified model)
     if (tracker) {
       // Use conservative estimate: assume full output token usage
-      const neurons = tracker.track('llama-70b', inputTokens, maxOutputTokens);
-      console.log(`[Baseline] Neurons used: ~${Math.round(neurons)} (70B model)`);
+      const neurons = tracker.track('qwen-30b-fp8', inputTokens, maxOutputTokens);
+      console.log(`[Baseline Unified] Neurons used: ~${Math.round(neurons)} (Qwen 30B single call)`);
     }
 
     const analysis = parseAIResponse<AIAnalysis>(response);
@@ -218,14 +223,14 @@ If no IOCs found, use empty arrays. Use "other" category sparingly (<10% of case
 
     return analysis;
   } catch (error) {
-    logError('Error in baseline analysis', error, {
+    logError('Error in baseline analysis (Qwen 30B unified)', error, {
       threatId: article.id,
       title: article.title,
       source: article.source,
       contentLength: article.content?.length || 0,
       errorType: error instanceof Error ? error.name : 'Unknown',
       errorMessage: error instanceof Error ? error.message : String(error),
-      model: AI_MODELS.TEXT_GENERATION_LARGE_FALLBACK,
+      model: AI_MODELS.TEXT_GENERATION_SMALL,
     });
 
     // Track baseline analysis failures

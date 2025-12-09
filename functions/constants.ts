@@ -109,18 +109,19 @@ export const AI_MODELS = {
  * Deployment strategy configuration
  *
  * Controls which model strategy is active:
- * - 'baseline': Use Llama 70B for all tasks (original approach)
+ * - 'baseline': Qwen 30B unified call (apples-to-apples comparison)
  * - 'shadow': Run tri-model alongside baseline for comparison (no user impact)
  * - 'canary': Gradually roll out tri-model (10% → 30% → 50% → 100%)
  * - 'trimodel': Full tri-model deployment
  *
- * CANARY ROLLOUT (2025-12-08): Testing Qwen3 30B A3B FP8 tri-model at 30%
- * - Upgraded from Mistral-Small 24B → Qwen3 30B MoE for superior classification
- * - MMLU 76.6 vs 63.4 (Llama 3B) - 20.8% better for threat categorization
- * - Mixture-of-Experts: 30.5B params total, 3.3B active (routes to specialized experts)
- * - Cost: 30% canary = 70% baseline (6,370) + 30% tri-model (455) = 6,825 neurons/day
- * - Free tier usage: ~68% (well within limits, 32% headroom)
- * - Expected: Superior handling of nuanced categories (zero-day vs vuln, cloud vs web)
+ * CANARY ROLLOUT (2025-12-08): Testing Qwen3 30B split vs unified at 30%
+ * - Baseline: Qwen 30B unified call (~26 neurons/article)
+ * - Tri-model: Qwen 30B split calls (~50 neurons/article)
+ * - Same model (Qwen3 30B MoE), different strategies
+ * - Empirical test: Does splitting improve quality or just waste neurons?
+ * - Cost: 30% canary = 70% baseline (546) + 30% tri-model (455) = 1,001 neurons/day
+ * - Free tier usage: ~10% (90% headroom - massively under quota!)
+ * - Can measure: classification accuracy, IOC extraction quality, JSON reliability
  */
 export const DEPLOYMENT_CONFIG = {
   // Current deployment mode - CANARY testing at 30%
