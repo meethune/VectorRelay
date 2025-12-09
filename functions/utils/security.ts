@@ -11,6 +11,23 @@ import { createEnumValidator, createStringValidator } from './validation';
  *
  * Uses a sliding window algorithm with KV storage
  * Key format: ratelimit:{endpoint}:{ip}
+ *
+ * ⚠️ KNOWN LIMITATION - Race Condition:
+ * This implementation has a read-modify-write race condition where concurrent
+ * requests can bypass the rate limit. For example, if limit=10 and count=9,
+ * two concurrent requests may both:
+ * 1. Read count=9
+ * 2. Increment to count=10
+ * 3. Both succeed (11 total requests)
+ *
+ * This is acceptable for the current threat model (low-impact API abuse).
+ * For production-critical rate limiting, use Durable Objects with atomic
+ * operations (see Phase 3 TODO.md - Real-time Features).
+ *
+ * Mitigation: IP-based blocking for detected abuse patterns (see blockAbusiveIP)
+ *
+ * TODO (Phase 3): Replace with Durable Objects for atomic rate limiting
+ * @see TODO.md Phase 3.1 - Real-time Features (Durable Objects)
  */
 export async function checkRateLimit(
   env: Env,
@@ -23,7 +40,7 @@ export async function checkRateLimit(
   const key = `ratelimit:${endpoint}:${identifier}`;
 
   try {
-    // Get current count from KV
+    // Get current count from KV (⚠️ race condition possible here)
     const data = await env.CACHE.get(key, 'json') as { count: number; resetAt: number } | null;
 
     if (!data || data.resetAt < now) {
@@ -77,23 +94,49 @@ export async function checkRateLimit(
 
 /**
  * Get client IP address from request
+ *
+ * SECURITY: Only trusts CF-Connecting-IP set by Cloudflare.
+ * X-Forwarded-For and X-Real-IP can be spoofed by attackers to bypass
+ * IP-based rate limiting and blocking.
+ *
+ * For Cloudflare Workers/Pages, CF-Connecting-IP is always set and trusted.
+ * If running outside Cloudflare, this will return 'unknown' - implement
+ * alternative IP detection for non-Cloudflare deployments.
  */
 export function getClientIP(request: Request): string {
-  // Cloudflare sets CF-Connecting-IP header
+  // ONLY trust CF-Connecting-IP (set by Cloudflare, cannot be spoofed)
   const cfIP = request.headers.get('CF-Connecting-IP');
-  if (cfIP) return cfIP;
-
-  // Fallback headers
-  const xForwardedFor = request.headers.get('X-Forwarded-For');
-  if (xForwardedFor) {
-    return xForwardedFor.split(',')[0].trim();
+  if (cfIP) {
+    // Validate IP format (basic check)
+    if (isValidIP(cfIP)) {
+      return cfIP;
+    }
   }
 
-  const xRealIP = request.headers.get('X-Real-IP');
-  if (xRealIP) return xRealIP;
-
-  // Last resort - return placeholder
+  // Return unknown if not on Cloudflare or invalid IP
+  // Do NOT use X-Forwarded-For or X-Real-IP (can be spoofed)
   return 'unknown';
+}
+
+/**
+ * Validate IP address format (IPv4 or IPv6)
+ */
+function isValidIP(ip: string): boolean {
+  // IPv4: xxx.xxx.xxx.xxx
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  // IPv6: simplified check (full validation is complex)
+  const ipv6Regex = /^([0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}$/;
+
+  if (ipv4Regex.test(ip)) {
+    // Validate each octet is 0-255
+    const octets = ip.split('.');
+    return octets.every(octet => {
+      const num = parseInt(octet, 10);
+      return num >= 0 && num <= 255;
+    });
+  }
+
+  return ipv6Regex.test(ip);
 }
 
 /**
@@ -141,7 +184,7 @@ export function rateLimitExceededResponse(resetAt: number): Response {
  *
  * Implements OWASP recommended security headers
  */
-export function addSecurityHeaders(response: Response): Response {
+export function addSecurityHeaders(response: Response, isHTML: boolean = false): Response {
   const headers = new Headers(response.headers);
 
   // Prevent MIME type sniffing
@@ -159,10 +202,31 @@ export function addSecurityHeaders(response: Response): Response {
   // Disable FLoC (privacy)
   headers.set('Permissions-Policy', 'interest-cohort=()');
 
-  // Content Security Policy for API responses
-  // Only set for non-HTML responses to avoid breaking the frontend
+  // Force HTTPS (HSTS) - 1 year, include subdomains
+  headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+
+  // Modern isolation headers
+  headers.set('Cross-Origin-Embedder-Policy', 'require-corp');
+  headers.set('Cross-Origin-Opener-Policy', 'same-origin');
+  headers.set('Cross-Origin-Resource-Policy', 'same-origin');
+
+  // Content Security Policy
   const contentType = headers.get('Content-Type');
-  if (contentType && contentType.includes('application/json')) {
+  if (isHTML || (contentType && contentType.includes('text/html'))) {
+    // Comprehensive CSP for HTML responses
+    headers.set('Content-Security-Policy',
+      "default-src 'self'; " +
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +  // TODO: Remove unsafe-inline/eval in production
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' data:; " +
+      "connect-src 'self' https://api.cloudflare.com; " +
+      "frame-ancestors 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self'"
+    );
+  } else if (contentType && contentType.includes('application/json')) {
+    // Strict CSP for API responses
     headers.set('Content-Security-Policy', "default-src 'none'");
   }
 
@@ -197,23 +261,77 @@ export function addCacheHeaders(
 }
 
 /**
+ * Allowed origins for CORS (configurable via environment)
+ *
+ * SECURITY: Never use wildcard '*' in production as it allows any site
+ * to make requests and potentially exfiltrate data.
+ *
+ * Default allowlist for development. In production, set via environment variable:
+ * ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+ */
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:5173',    // Vite dev server
+  'http://localhost:8788',    // Wrangler dev
+  'http://localhost:3000',    // Alternative dev port
+];
+
+/**
+ * Validate origin against allowlist
+ *
+ * @param origin - The Origin header from the request
+ * @param allowedOrigins - Array of allowed origins (optional, uses env.ALLOWED_ORIGINS or defaults)
+ * @returns The validated origin or null if not allowed
+ */
+export function validateOrigin(origin: string | null, allowedOrigins?: string[]): string | null {
+  if (!origin) return null;
+
+  const allowed = allowedOrigins || DEFAULT_ALLOWED_ORIGINS;
+
+  // Check if origin is in allowlist
+  if (allowed.includes(origin)) {
+    return origin;
+  }
+
+  return null;
+}
+
+/**
  * Add CORS headers to response
  *
- * Allows cross-origin requests from specified origins
- * Set origin to '*' to allow all origins (use with caution)
+ * SECURITY CHANGE: No longer accepts wildcard '*' by default.
+ * Validates origin against allowlist before setting CORS headers.
+ *
+ * For public APIs that need to allow all origins, explicitly pass '*'
+ * to the origin parameter, but understand the security implications:
+ * - Any website can make requests to your API
+ * - Cannot use credentials (cookies, auth headers) with wildcard
+ * - Susceptible to CSRF attacks
+ *
+ * @param response - The response to add headers to
+ * @param origin - Specific origin to allow, or '*' for wildcard (use with caution)
+ * @param methods - Allowed HTTP methods
+ * @param allowedHeaders - Allowed request headers
  */
 export function addCORSHeaders(
   response: Response,
-  origin: string = '*',
+  origin: string,  // ⚠️ NO DEFAULT - must be explicit
   methods: string = 'GET, POST, OPTIONS',
   allowedHeaders: string = 'Content-Type, Authorization'
 ): Response {
   const headers = new Headers(response.headers);
 
-  headers.set('Access-Control-Allow-Origin', origin);
-  headers.set('Access-Control-Allow-Methods', methods);
-  headers.set('Access-Control-Allow-Headers', allowedHeaders);
-  headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+  // Only set CORS headers if origin is provided
+  if (origin) {
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Methods', methods);
+    headers.set('Access-Control-Allow-Headers', allowedHeaders);
+    headers.set('Access-Control-Max-Age', '86400'); // 24 hours
+
+    // If using credentials, origin cannot be '*'
+    if (origin !== '*') {
+      headers.set('Access-Control-Allow-Credentials', 'true');
+    }
+  }
 
   return new Response(response.body, {
     status: response.status,
@@ -225,22 +343,34 @@ export function addCORSHeaders(
 /**
  * Handle CORS preflight requests (OPTIONS)
  *
+ * SECURITY: Use validateOrigin() to check the request origin before calling this.
+ *
  * Example usage in an API endpoint:
  *
- * export const onRequestOptions: PagesFunction<Env> = async () => {
- *   return handleCORSPreflight('*', 'GET, POST, OPTIONS', 'Content-Type, Authorization');
+ * export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+ *   const requestOrigin = request.headers.get('Origin');
+ *   const validatedOrigin = validateOrigin(requestOrigin);
+ *
+ *   if (!validatedOrigin) {
+ *     return new Response('Origin not allowed', { status: 403 });
+ *   }
+ *
+ *   return handleCORSPreflight(validatedOrigin);
  * };
  *
  * export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
+ *   const requestOrigin = request.headers.get('Origin');
+ *   const validatedOrigin = validateOrigin(requestOrigin);
+ *
  *   const response = Response.json({ data: 'example' });
  *   return wrapResponse(response, {
- *     cors: { origin: '*' },
+ *     cors: validatedOrigin ? { origin: validatedOrigin } : undefined,
  *     cacheMaxAge: 300
  *   });
  * };
  */
 export function handleCORSPreflight(
-  origin: string = '*',
+  origin: string,  // ⚠️ NO DEFAULT - must be validated origin
   methods: string = 'GET, POST, OPTIONS',
   allowedHeaders: string = 'Content-Type, Authorization'
 ): Response {
@@ -328,7 +458,7 @@ export function sanitizeInput(input: string): string {
 /**
  * Combined security middleware
  *
- * Applies rate limiting, security headers, and cache headers
+ * Applies IP blocking, rate limiting, security headers, and cache headers
  */
 export async function securityMiddleware(
   request: Request,
@@ -340,9 +470,21 @@ export async function securityMiddleware(
     cachePrivacy?: 'public' | 'private';
   } = {}
 ): Promise<{ allowed: boolean; response?: Response; rateLimitInfo?: any }> {
+  const ip = getClientIP(request);
+
+  // Check if IP is blocked (highest priority)
+  if (await isIPBlocked(env, ip)) {
+    const response = blockedIPResponse('Your IP has been blocked for abuse');
+    const secureResponse = addSecurityHeaders(response);
+
+    return {
+      allowed: false,
+      response: secureResponse,
+    };
+  }
+
   // Check rate limit if configured
   if (options.rateLimit) {
-    const ip = getClientIP(request);
     const rateLimitResult = await checkRateLimit(
       env,
       ip,
@@ -417,4 +559,114 @@ export function wrapResponse(
   }
 
   return wrapped;
+}
+
+/**
+ * IP Blocking for Abuse Prevention
+ *
+ * Temporarily or permanently block abusive IP addresses.
+ * Uses KV storage with TTL for temporary blocks.
+ *
+ * Key format: blocklist:ip:{ip}
+ */
+
+/**
+ * Check if IP is blocked
+ *
+ * @param env - Cloudflare environment
+ * @param ip - IP address to check
+ * @returns true if IP is blocked, false otherwise
+ */
+export async function isIPBlocked(env: Env, ip: string): Promise<boolean> {
+  if (ip === 'unknown') return false; // Don't block unknown IPs
+
+  const key = `blocklist:ip:${ip}`;
+
+  try {
+    const blocked = await env.CACHE.get(key);
+    return blocked !== null;
+  } catch (error) {
+    logError('Failed to check IP blocklist', error, { ip });
+    return false; // Fail open
+  }
+}
+
+/**
+ * Block an IP address
+ *
+ * @param env - Cloudflare environment
+ * @param ip - IP address to block
+ * @param durationSeconds - Block duration in seconds (0 = permanent until manual removal)
+ * @param reason - Reason for blocking (for logging/auditing)
+ */
+export async function blockIP(
+  env: Env,
+  ip: string,
+  durationSeconds: number = 3600,
+  reason: string = 'abuse_detected'
+): Promise<void> {
+  if (ip === 'unknown') return; // Don't block unknown IPs
+
+  const key = `blocklist:ip:${ip}`;
+  const blockData = {
+    ip,
+    reason,
+    blockedAt: Math.floor(Date.now() / 1000),
+    expiresAt: durationSeconds > 0 ? Math.floor(Date.now() / 1000) + durationSeconds : null,
+  };
+
+  try {
+    if (durationSeconds > 0) {
+      // Temporary block with TTL
+      await env.CACHE.put(key, JSON.stringify(blockData), {
+        expirationTtl: durationSeconds,
+      });
+    } else {
+      // Permanent block (no TTL - requires manual removal)
+      await env.CACHE.put(key, JSON.stringify(blockData));
+    }
+
+    logError(`IP blocked: ${ip}`, new Error(reason), {
+      ip,
+      reason,
+      durationSeconds,
+      permanent: durationSeconds === 0,
+    });
+  } catch (error) {
+    logError('Failed to block IP', error, { ip, reason });
+  }
+}
+
+/**
+ * Unblock an IP address
+ *
+ * @param env - Cloudflare environment
+ * @param ip - IP address to unblock
+ */
+export async function unblockIP(env: Env, ip: string): Promise<void> {
+  const key = `blocklist:ip:${ip}`;
+
+  try {
+    await env.CACHE.delete(key);
+  } catch (error) {
+    logError('Failed to unblock IP', error, { ip });
+  }
+}
+
+/**
+ * Create blocked response
+ *
+ * @param reason - Reason for blocking
+ * @returns HTTP 403 Forbidden response
+ */
+export function blockedIPResponse(reason: string = 'IP blocked for abuse'): Response {
+  return new Response(JSON.stringify({
+    error: 'Access denied',
+    message: reason,
+  }), {
+    status: 403,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 }

@@ -15,6 +15,11 @@ import {
   sanitizeInput,
   securityMiddleware,
   wrapResponse,
+  validateOrigin,
+  isIPBlocked,
+  blockIP,
+  unblockIP,
+  blockedIPResponse,
 } from '../../../functions/utils/security';
 import type { Env } from '../../../functions/types';
 import {
@@ -42,14 +47,22 @@ import {
 } from '../../fixtures/security';
 
 // Mock environment
-function createMockEnv(kvData: any = null): Env {
+function createMockEnv(kvData: any = null, ipBlocked: boolean = false): Env {
   return {
     DB: {} as any,
     AI: {} as any,
     VECTORIZE_INDEX: {} as any,
     CACHE: {
-      get: vi.fn().mockResolvedValue(kvData),
+      get: vi.fn().mockImplementation((key: string) => {
+        // Handle IP blocklist checks
+        if (key.startsWith('blocklist:ip:')) {
+          return Promise.resolve(ipBlocked ? { blocked: true } : null);
+        }
+        // Handle rate limit checks
+        return Promise.resolve(kvData);
+      }),
       put: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
     } as any,
     ANALYTICS: {} as any,
     THREAT_ARCHIVE: {} as any,
@@ -141,14 +154,14 @@ describe('Security Utils', () => {
       expect(ip).toBe('203.0.113.100');
     });
 
-    it('should extract IP from X-Forwarded-For header when CF header missing', () => {
+    it('should return "unknown" for X-Forwarded-For header (spoofable)', () => {
       const ip = getClientIP(MOCK_REQUEST_WITH_X_FORWARDED);
-      expect(ip).toBe('203.0.113.101'); // First IP in the list
+      expect(ip).toBe('unknown'); // No longer trusted - can be spoofed
     });
 
-    it('should extract IP from X-Real-IP header when others missing', () => {
+    it('should return "unknown" for X-Real-IP header (spoofable)', () => {
       const ip = getClientIP(MOCK_REQUEST_WITH_X_REAL_IP);
-      expect(ip).toBe('203.0.113.102');
+      expect(ip).toBe('unknown'); // No longer trusted - can be spoofed
     });
 
     it('should return "unknown" when no IP headers present', () => {
@@ -167,13 +180,13 @@ describe('Security Utils', () => {
       expect(ip).toBe('203.0.113.100');
     });
 
-    it('should handle X-Forwarded-For with multiple IPs and whitespace', () => {
+    it('should return "unknown" for X-Forwarded-For with multiple IPs (spoofable)', () => {
       const request = createMockRequest({
         'X-Forwarded-For': '  203.0.113.101  , 198.51.100.1, 192.0.2.1  ',
       });
 
       const ip = getClientIP(request);
-      expect(ip).toBe('203.0.113.101');
+      expect(ip).toBe('unknown'); // No longer trusted - can be spoofed
     });
   });
 
@@ -243,10 +256,13 @@ describe('Security Utils', () => {
       expect(wrapped.headers.get('Content-Security-Policy')).toBe("default-src 'none'");
     });
 
-    it('should not add CSP header for HTML responses', () => {
-      const wrapped = addSecurityHeaders(MOCK_HTML_RESPONSE);
+    it('should add comprehensive CSP header for HTML responses', () => {
+      const wrapped = addSecurityHeaders(MOCK_HTML_RESPONSE, true);
 
-      expect(wrapped.headers.get('Content-Security-Policy')).toBeNull();
+      const csp = wrapped.headers.get('Content-Security-Policy');
+      expect(csp).toContain("default-src 'self'");
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(csp).toContain("base-uri 'self'");
     });
   });
 
@@ -287,45 +303,69 @@ describe('Security Utils', () => {
     });
   });
 
-  describe('addCORSHeaders()', () => {
-    it('should add CORS headers with default values', () => {
-      const response = createMockResponse();
-      const wrapped = addCORSHeaders(response);
-
-      expect(wrapped.headers.get('Access-Control-Allow-Origin')).toBe('*');
-      expect(wrapped.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, OPTIONS');
-      expect(wrapped.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
-      expect(wrapped.headers.get('Access-Control-Max-Age')).toBe('86400');
+  describe('validateOrigin()', () => {
+    it('should validate origin against default allowlist', () => {
+      const validOrigin = validateOrigin('http://localhost:5173');
+      expect(validOrigin).toBe('http://localhost:5173');
     });
 
-    it('should add CORS headers with custom origin', () => {
+    it('should reject origin not in allowlist', () => {
+      const invalidOrigin = validateOrigin('https://evil.com');
+      expect(invalidOrigin).toBeNull();
+    });
+
+    it('should accept origin in custom allowlist', () => {
+      const validOrigin = validateOrigin('https://example.com', ['https://example.com']);
+      expect(validOrigin).toBe('https://example.com');
+    });
+
+    it('should return null for null origin', () => {
+      const result = validateOrigin(null);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('addCORSHeaders()', () => {
+    it('should add CORS headers with explicit origin', () => {
       const response = createMockResponse();
       const wrapped = addCORSHeaders(response, 'https://example.com');
 
       expect(wrapped.headers.get('Access-Control-Allow-Origin')).toBe('https://example.com');
+      expect(wrapped.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, OPTIONS');
+      expect(wrapped.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, Authorization');
+      expect(wrapped.headers.get('Access-Control-Max-Age')).toBe('86400');
+      expect(wrapped.headers.get('Access-Control-Allow-Credentials')).toBe('true');
+    });
+
+    it('should add CORS headers with wildcard origin', () => {
+      const response = createMockResponse();
+      const wrapped = addCORSHeaders(response, '*');
+
+      expect(wrapped.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(wrapped.headers.get('Access-Control-Allow-Credentials')).toBeNull();
     });
 
     it('should add CORS headers with custom methods', () => {
       const response = createMockResponse();
-      const wrapped = addCORSHeaders(response, '*', 'GET, POST, PUT, DELETE');
+      const wrapped = addCORSHeaders(response, 'https://example.com', 'GET, POST, PUT, DELETE');
 
       expect(wrapped.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, PUT, DELETE');
     });
 
     it('should add CORS headers with custom allowed headers', () => {
       const response = createMockResponse();
-      const wrapped = addCORSHeaders(response, '*', 'GET, POST', 'Content-Type, X-API-Key');
+      const wrapped = addCORSHeaders(response, 'https://example.com', 'GET, POST', 'Content-Type, X-API-Key');
 
       expect(wrapped.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type, X-API-Key');
     });
   });
 
   describe('handleCORSPreflight()', () => {
-    it('should return 204 response with CORS headers', () => {
-      const response = handleCORSPreflight();
+    it('should return 204 response with CORS headers for validated origin', () => {
+      const response = handleCORSPreflight('https://example.com');
 
       expect(response.status).toBe(204);
-      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://example.com');
       expect(response.headers.get('Access-Control-Allow-Methods')).toBe('GET, POST, OPTIONS');
     });
 
@@ -487,6 +527,142 @@ describe('Security Utils', () => {
       });
 
       expect(result.response?.headers.get('X-Content-Type-Options')).toBe('nosniff');
+    });
+
+    it('should block request when IP is blocked', async () => {
+      const env = createMockEnv(null, true); // ipBlocked = true
+      const request = MOCK_REQUEST_WITH_CF_IP;
+
+      const result = await securityMiddleware(request, env, 'test-endpoint', {
+        rateLimit: { limit: 10, window: 60 },
+      });
+
+      expect(result.allowed).toBe(false);
+      expect(result.response).toBeTruthy();
+      expect(result.response?.status).toBe(403);
+    });
+
+    it('should check IP block before rate limit', async () => {
+      const env = createMockEnv(MOCK_RATE_LIMIT_DATA_ACTIVE, true); // IP blocked
+      const request = MOCK_REQUEST_WITH_CF_IP;
+
+      const result = await securityMiddleware(request, env, 'test-endpoint', {
+        rateLimit: { limit: 10, window: 60 },
+      });
+
+      // Should return 403 (blocked) not 429 (rate limited)
+      expect(result.allowed).toBe(false);
+      expect(result.response?.status).toBe(403);
+    });
+  });
+
+  describe('IP Blocking', () => {
+    describe('isIPBlocked()', () => {
+      it('should return false when IP is not blocked', async () => {
+        const env = createMockEnv(null, false);
+        const result = await isIPBlocked(env, '203.0.113.1');
+
+        expect(result).toBe(false);
+        expect(env.CACHE.get).toHaveBeenCalledWith('blocklist:ip:203.0.113.1');
+      });
+
+      it('should return true when IP is blocked', async () => {
+        const env = createMockEnv(null, true);
+        const result = await isIPBlocked(env, '203.0.113.1');
+
+        expect(result).toBe(true);
+      });
+
+      it('should return false for unknown IP', async () => {
+        const env = createMockEnv();
+        const result = await isIPBlocked(env, 'unknown');
+
+        expect(result).toBe(false);
+        expect(env.CACHE.get).not.toHaveBeenCalled();
+      });
+
+      it('should fail open when KV throws error', async () => {
+        const env = createMockEnv();
+        env.CACHE.get = vi.fn().mockRejectedValue(new Error('KV error'));
+
+        const result = await isIPBlocked(env, '203.0.113.1');
+
+        expect(result).toBe(false);
+      });
+    });
+
+    describe('blockIP()', () => {
+      it('should block IP with TTL for temporary block', async () => {
+        const env = createMockEnv();
+
+        await blockIP(env, '203.0.113.1', 3600, 'rate_limit_abuse');
+
+        expect(env.CACHE.put).toHaveBeenCalled();
+        const putCall = (env.CACHE.put as any).mock.calls[0];
+        expect(putCall[0]).toBe('blocklist:ip:203.0.113.1');
+        expect(putCall[2]).toMatchObject({ expirationTtl: 3600 });
+
+        const blockData = JSON.parse(putCall[1]);
+        expect(blockData.ip).toBe('203.0.113.1');
+        expect(blockData.reason).toBe('rate_limit_abuse');
+      });
+
+      it('should block IP permanently when duration is 0', async () => {
+        const env = createMockEnv();
+
+        await blockIP(env, '203.0.113.1', 0, 'malicious_activity');
+
+        expect(env.CACHE.put).toHaveBeenCalled();
+        const putCall = (env.CACHE.put as any).mock.calls[0];
+        expect(putCall[0]).toBe('blocklist:ip:203.0.113.1');
+        expect(putCall[2]).toBeUndefined(); // No TTL
+      });
+
+      it('should not block unknown IP', async () => {
+        const env = createMockEnv();
+
+        await blockIP(env, 'unknown', 3600, 'test');
+
+        expect(env.CACHE.put).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('unblockIP()', () => {
+      it('should remove IP from blocklist', async () => {
+        const env = createMockEnv();
+
+        await unblockIP(env, '203.0.113.1');
+
+        expect(env.CACHE.delete).toHaveBeenCalledWith('blocklist:ip:203.0.113.1');
+      });
+
+      it('should handle deletion errors gracefully', async () => {
+        const env = createMockEnv();
+        env.CACHE.delete = vi.fn().mockRejectedValue(new Error('KV error'));
+
+        // Should not throw
+        await expect(unblockIP(env, '203.0.113.1')).resolves.toBeUndefined();
+      });
+    });
+
+    describe('blockedIPResponse()', () => {
+      it('should return 403 response with error message', async () => {
+        const response = blockedIPResponse('Test reason');
+
+        expect(response.status).toBe(403);
+        expect(response.headers.get('Content-Type')).toBe('application/json');
+
+        const body = await response.json();
+        expect(body.error).toBe('Access denied');
+        expect(body.message).toBe('Test reason');
+      });
+
+      it('should use default message when not provided', async () => {
+        const response = blockedIPResponse();
+
+        const body = await response.json();
+        expect(body.message).toBe('IP blocked for abuse');
+      });
     });
   });
 
