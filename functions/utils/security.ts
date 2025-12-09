@@ -278,21 +278,46 @@ const DEFAULT_ALLOWED_ORIGINS = [
 /**
  * Validate origin against allowlist
  *
+ * Checks the Origin header against a list of allowed origins. The allowlist is determined in this order:
+ * 1. Explicit allowedOrigins parameter (for testing/overrides)
+ * 2. env.ALLOWED_ORIGINS environment variable (comma-separated, for production)
+ * 3. DEFAULT_ALLOWED_ORIGINS (localhost ports, for development)
+ *
  * @param origin - The Origin header from the request
- * @param allowedOrigins - Array of allowed origins (optional, uses env.ALLOWED_ORIGINS or defaults)
+ * @param env - Optional Cloudflare environment (for reading ALLOWED_ORIGINS)
+ * @param allowedOrigins - Optional explicit array of allowed origins (overrides env and defaults)
  * @returns The validated origin or null if not allowed
+ *
+ * @example
+ * // In development (uses defaults)
+ * const validatedOrigin = validateOrigin('http://localhost:5173');
+ *
+ * // In production (reads from env.ALLOWED_ORIGINS)
+ * const validatedOrigin = validateOrigin(requestOrigin, env);
+ *
+ * // With explicit override
+ * const validatedOrigin = validateOrigin(requestOrigin, undefined, ['https://custom.com']);
  */
-export function validateOrigin(origin: string | null, allowedOrigins?: string[]): string | null {
+export function validateOrigin(
+  origin: string | null,
+  env?: Env,
+  allowedOrigins?: string[]
+): string | null {
   if (!origin) return null;
 
-  const allowed = allowedOrigins || DEFAULT_ALLOWED_ORIGINS;
-
-  // Check if origin is in allowlist
-  if (allowed.includes(origin)) {
-    return origin;
+  // Priority 1: Explicit allowedOrigins parameter (for testing/overrides)
+  if (allowedOrigins) {
+    return allowedOrigins.includes(origin) ? origin : null;
   }
 
-  return null;
+  // Priority 2: Environment variable (for production)
+  if (env?.ALLOWED_ORIGINS) {
+    const envOrigins = env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean);
+    return envOrigins.includes(origin) ? origin : null;
+  }
+
+  // Priority 3: Default allowlist (for development)
+  return DEFAULT_ALLOWED_ORIGINS.includes(origin) ? origin : null;
 }
 
 /**

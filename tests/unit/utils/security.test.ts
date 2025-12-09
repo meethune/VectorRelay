@@ -315,7 +315,7 @@ describe('Security Utils', () => {
     });
 
     it('should accept origin in custom allowlist', () => {
-      const validOrigin = validateOrigin('https://example.com', ['https://example.com']);
+      const validOrigin = validateOrigin('https://example.com', undefined, ['https://example.com']);
       expect(validOrigin).toBe('https://example.com');
     });
 

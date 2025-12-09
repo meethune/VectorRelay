@@ -42,9 +42,9 @@ function groupIOCsByType(iocs: any[]): ThreatForSimilarity['iocs'] {
 }
 
 // Handle CORS preflight requests
-export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
+export const onRequestOptions: PagesFunction<Env> = async ({ request, env }) => {
   const requestOrigin = request.headers.get('Origin');
-  const validatedOrigin = validateOrigin(requestOrigin);
+  const validatedOrigin = validateOrigin(requestOrigin, env);
 
   if (!validatedOrigin) {
     return new Response('Origin not allowed', { status: 403 });
@@ -56,7 +56,7 @@ export const onRequestOptions: PagesFunction<Env> = async ({ request }) => {
 export const onRequestGet: PagesFunction<Env> = async ({ request, params, env }) => {
   // Validate CORS origin
   const requestOrigin = request.headers.get('Origin');
-  const validatedOrigin = validateOrigin(requestOrigin);
+  const validatedOrigin = validateOrigin(requestOrigin, env);
 
   // Apply security middleware with stricter rate limit (AI processing expensive)
   const securityCheck = await securityMiddleware(request, env, 'threat-detail', {

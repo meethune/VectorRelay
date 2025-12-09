@@ -53,15 +53,16 @@ return 'unknown';
 ---
 
 ### 3. **Wildcard CORS by Default** (FIXED ✅)
-**Status**: FIXED
+**Status**: FULLY IMPLEMENTED
 **Severity**: MEDIUM
 **Impact**: Any website could make requests and exfiltrate data
 
 **Changes**:
 - Removed default `'*'` origin from `addCORSHeaders()`
-- Added `validateOrigin()` function with allowlist
+- Added `validateOrigin()` function with 3-tier priority system
 - Default allowlist for development (localhost ports)
-- Production origins must be explicitly configured
+- Production origins configurable via `ALLOWED_ORIGINS` environment variable
+- Integrated into all 5 public API endpoints (stats, threats, search, sources, threat/[id])
 - Added `Access-Control-Allow-Credentials: true` for non-wildcard origins
 
 **Code**:
@@ -73,19 +74,41 @@ export function addCORSHeaders(
   ...
 )
 
-// AFTER: Explicit origin required
+// AFTER: Explicit origin required with 3-tier priority
 export function addCORSHeaders(
   response: Response,
   origin: string,  // ✅ No default - must validate first
   ...
 )
 
-// New validation function
-export function validateOrigin(origin: string | null, allowedOrigins?: string[]): string | null {
+// New validation function with production configuration support
+export function validateOrigin(
+  origin: string | null,
+  env?: Env,
+  allowedOrigins?: string[]
+): string | null {
   if (!origin) return null;
-  const allowed = allowedOrigins || DEFAULT_ALLOWED_ORIGINS;
-  return allowed.includes(origin) ? origin : null;
+
+  // Priority 1: Explicit override (for tests)
+  if (allowedOrigins) {
+    return allowedOrigins.includes(origin) ? origin : null;
+  }
+
+  // Priority 2: Environment variable (for production)
+  if (env?.ALLOWED_ORIGINS) {
+    const envOrigins = env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean);
+    return envOrigins.includes(origin) ? origin : null;
+  }
+
+  // Priority 3: Defaults (for development)
+  return DEFAULT_ALLOWED_ORIGINS.includes(origin) ? origin : null;
 }
+```
+
+**Production Configuration**:
+```bash
+# Set in Cloudflare Dashboard → Workers → Settings → Variables
+ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
 ```
 
 ---
@@ -190,12 +213,12 @@ if (validatedOrigin) {
 ### Phase 1.2: Security Enhancements
 
 - [x] ~~Implement rate limiting using KV for API endpoints~~ ✅ (with known race condition)
-- [ ] Add CORS configuration with domain allowlist (partially done - needs integration)
+- [x] ~~Add CORS configuration with domain allowlist~~ ✅ (integrated + production config via env var)
 - [ ] Create request validation middleware
 - [ ] Add input sanitization for search queries (basic implementation exists)
-- [x] Implement CSP headers for frontend ✅
+- [x] ~~Implement CSP headers for frontend~~ ✅
 - [ ] Add API key rotation mechanism
-- [x] Create IP-based rate limiting for abuse prevention ✅
+- [x] ~~Create IP-based rate limiting for abuse prevention~~ ✅
 
 ---
 

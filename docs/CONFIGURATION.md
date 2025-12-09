@@ -64,6 +64,54 @@ Value: your-gateway-id
 
 ---
 
+### Security Configuration
+
+#### `ALLOWED_ORIGINS`
+**Default:** Development localhost ports (http://localhost:5173, http://localhost:8788, http://localhost:3000)
+**Values:** Comma-separated list of allowed origins
+**Required for production:** Yes
+
+Controls which origins can make cross-origin requests to the API via CORS.
+
+**Security:** By default, only localhost development ports are allowed. For production deployments, you MUST configure this with your actual domain(s).
+
+**How to Configure:**
+
+**Option 1: Cloudflare Dashboard (Recommended)**
+```
+1. Workers & Pages → threat-intel-dashboard → Settings → Variables
+2. Add variable: ALLOWED_ORIGINS
+3. Value: https://yourdomain.com,https://app.yourdomain.com
+4. Save (takes effect immediately, no redeploy needed)
+```
+
+**Option 2: Edit wrangler.jsonc**
+```jsonc
+"vars": {
+  "ALLOWED_ORIGINS": "https://yourdomain.com,https://app.yourdomain.com"
+}
+```
+Then redeploy: `npm run deploy`
+
+**Examples:**
+```bash
+# Single origin
+ALLOWED_ORIGINS="https://yourdomain.com"
+
+# Multiple origins (comma-separated, no spaces)
+ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com,https://admin.yourdomain.com"
+
+# Development (already default, no need to set)
+ALLOWED_ORIGINS="http://localhost:5173,http://localhost:8788,http://localhost:3000"
+```
+
+**⚠️ SECURITY WARNING:**
+- Never use wildcard `*` in production - this allows ANY website to access your API
+- Only add origins you control and trust
+- Use HTTPS in production (HTTP only for localhost development)
+
+---
+
 ### R2 Storage Configuration
 
 #### `R2_ARCHIVE_ENABLED`
@@ -333,6 +381,7 @@ curl -H "Authorization: Bearer your-secret-key" \
 | `ENVIRONMENT` | `production` | ✅ Dashboard or wrangler.jsonc |
 | `AI_GATEWAY_ID` | `threat-intel-dashboard` | ✅ Dashboard or wrangler.jsonc |
 | `R2_ARCHIVE_ENABLED` | `true` | ✅ Dashboard or wrangler.jsonc |
+| `ALLOWED_ORIGINS` | Development localhost | ✅ Dashboard or wrangler.jsonc (required for production) |
 | `API_SECRET` | Not set | ✅ Dashboard or CLI (secret) |
 
 ---
@@ -346,6 +395,7 @@ Create `.dev.vars` for local development (never commit this file):
 ENVIRONMENT=development
 AI_GATEWAY_ID=threat-intel-dashboard
 R2_ARCHIVE_ENABLED=true
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8788,http://localhost:3000
 ```
 
 This allows testing debug endpoints locally:

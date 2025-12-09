@@ -14,6 +14,7 @@ export interface Env {
   ASSETS: Fetcher; // Added for Workers static assets support
   AI_GATEWAY_ID: string; // AI Gateway ID for routing Workers AI calls through gateway
   R2_ARCHIVE_ENABLED?: string; // 'true' | 'false' - Enable/disable R2 archival
+  ALLOWED_ORIGINS?: string; // Comma-separated list of allowed CORS origins for production
 }
 
 export interface Threat {
