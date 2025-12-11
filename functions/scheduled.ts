@@ -99,9 +99,20 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
     const neuronSummary = neuronTracker.getSummary();
     const breakdown = neuronTracker.getBreakdown();
 
-    console.log(`🧠 Neuron usage this run: ${neuronSummary.neuronsUsed} neurons`);
-    console.log(`🧠 Daily total estimate (4 runs): ~${neuronSummary.neuronsUsed * 4} neurons/day (${Math.round((neuronSummary.neuronsUsed * 4) / 100)}% of 10,000 limit)`);
-    console.log(`🧠 Status: ${neuronSummary.status} (${neuronSummary.percentUsed}% of daily limit used)`);
+    // Calculate per-article average (more accurate than assumptions)
+    const neuronsPerArticle = aiProcessed > 0
+      ? Math.round(neuronSummary.neuronsUsed / aiProcessed)
+      : 0;
+
+    console.log(`🧠 Neuron usage this run: ${neuronSummary.neuronsUsed} neurons (${aiProcessed} articles processed)`);
+
+    if (aiProcessed > 0) {
+      console.log(`🧠 Average per article: ~${neuronsPerArticle} neurons`);
+      console.log(`🧠 Estimated daily usage: ~${Math.round(neuronSummary.neuronsUsed * 4)} neurons (assuming 4 runs/day with similar load)`);
+      console.log(`🧠 Free tier capacity: ${Math.round((neuronSummary.neuronsUsed * 4) / 100)}% of 10,000 limit`);
+    } else {
+      console.log(`🧠 No articles processed this run - no neuron usage`);
+    }
 
     if (breakdown.length > 0) {
       console.log(`🧠 Model breakdown:`);
@@ -110,7 +121,7 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
       }
     }
 
-    // Warning if approaching limit
+    // Warning if approaching limit (based on actual daily usage, not projection)
     if (neuronSummary.status === 'WARNING') {
       console.warn(`⚠️ WARNING: Neuron usage at ${neuronSummary.percentUsed}% of daily limit!`);
     } else if (neuronSummary.status === 'CRITICAL') {
@@ -120,7 +131,14 @@ export const onSchedule = async ({ env }: { env: Env }): Promise<Response> => {
     // Write analytics
     env.ANALYTICS.writeDataPoint({
       blobs: ['feed_ingestion'],
-      doubles: [totalNew, totalProcessed, aiProcessed, subrequestCount],
+      doubles: [
+        totalNew,
+        totalProcessed,
+        aiProcessed,
+        subrequestCount,
+        neuronSummary.neuronsUsed,      // Track actual neuron usage
+        neuronsPerArticle,               // Track efficiency metric
+      ],
       indexes: [new Date().toISOString().split('T')[0]], // Date as index
     });
 
